@@ -61,18 +61,22 @@ class StubVisitor(NodeVisitor):
         Returns:
             True if the member should be included
         """
-        # Always include special methods
-        if name.startswith("__") and name.endswith("__"):
-            return True
-        # Include private members if configured
+        # If include_private is True, include everything
         if self.config.include_private:
             return True
-        # Exclude private members (both single and double underscore)
-        return not (name.startswith("_") or name.startswith("__"))
+
+        # Always include special methods (dunder methods)
+        if name.startswith("__") and name.endswith("__"):
+            return True
+
+        # Exclude anything that starts with underscore
+        if name.startswith("_"):
+            return False
+
+        return True
 
     def visit_ClassDef(self, node: ClassDef) -> None:
         """Visit class definitions."""
-        # Skip private classes unless they are special methods
         if not self._should_include_member(node.name):
             return
 
@@ -80,13 +84,13 @@ class StubVisitor(NodeVisitor):
         # Visit class body for methods and assignments
         for item in node.body:
             if isinstance(item, FunctionDef):
-                self.visit(item)
+                if self._should_include_member(item.name):
+                    self.visit(item)
             elif isinstance(item, Assign | AnnAssign):
                 self.visit(item)
 
     def visit_FunctionDef(self, node: FunctionDef) -> None:
         """Visit function definitions."""
-        # Skip private functions unless they are special methods
         if not self._should_include_member(node.name):
             return
 
@@ -256,14 +260,19 @@ class StubGenerator:
         Returns:
             True if the member should be included
         """
-        # Always include special methods
-        if name.startswith("__") and name.endswith("__"):
-            return True
-        # Include private members if configured
+        # If include_private is True, include everything
         if self.config.include_private:
             return True
-        # Exclude private members (both single and double underscore)
-        return not (name.startswith("_") or name.startswith("__"))
+
+        # Always include special methods (dunder methods)
+        if name.startswith("__") and name.endswith("__"):
+            return True
+
+        # Exclude anything that starts with underscore
+        if name.startswith("_"):
+            return False
+
+        return True
 
     def generate_stub(
         self, source_file: str | Path, ast_tree: AST | None = None

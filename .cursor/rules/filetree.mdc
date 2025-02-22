@@ -2,7 +2,7 @@
 description: File tree of the project
 globs: 
 ---
-[ 928]  .
+[ 960]  .
 ├── [  64]  .benchmarks
 ├── [  96]  .cursor
 │   └── [ 224]  rules
