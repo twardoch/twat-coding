@@ -6,12 +6,11 @@ Don't use `pip`, use `uv pip`.
 
 # TODO
 
-
 This TODO.md is a detailed development specification for making `pystubnik` functional ASAP, focusing on integrating the new file importance analysis and eliminating standalone scripts.
 
 ## 1. Dependencies and Environment (URGENT)
 
-- [!] **Add New Dependencies to `pyproject.toml`:**
+- [x] **Add New Dependencies to `pyproject.toml`:**
   ```toml
   [project]
   dependencies = [
@@ -25,34 +24,43 @@ This TODO.md is a detailed development specification for making `pystubnik` func
   ]
   ```
 
-- [!] **Fix Import Resolution:**
-  - Add missing type stubs: `types-toml`, `types-pydocstyle`
-  - Fix importlab imports by adding to PYTHONPATH or using relative imports
-  - Add proper error handling for optional dependencies
+- [x] **Fix Import Resolution:**
+  - Added missing type stubs: `types-toml`, replaced `types-pydocstyle` with `mypy-extensions`
+  - Simplified import graph building to not rely on importlab
+  - Added proper error handling for optional dependencies
 
 ## 2. Code Quality Fixes
 
-- [!] **Fix Critical Linter Errors:**
-  - Fix `Numbers.percentage` attribute error in `file_importance.py`
-  - Add proper type hints for importlab classes
-  - Fix line length issues in `file_importance.py`
-  - Add error handling for missing dependencies
+- [x] **Fix Critical Linter Errors:**
+  - Fixed `Numbers.percentage` attribute error in `file_importance.py`
+  - Added proper type hints for importlab classes
+  - Fixed line length issues in `file_importance.py`
+  - Added error handling for missing dependencies
+  - Fixed type errors in centrality calculation
 
-- [ ] **Improve Code Organization:**
-  - Move common utilities to `utils/` directory
-  - Add proper logging configuration
-  - Add debug mode for verbose output
-  - Document public APIs
+- [!] **Improve Code Organization:**
+  - Create `utils/` directory with:
+    - `graph_utils.py`: Import graph building and analysis
+    - `metrics.py`: Code complexity, coverage, and doc quality metrics
+    - `config.py`: Configuration handling and validation
+    - `logging.py`: Centralized logging setup
+  - Move common functions from `file_importance.py` to appropriate utils
+  - Add proper error handling and logging throughout
+  - Document all utility functions with type hints and docstrings
 
-- [ ] **Add Basic Tests:**
-  - Unit tests for `ImportanceProcessor`
-  - Unit tests for `FileImportanceConfig`
-  - Integration tests for combined scoring
-  - Test with real-world packages
+- [!] **Add Basic Tests:**
+  - Create `tests/processors/test_file_importance.py` with:
+    - Test cases for graph building with mock files
+    - Test cases for each metric calculation
+    - Test cases for config loading and validation
+    - Test cases for error handling of missing dependencies
+  - Add test fixtures for sample Python files
+  - Add test coverage reporting
+  - Add performance benchmarks for large codebases
 
 ## 3. Feature Integration
 
-- [!] **Complete File Importance Integration:**
+- [x] **Complete File Importance Integration:**
   ```python
   # In ImportanceProcessor.process():
   def process(self, stub_result: StubResult) -> StubResult:
@@ -76,45 +84,69 @@ This TODO.md is a detailed development specification for making `pystubnik` func
       return stub_result
   ```
 
-- [ ] **Enhance Configuration System:**
-  - Add file importance settings to `StubGenConfig`
-  - Add CLI options for file metrics
-  - Add configuration validation
-  - Document all options
+- [!] **Enhance Configuration System:**
+  - Create `FileImportanceConfig` class with:
+    ```python
+    @dataclass
+    class FileImportanceConfig:
+        exclude_dirs: list[str]
+        centrality_measure: Literal["pagerank", "betweenness", "eigenvector"]
+        coverage_data_path: Path | None
+        weights: dict[str, float]
+        min_coverage_threshold: float
+        max_complexity_threshold: float
+        doc_quality_checks: list[str]
+        cache_results: bool
+    ```
+  - Add validation for all config fields
+  - Add CLI options for all config settings
+  - Add config file support (JSON/TOML)
+  - Add config documentation and examples
 
-- [ ] **Improve Processors:**
-  - Update `DocstringProcessor` to handle file-level docs
-  - Update `ImportProcessor` to use import graph
-  - Add caching for file scores
-  - Add progress reporting
+- [!] **Improve Processors:**
+  - Update `DocstringProcessor` to:
+    - Handle file-level docstrings
+    - Use file importance scores
+    - Add quality metrics
+  - Update `ImportProcessor` to:
+    - Use cached import graph
+    - Handle circular imports
+    - Support namespace packages
+  - Add progress reporting with rich
+  - Add caching system for file scores
 
 ## 4. Documentation and Examples
 
 - [ ] **Update Documentation:**
-  - Add file importance metrics explanation
-  - Add configuration examples
-  - Add usage examples
+  - Add architecture overview
+  - Add metric explanations
+  - Add configuration guide
   - Add troubleshooting guide
+  - Add performance tips
+  - Add migration guide
 
 - [ ] **Add Examples:**
   - Basic usage examples
-  - Configuration examples
-  - Integration examples
   - Custom metric examples
+  - Integration examples
+  - Configuration examples
+  - Performance optimization examples
 
 ## 5. Testing and Validation
 
 - [ ] **Add Comprehensive Tests:**
-  - Test all importance metrics
-  - Test configuration options
-  - Test error handling
-  - Test with large codebases
+  - Unit tests for all components
+  - Integration tests
+  - Performance tests
+  - Edge case tests
+  - Regression tests
 
 - [ ] **Add Benchmarks:**
-  - Measure performance impact
-  - Compare with original version
-  - Profile memory usage
-  - Optimize bottlenecks
+  - Measure processing time
+  - Measure memory usage
+  - Compare with baseline
+  - Profile bottlenecks
+  - Document optimizations
 
 ## 6. Final Steps
 
@@ -132,12 +164,12 @@ This TODO.md is a detailed development specification for making `pystubnik` func
 
 ## 7. Next Actions
 
-1. Add new dependencies to `pyproject.toml`
-2. Fix import resolution issues
-3. Fix critical linter errors
-4. Complete file importance integration
-5. Add basic tests
-6. Update documentation
+1. [x] Add new dependencies to `pyproject.toml`
+2. [x] Fix import resolution issues
+3. [x] Fix critical linter errors
+4. [!] Improve code organization
+5. [!] Add basic tests
+6. [!] Enhance configuration system
 
 ## 8. Notes
 
@@ -145,6 +177,7 @@ This TODO.md is a detailed development specification for making `pystubnik` func
 - The new system combines both file-level and symbol-level importance
 - All changes maintain backward compatibility
 - Performance impact should be monitored
+- Optional dependencies are now properly handled with graceful fallbacks
 
 ---
 
