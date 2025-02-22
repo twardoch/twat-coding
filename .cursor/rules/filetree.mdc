@@ -39,7 +39,7 @@ globs:
 ├── [1.0K]  LICENSE
 ├── [ 173]  MANIFEST.in
 ├── [1.4K]  README.md
-├── [5.2K]  TODO.md
+├── [4.4K]  TODO.md
 ├── [ 12K]  cleanup.py
 ├── [  96]  cursor
 │   └── [  96]  rules
@@ -75,7 +75,7 @@ globs:
 │       │   │   ├── [ 16K]  file_importance.py
 │       │   │   ├── [8.6K]  importance.py
 │       │   │   ├── [6.6K]  imports.py
-│       │   │   ├── [ 16K]  stub_generation.py
+│       │   │   ├── [ 19K]  stub_generation.py
 │       │   │   └── [7.4K]  type_inference.py
 │       │   ├── [1.6K]  read_imports.py
 │       │   ├── [ 160]  types

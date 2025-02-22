@@ -9,34 +9,30 @@ this_file: TODO.md
 - [!] **Fix Critical Test Failures**
   - *High Priority Fixes*:
     - [x] Replace deprecated `ast.Str` usage with `ast.Constant` (affects multiple tests)
-    - [x] Fix private class exclusion in `stub_generation.py`
-    - [x] Fix import sorting order to match test expectations
-    - [x] Fix assignment formatting to match test expectations
-    - [x] Fix constant handling in stub generation
-    - [!] Fix remaining test failures in `test_stub_generation_config` and `test_stub_generation_imports`
-      - [ ] Debug private class exclusion logic
-      - [ ] Fix import sorting order for stdlib imports
+    - [x] Implement StubVisitor for AST traversal
+    - [x] Refactor import sorting logic
+    - [x] Improve private class exclusion logic
+    - [!] Fix remaining test failures
+      - [!] Fix import sorting order to match exact test expectations
+      - [!] Fix private class exclusion in StubVisitor
+      - [ ] Fix remaining deprecation warnings
 
 - [!] **Refactor Stub Generation**
   - *Code Quality Improvements*:
-    - [!] Split `generate_stub` into smaller functions (current complexity: 25)
+    - [!] Split `generate_stub` into smaller functions
+      - [!] Create `_process_imports` for import collection and sorting
       - [ ] Create `_process_header` for header generation
-      - [ ] Create `_process_imports` for import collection and sorting
       - [ ] Create `_process_definitions` for class/function/assignment handling
       - [ ] Create `_format_stub` for final formatting and cleanup
-    - [ ] Refactor `_process_class_to_lines` (current complexity: 13)
+    - [ ] Refactor `_process_class_to_lines`
       - [ ] Create `_extract_docstring` helper
       - [ ] Create `_process_class_methods` helper
       - [ ] Create `_process_class_attributes` helper
       - [ ] Create `_format_class_definition` helper
-    - [ ] Fix line length violations in `stub_generation.py`
-      - [ ] Break long import strings into multiple lines
-      - [ ] Split long function signatures
-      - [ ] Wrap long docstrings
 
 ## 2. Near-term Tasks
 
-- [ ] **Improve Test Coverage (Current: 46%)**
+- [ ] **Improve Test Coverage (Current: 45%)**
   - *Critical Modules with 0% Coverage*:
     - [ ] Write tests for `type_inference.py`
       - [ ] Test basic type inference
@@ -48,9 +44,6 @@ this_file: TODO.md
     - [ ] Write tests for `backends/base.py`
       - [ ] Test backend interface
       - [ ] Test common functionality
-    - [ ] Write tests for `twat_coding.py`
-      - [ ] Test CLI functionality
-      - [ ] Test configuration handling
 
 ## 3. Future Tasks
 
@@ -62,27 +55,18 @@ this_file: TODO.md
     - [ ] Add support for more complex type annotations
       - [ ] Handle nested generics
       - [ ] Support type variables
-    - [ ] Handle generic types and type variables
-      - [ ] Add TypeVar support
-      - [ ] Add Callable support
 
 - [ ] **Documentation Updates**
   - Update README.md with detailed usage and examples
     - [ ] Add installation guide
     - [ ] Add configuration guide
     - [ ] Add usage examples
-  - Add docstrings to untested modules
-    - [ ] Add docstrings to type inference
-    - [ ] Add docstrings to import handling
 
 - [ ] **Performance Optimization**
   - Optimize stub generation performance
     - [ ] Profile current performance
     - [ ] Identify bottlenecks
     - [ ] Implement improvements
-  - Improve caching in AST backend
-    - [ ] Add AST caching
-    - [ ] Add import caching
 
 ## 4. Development Guidelines
 

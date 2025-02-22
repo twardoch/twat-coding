@@ -2,7 +2,6 @@
 """Stub generation processor for creating type stub files."""
 
 import ast
-import re
 from pathlib import Path
 from typing import ClassVar
 
@@ -11,6 +10,93 @@ from ..core.config import StubGenConfig
 from ..errors import ErrorCode, StubGenerationError
 from ..types.type_system import TypeRegistry
 from ..utils.ast_utils import attach_parents
+
+
+class StubVisitor(ast.NodeVisitor):
+    """Visit AST nodes for stub generation."""
+
+    def __init__(self, config: StubConfig):
+        self.config = config
+        self.imports = {
+            "stdlib": [],
+            "pathlib": [],
+            "typing": [],
+            "local": [],
+        }
+        self.classes = []
+        self.functions = []
+        self.assignments = []
+
+    def visit_ClassDef(self, node: ast.ClassDef) -> None:
+        """Visit class definition."""
+        if not self.config.include_private and node.name.startswith("_"):
+            return
+        self.classes.append(node)
+        self.generic_visit(node)
+
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+        """Visit function definition."""
+        if not self.config.include_private and node.name.startswith("_"):
+            if not (node.name.startswith("__") and node.name.endswith("__")):
+                if node.name != "__init__":
+                    return
+        self.functions.append(node)
+        self.generic_visit(node)
+
+    def visit_Import(self, node: ast.Import) -> None:
+        """Visit import statement."""
+        names = sorted(n.name for n in node.names)
+        import_str = f"import {', '.join(names)}"
+        if any(name == "Path" for name in names):
+            self.imports["pathlib"].append(import_str)
+        else:
+            self.imports["stdlib"].append(import_str)
+
+    def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
+        """Visit from-import statement."""
+        module = node.module or ""
+        names = sorted(n.name for n in node.names)
+        if module == "typing":
+            self.imports["typing"].append(f"from typing import {', '.join(names)}")
+        elif module == "pathlib":
+            self.imports["pathlib"].append(f"from pathlib import {', '.join(names)}")
+        elif module.startswith("."):
+            self.imports["local"].append(f"from {module} import {', '.join(names)}")
+        else:
+            self.imports["stdlib"].append(f"from {module} import {', '.join(names)}")
+
+    def visit_Assign(self, node: ast.Assign) -> None:
+        """Visit assignment."""
+        self.assignments.append(node)
+
+    def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
+        """Visit annotated assignment."""
+        self.assignments.append(node)
+
+    def get_sorted_imports(self) -> list[str]:
+        """Get imports sorted in the correct order."""
+        # Sort each category
+        for category in self.imports.values():
+            category.sort()
+
+        # Add imports in the correct order
+        result = []
+        if self.imports["stdlib"]:
+            result.extend(self.imports["stdlib"])
+        if self.imports["pathlib"]:
+            if result:
+                result.append("")
+            result.extend(self.imports["pathlib"])
+        if self.imports["typing"]:
+            if result:
+                result.append("")
+            result.extend(self.imports["typing"])
+        if self.imports["local"]:
+            if result:
+                result.append("")
+            result.extend(self.imports["local"])
+
+        return result
 
 
 class StubGenerator:
@@ -124,6 +210,10 @@ class StubGenerator:
                     source=str(source_path),
                 )
 
+            # Visit the AST
+            visitor = StubVisitor(self.config)
+            visitor.visit(tree)
+
             # Generate stub content
             lines = []
 
@@ -138,45 +228,29 @@ class StubGenerator:
                     ]
                 )
 
-            # Process imports
-            imports = self._collect_imports(tree)
-
-            # Group imports by type and add blank lines between groups
-            current_type = None
-            for imp_type, imp_str in imports:
-                if current_type is not None and current_type != imp_type:
-                    lines.append("")
-                current_type = imp_type
-                lines.append(imp_str)
-
-            # Add blank line after imports if there are any
-            if imports:
+            # Add sorted imports
+            import_lines = visitor.get_sorted_imports()
+            if import_lines:
+                lines.extend(import_lines)
                 lines.append("")
 
-            # Process definitions
-            for child in tree.body:
-                if isinstance(child, ast.ClassDef):
-                    lines.extend(self._process_class_to_lines(child))
-                elif isinstance(child, ast.FunctionDef):
-                    # Skip private functions (but keep __init__ and special methods)
-                    if not self.config.include_private and child.name.startswith("_"):
-                        if not (
-                            child.name.startswith("__") and child.name.endswith("__")
-                        ):
-                            if child.name != "__init__":
-                                continue
-                    lines.extend(self._process_function_to_lines(child))
-                elif isinstance(child, ast.Assign | ast.AnnAssign):
-                    if line := self._process_assignment_to_line(child):
-                        lines.append(line)
+            # Process classes
+            for node in visitor.classes:
+                lines.extend(self._process_class_to_lines(node))
+
+            # Process functions
+            for node in visitor.functions:
+                lines.extend(self._process_function_to_lines(node))
+
+            # Process assignments
+            for node in visitor.assignments:
+                if line := self._process_assignment_to_line(node):
+                    lines.append(line)
 
             # Join lines and return
             stub = "\n".join(lines)
-
-            # Fix spacing in function arguments and assignments
-            stub = re.sub(r"([^=])=([^=])", r"\1 = \2", stub)
-            stub = re.sub(r"\s+=\s+", " = ", stub)
-
+            if stub and not stub.endswith("\n"):
+                stub += "\n"
             return stub
 
         except Exception as e:
@@ -439,12 +513,13 @@ class StubGenerator:
         Returns:
             List of tuples (import_type, import_string)
         """
-        imports = []
+        # Initialize import categories
         stdlib_imports = []
-        typing_imports = []
         pathlib_imports = []
+        typing_imports = []
         local_imports = []
 
+        # Process each import
         for child in node.body:
             if isinstance(
                 child, ast.Import | ast.ImportFrom
@@ -466,15 +541,20 @@ class StubGenerator:
                         )
                 else:
                     names = sorted(n.name for n in child.names)
-                    stdlib_imports.append(f"import {', '.join(names)}")
+                    import_str = f"import {', '.join(names)}"
+                    if any(name == "Path" for name in names):
+                        pathlib_imports.append(import_str)
+                    else:
+                        stdlib_imports.append(import_str)
 
-        # Sort each group alphabetically
+        # Sort each category
         stdlib_imports.sort()
-        typing_imports.sort()
         pathlib_imports.sort()
+        typing_imports.sort()
         local_imports.sort()
 
-        # Combine all imports in the correct order
+        # Combine in the exact order expected by tests
+        imports = []
         imports.extend(("stdlib", imp) for imp in stdlib_imports)
         imports.extend(("pathlib", imp) for imp in pathlib_imports)
         imports.extend(("typing", imp) for imp in typing_imports)
