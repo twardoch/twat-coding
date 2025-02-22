@@ -20,8 +20,8 @@ def hello(name: str) -> str:
     config = StubGenConfig(paths=PathConfig(output_dir=tmp_path, files=[test_file]))
     backend = ASTBackend(config)
     result = await backend.generate_stub(test_file)
-    assert "def hello(name: str) -> str" in result
-    assert "Important function" in result
+    assert "def hello(name: str) -> str" in result.stub_content
+    assert "Important function" in result.stub_content
 
 
 @pytest.mark.asyncio
@@ -40,7 +40,7 @@ def minor_function():
     config = StubGenConfig(paths=PathConfig(output_dir=tmp_path, files=[test_file]))
     backend = ASTBackend(config)
     result = await backend.generate_stub(test_file)
-    assert "This is a very important function" in result
+    assert "This is a very important function" in result.stub_content
 
 
 @pytest.mark.asyncio
@@ -58,11 +58,11 @@ def process_data(items: List[str], config: Optional[Dict[str, int]] = None) -> b
     result = await backend.generate_stub(test_file)
 
     # Remove all spaces to handle different formatting styles
-    result_no_spaces = result.replace(" ", "")
+    result_no_spaces = result.stub_content.replace(" ", "")
     expected_no_spaces = "config:Optional[Dict[str,int]]"
 
     # Check each part of the type hint separately
-    assert "def process_data" in result
+    assert "def process_data" in result.stub_content
     assert "items:List[str]" in result_no_spaces
     assert expected_no_spaces in result_no_spaces
     assert "->bool" in result_no_spaces
