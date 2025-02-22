@@ -318,21 +318,24 @@ class StubGenerator:
         for class_def in visitor.classes:
             if self._should_include_member(class_def.name):
                 class_lines = self._process_class_to_lines(class_def)
-                lines.extend(class_lines)
-                lines.append("")
+                if class_lines:  # Only add if we got lines back
+                    lines.extend(class_lines)
+                    lines.append("")
 
         # Process public functions only
         for func_def in visitor.functions:
             if self._should_include_member(func_def.name):
                 func_lines = self._process_function_to_lines(func_def)
-                lines.extend(func_lines)
-                lines.append("")
+                if func_lines:  # Only add if we got lines back
+                    lines.extend(func_lines)
+                    lines.append("")
 
         # Process assignments
         for assignment in visitor.assignments:
             assign_lines = self._process_assignment_to_lines(assignment)
-            lines.extend(assign_lines)
-            lines.append("")
+            if assign_lines:  # Only add if we got lines back
+                lines.extend(assign_lines)
+                lines.append("")
 
         # Remove trailing newlines and join
         while lines and not lines[-1].strip():
@@ -341,33 +344,26 @@ class StubGenerator:
         return "\n".join(lines)
 
     def _process_class_to_lines(self, node: ClassDef) -> list[str]:
-        """Process a class definition into lines of code.
+        """Process a class definition to lines.
 
         Args:
-            node: The class definition node to process
+            node: Class definition AST node
 
         Returns:
-            List of lines representing the class
+            List of lines for the stub
         """
-        # Skip private classes
+        # Skip private classes unless they are special methods
         if not self._should_include_member(node.name):
             return []
 
-        lines = []
+        lines: list[str] = []
 
-        # Add docstring if present and class is not private
-        if (
-            node.body
-            and len(node.body) > 0
-            and isinstance(node.body[0], Expr)
-            and isinstance(node.body[0].value, Constant)
-            and self._should_include_member(node.name)
-        ):
-            docstring = get_docstring(node)
-            if docstring:
-                lines.append(f'"""{docstring}"""')
+        # Add docstring if present
+        docstring = get_docstring(node)
+        if docstring:
+            lines.append(f'"""{docstring}"""')
 
-        # Add class definition
+        # Build class definition line
         bases = [unparse(base) for base in node.bases]
         if bases:
             lines.append(f"class {node.name}({', '.join(bases)}):")
@@ -375,24 +371,23 @@ class StubGenerator:
             lines.append(f"class {node.name}:")
 
         # Process class body
-        body_lines = []
+        body_lines: list[str] = []
         for item in node.body:
             if isinstance(item, FunctionDef):
                 if self._should_include_member(item.name):
-                    func_lines = self._process_function_to_lines(item)
-                    if func_lines:
-                        body_lines.extend(func_lines)
+                    method_lines = self._process_function_to_lines(item)
+                    if method_lines:
+                        body_lines.extend("    " + line for line in method_lines)
             elif isinstance(item, Assign | AnnAssign):
                 assign_lines = self._process_assignment_to_lines(item)
                 if assign_lines:
-                    body_lines.extend(assign_lines)
+                    body_lines.extend("    " + line for line in assign_lines)
 
-        # Add indented body lines
-        if body_lines:
-            lines.extend("    " + line for line in body_lines)
-        else:
-            lines.append("    pass")
+        # If no body, add pass statement
+        if not body_lines:
+            body_lines = ["    pass"]
 
+        lines.extend(body_lines)
         return lines
 
     def _process_function_to_lines(self, node: FunctionDef) -> list[str]:
