@@ -420,45 +420,11 @@ async def generate_stub(
     source_path = Path(source_path)
     output_path_obj = Path(output_path) if output_path else None
 
-    # Create default config if none provided
-    if config is None:
-        config = StubConfig(
-            input_path=source_path,
-            output_path=output_path_obj,
-            backend=backend,  # Backend type is already defined in the function signature
-            parallel=True,
-            max_workers=None,
-            infer_types=True,
-            preserve_literals=True,
-            docstring_type_hints=True,
-            line_length=88,
-            sort_imports=True,
-            add_header=True,
-            no_import=False,
-            inspect=False,
-            doc_dir="",
-            ignore_errors=True,
-            parse_only=False,
-            include_private=False,
-            verbose=False,
-            quiet=True,
-            export_less=False,
-            max_docstring_length=150,
-            include_type_comments=True,
-            infer_property_types=True,
-            files=[source_path],
-            include_patterns=["*.py"],
-            exclude_patterns=["test_*.py", "*_test.py"],
-            modules=[],
-            packages=[],
-            search_paths=[],
-            python_version=(sys.version_info.major, sys.version_info.minor),
-            interpreter=Path(sys.executable),
-            importance_patterns={},
-        )
-
     # Convert StubConfig to StubGenConfig for backend
-    stub_gen_config = _convert_to_stub_gen_config(config)
+    if config is None:
+        stub_gen_config = StubGenConfig(paths=PathConfig(), runtime=RuntimeConfig())
+    else:
+        stub_gen_config = _convert_to_stub_gen_config(config)
 
     # Initialize backend
     backend_obj: StubBackend

@@ -52,9 +52,9 @@ globs:
 │       ├── [ 144]  __init__.py
 │       ├── [ 448]  pystubnik
 │       │   ├── [5.3K]  README.md
-│       │   ├── [ 17K]  __init__.py
+│       │   ├── [ 16K]  __init__.py
 │       │   ├── [ 224]  backends
-│       │   │   ├── [1.3K]  __init__.py
+│       │   │   ├── [1.2K]  __init__.py
 │       │   │   ├── [ 11K]  ast_backend.py
 │       │   │   ├── [2.4K]  base.py
 │       │   │   └── [1.1K]  mypy_backend.py
@@ -75,7 +75,7 @@ globs:
 │       │   │   └── [7.4K]  type_inference.py
 │       │   ├── [1.6K]  read_imports.py
 │       │   ├── [ 160]  types
-│       │   │   ├── [9.3K]  docstring.py
+│       │   │   ├── [9.2K]  docstring.py
 │       │   │   └── [9.7K]  type_system.py
 │       │   └── [ 192]  utils
 │       │       ├── [5.6K]  ast_utils.py

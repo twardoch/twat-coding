@@ -12,10 +12,11 @@ import weakref
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, ClassVar, cast
+from typing import Any, ClassVar
 
 from loguru import logger
 
+from .. import _convert_to_stub_gen_config
 from ..config import StubConfig
 from ..core.config import (
     PathConfig,
@@ -41,17 +42,17 @@ class ASTCacheEntry:
 
 
 class SignatureExtractor(ast.NodeTransformer):
-    """Extract type signatures and docstrings from AST."""
+    """Extract signatures and important code from AST nodes."""
 
     def __init__(
         self, config: StubGenConfig, file_size: int = 0, importance_score: float = 1.0
     ):
-        """Initialize the signature extractor.
+        """Initialize the extractor.
 
         Args:
             config: Configuration for stub generation
-            file_size: Size of the source file
-            importance_score: Importance score for the file
+            file_size: Size of the source file in bytes
+            importance_score: Base importance score for the file
         """
         super().__init__()
         self.config = config
@@ -59,80 +60,69 @@ class SignatureExtractor(ast.NodeTransformer):
         self.importance_score = importance_score
 
     def _preserve_docstring(self, body: list[ast.stmt]) -> list[ast.stmt]:
-        """Preserve docstrings based on importance and configuration.
+        """Preserve docstring in a node's body.
 
         Args:
-            body: List of AST statements
+            body: List of statements
 
         Returns:
-            List of AST statements with docstrings preserved or removed
+            List with only docstring preserved
         """
         if not body:
             return []
-        if (
-            self.file_size > self.config.truncation.max_file_size
-            and self.importance_score < 0.7
-        ):
-            return []  # Skip docstrings for big, low-importance files
-        match body[0]:
-            case ast.Expr(value=ast.Constant(value=str() as docstring)):
-                if (
-                    len(docstring) > self.config.truncation.max_docstring_length
-                    and self.importance_score < 0.9
-                ):
-                    return []  # Skip long docstrings unless very important
-                return [body[0]]
-            case _:
-                return []
+
+        # Check if first statement is a docstring
+        first = body[0]
+        if isinstance(first, ast.Expr) and isinstance(first.value, ast.Str):
+            return [first]  # Keep only docstring
+        return []  # No docstring found
 
     def visit_Module(self, node: ast.Module) -> ast.Module:
-        """Process module node.
+        """Process a module node.
 
         Args:
-            node: Module AST node
+            node: Module node to process
 
         Returns:
             Processed module node
         """
-        node.body = [
-            stmt
-            for stmt in node.body
-            if isinstance(
-                stmt, ast.FunctionDef | ast.ClassDef | ast.Import | ast.ImportFrom
-            )
-            or (isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Constant))
-        ]
-        return cast(ast.Module, self.generic_visit(node))
+        # Keep imports and docstring
+        new_body = []
+        for stmt in node.body:
+            if isinstance(stmt, ast.Import | ast.ImportFrom):
+                new_body.append(stmt)
+            elif isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Str):
+                new_body.append(stmt)
+            else:
+                new_body.append(self.visit(stmt))
+        node.body = new_body
+        return node
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> ast.FunctionDef:
-        """Process function definition.
+        """Process a function definition.
 
         Args:
-            node: Function definition AST node
+            node: Function node to process
 
         Returns:
             Processed function node
         """
-        docstring = self._preserve_docstring(node.body)
-        node.body = docstring + [ast.Expr(value=ast.Constant(value=...))]
+        # Keep signature and docstring
+        node.body = self._preserve_docstring(node.body) or [ast.Pass()]
         return node
 
     def visit_ClassDef(self, node: ast.ClassDef) -> ast.ClassDef:
-        """Process class definition.
+        """Process a class definition.
 
         Args:
-            node: Class definition AST node
+            node: Class node to process
 
         Returns:
             Processed class node
         """
-        docstring = self._preserve_docstring(node.body)
-        node.body = docstring + [
-            stmt
-            for stmt in node.body
-            if isinstance(stmt, ast.FunctionDef | ast.ClassDef)
-        ]
-        return cast(ast.ClassDef, self.generic_visit(node))
+        # Keep class signature, docstring, and method signatures
+        node.body = [self.visit(stmt) for stmt in node.body]
+        return node
 
 
 class ASTBackend(StubBackend):
@@ -149,7 +139,8 @@ class ASTBackend(StubBackend):
         Args:
             config: Configuration for stub generation
         """
-        super().__init__(config)
+        super().__init__()  # Object doesn't take any arguments
+        self._config = config  # Store config for later use
         self.processors: list[Processor] = []  # List of processors to apply to stubs
         self._node_registry: weakref.WeakValueDictionary[int, ast.AST] = (
             weakref.WeakValueDictionary()
@@ -190,11 +181,29 @@ class ASTBackend(StubBackend):
             Current configuration
         """
         if not hasattr(self, "_config"):
-            self._config = StubGenConfig(paths=PathConfig(), runtime=RuntimeConfig())
-        return self._config
+            return StubGenConfig(paths=PathConfig(), runtime=RuntimeConfig())
+
+        # Convert StubConfig to StubGenConfig if needed
+        if isinstance(self._config, StubConfig):
+            return _convert_to_stub_gen_config(self._config)
+        elif isinstance(self._config, StubGenConfig):
+            return self._config
+        else:  # None
+            return StubGenConfig(paths=PathConfig(), runtime=RuntimeConfig())
 
     async def generate_stub(self, source_path: Path) -> StubResult:
         """Generate a stub for a Python source file.
+
+        Args:
+            source_path: Path to the source file
+
+        Returns:
+            Generated stub result
+        """
+        return await self._generate_stub_internal(source_path)
+
+    async def _generate_stub_internal(self, source_path: Path) -> StubResult:
+        """Internal method to generate a stub result.
 
         Args:
             source_path: Path to the source file
@@ -272,7 +281,7 @@ class ASTBackend(StubBackend):
             for i, path in enumerate(python_files, 1):
                 try:
                     print_progress("Processing files", i, total)
-                    result = await self.generate_stub(path)
+                    result = await self._generate_stub_internal(path)
                     results[path] = result
                 except Exception as e:
                     logger.error(f"Failed to process {path}: {e}")

@@ -8,22 +8,21 @@ from abc import abstractmethod
 from pathlib import Path
 from typing import Protocol
 
+from ..core.types import StubResult
+
 
 class StubBackend(Protocol):
     """Protocol defining the interface for stub generation backends."""
 
     @abstractmethod
-    async def generate_stub(
-        self, source_path: Path, output_path: Path | None = None
-    ) -> str:
+    async def generate_stub(self, source_path: Path) -> StubResult:
         """Generate a stub for a Python source file.
 
         Args:
             source_path: Path to the source file
-            output_path: Optional path to write the stub file
 
         Returns:
-            Generated stub content
+            Generated stub result
         """
         ...
 
