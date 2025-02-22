@@ -209,19 +209,14 @@ class StubGenerator:
             # Process definitions
             for child in tree.body:
                 if isinstance(child, ast.ClassDef):
-                    # Skip private classes
+                    # Skip private classes if configured
                     if not self.config.include_private and child.name.startswith("_"):
-                        if not (
-                            child.name.startswith("__") and child.name.endswith("__")
-                        ):
-                            continue
+                        continue
                     lines.extend(self._process_class_to_lines(child))
                 elif isinstance(child, ast.FunctionDef):
                     # Skip private functions (but keep __init__ and special methods)
                     if not self.config.include_private and child.name.startswith("_"):
-                        if not (
-                            child.name.startswith("__") and child.name.endswith("__")
-                        ):
+                        if not (child.name.startswith("__") and child.name.endswith("__")):
                             if child.name != "__init__":
                                 continue
                     lines.extend(self._process_function_to_lines(child))
@@ -249,10 +244,10 @@ class StubGenerator:
         """Process a class definition to lines.
 
         Args:
-            node: Class definition node
+            node: Class definition AST node
 
         Returns:
-            List of lines for the class definition
+            List of lines for the stub
         """
         lines = []
 
@@ -261,13 +256,12 @@ class StubGenerator:
             if not (node.name.startswith("__") and node.name.endswith("__")):
                 return []
 
-        # Add docstring if present
+        # Extract docstring if present
         if (
-            len(node.body) > 0
+            node.body
             and isinstance(node.body[0], ast.Expr)
-            and isinstance(
-                node.body[0].value, ast.Constant | ast.Str
-            )  # Support both old and new AST
+            and isinstance(node.body[0].value, (ast.Str, ast.Constant))
+            and isinstance(node.body[0].value.value, str)
         ):
             docstring = node.body[0].value.value
             lines.append(f'"""{docstring}"""')
