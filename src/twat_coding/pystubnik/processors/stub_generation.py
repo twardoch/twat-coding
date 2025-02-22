@@ -185,8 +185,8 @@ class StubGenerator:
                 key=lambda x: (
                     {
                         "stdlib": 0,
-                        "pathlib": 1,
-                        "typing": 2,
+                        "typing": 1,
+                        "pathlib": 2,
                         "third_party": 3,
                         "local": 4,
                     }[x[0]],
@@ -194,7 +194,7 @@ class StubGenerator:
                 )
             )
 
-            # Group imports by type
+            # Group imports by type and add blank lines between groups
             current_type = None
             for imp_type, imp_str in imports:
                 if current_type is not None and current_type != imp_type:
@@ -331,22 +331,52 @@ class StubGenerator:
         """Process an assignment to a line.
 
         Args:
-            node: Assignment node
+            node: Assignment AST node
 
         Returns:
-            Line for the assignment or None if it should be excluded
+            Formatted assignment line or None if skipped
         """
-        match node:
-            case ast.AnnAssign():
-                # Preserve annotated assignments
-                return ast.unparse(node)
-            case ast.Assign(
-                targets=[ast.Name() as name_node], value=ast.Constant() as value
-            ):
-                # Only keep module-level assignments of constants
-                if not name_node.id.startswith("_") or name_node.id.isupper():
-                    return f"{name_node.id}: {type(value.value).__name__} = {ast.unparse(value)}"
+        if isinstance(node, ast.AnnAssign):
+            target = node.target
+            annotation = node.annotation
+            value = node.value
+            if isinstance(target, ast.Name):
+                type_str = ast.unparse(annotation)
+                if value is not None:
+                    value_str = ast.unparse(value)
+                    return f"{target.id}: {type_str} = {value_str}"
+                return f"{target.id}: {type_str}"
+        elif isinstance(node, ast.Assign):
+            if len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+                target = node.targets[0]
+                value = node.value
+                if isinstance(value, (ast.Constant, ast.List, ast.Dict, ast.Set)):
+                    value_str = ast.unparse(value)
+                    # Infer type from value
+                    type_str = self._infer_type_from_value(value)
+                    return f"{target.id}: {type_str} = {value_str}"
         return None
+
+    def _infer_type_from_value(self, value: ast.AST) -> str:
+        """Infer type annotation from a value.
+
+        Args:
+            value: AST node representing the value
+
+        Returns:
+            Type annotation string
+        """
+        if isinstance(value, ast.Constant):
+            if value.value is None:
+                return "None"
+            return type(value.value).__name__
+        elif isinstance(value, ast.List):
+            return "list"
+        elif isinstance(value, ast.Dict):
+            return "dict"
+        elif isinstance(value, ast.Set):
+            return "set"
+        return "Any"
 
     def _should_keep_import(self, node: ast.Import | ast.ImportFrom) -> bool:
         """Check if an import should be kept in the stub.
@@ -488,8 +518,8 @@ class StubGenerator:
                 key=lambda x: (
                     {
                         "stdlib": 0,
-                        "pathlib": 1,
-                        "typing": 2,
+                        "typing": 1,
+                        "pathlib": 2,
                         "third_party": 3,
                         "local": 4,
                     }[x[0]],
