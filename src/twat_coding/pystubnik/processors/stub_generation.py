@@ -26,7 +26,6 @@ from ast import (
     unparse,
 )
 from pathlib import Path
-from typing import Union, Optional, List
 
 from ..config import StubConfig
 from ..utils.ast_utils import attach_parents
@@ -89,7 +88,7 @@ class StubVisitor(NodeVisitor):
                 if isinstance(item, FunctionDef):
                     if self._should_include_member(item.name):
                         self.visit(item)
-                elif isinstance(item, (Assign, AnnAssign)):
+                elif isinstance(item, Assign | AnnAssign):
                     self.visit(item)
         else:
             print(f"\nDebug: Skipping private class {node.name} (second check)")
@@ -285,7 +284,7 @@ class StubGenerator:
         return not (name.startswith("_") or name.startswith("__"))
 
     def generate_stub(
-        self, source_file: Union[str, Path], ast_tree: Optional[AST] = None
+        self, source_file: str | Path, ast_tree: AST | None = None
     ) -> str:
         """Generate a stub file from the given source file or AST.
 
@@ -299,7 +298,7 @@ class StubGenerator:
         self.current_file = Path(source_file)
 
         if ast_tree is None:
-            with open(source_file, "r", encoding="utf-8") as f:
+            with open(source_file, encoding="utf-8") as f:
                 source = f.read()
             ast_tree = parse(source)
 
@@ -341,7 +340,7 @@ class StubGenerator:
         print("=" * 80)
 
         # Add header if configured
-        lines: List[str] = []
+        lines: list[str] = []
         if self.config.add_header:
             lines.append('"""# Generated stub file"""\n')
 
@@ -404,7 +403,7 @@ class StubGenerator:
 
         return "\n".join(lines)
 
-    def _process_class_to_lines(self, node: ClassDef) -> List[str]:
+    def _process_class_to_lines(self, node: ClassDef) -> list[str]:
         """Process a class definition into lines of code.
 
         Args:
@@ -446,7 +445,7 @@ class StubGenerator:
                     func_lines = self._process_function_to_lines(item)
                     if func_lines:
                         body_lines.extend(func_lines)
-            elif isinstance(item, (Assign, AnnAssign)):
+            elif isinstance(item, Assign | AnnAssign):
                 assign_lines = self._process_assignment_to_lines(item)
                 if assign_lines:
                     body_lines.extend(assign_lines)
