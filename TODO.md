@@ -6,42 +6,38 @@ this_file: TODO.md
 
 ## 1. Immediate Priorities
 
-- [!] **Fix Critical Test Failures**
+- [!] **Fix Critical Linter Errors**
   - *High Priority Fixes*:
-    - [x] Replace deprecated `ast.Str` usage with `ast.Constant` (affects multiple tests)
+    - [x] Replace deprecated `ast.Str` usage with `ast.Constant`
     - [x] Implement StubVisitor for AST traversal
     - [x] Refactor import sorting logic
     - [x] Improve private class exclusion logic
-    - [!] Fix remaining test failures
-      - [!] Fix function argument default values in stubs
-      - [!] Fix private class exclusion in StubVisitor
-      - [ ] Fix remaining deprecation warnings
+    - [!] Fix remaining linter errors
+      - [!] Fix `iter_child_nodes` and `unparse` attribute errors in `StubGenerator`
+      - [!] Add missing `_should_keep_import` method
+      - [ ] Clean up remaining type hints
 
 - [!] **Refactor Stub Generation**
   - *Code Quality Improvements*:
     - [!] Split `generate_stub` into smaller functions
-      - [!] Create `_process_function_args` for handling function arguments and defaults
+      - [x] Create `_process_function_args` for handling function arguments and defaults
+      - [x] Create `_process_class_to_lines` for class handling
+      - [x] Create `_process_function_to_lines` for function handling
+      - [x] Create `_process_assignment_to_lines` for assignment handling
+      - [!] Create `_should_keep_import` for import filtering
       - [ ] Create `_process_header` for header generation
-      - [ ] Create `_process_definitions` for class/function/assignment handling
-      - [ ] Create `_format_stub` for final formatting and cleanup
-    - [ ] Refactor `_process_class_to_lines`
-      - [ ] Create `_extract_docstring` helper
-      - [ ] Create `_process_class_methods` helper
-      - [ ] Create `_process_class_attributes` helper
-      - [ ] Create `_format_class_definition` helper
 
 ## 2. Near-term Tasks
 
-- [ ] **Improve Test Coverage (Current: 46%)**
-  - *Critical Modules with 0% Coverage*:
-    - [ ] Write tests for `type_inference.py`
+- [ ] **Improve Test Coverage (Current: 45%)**
+  - *Critical Modules with Low Coverage*:
+    - [ ] Write tests for `type_inference.py` (0% coverage)
       - [ ] Test basic type inference
       - [ ] Test docstring type extraction
-      - [ ] Test complex type handling
-    - [ ] Write tests for `read_imports.py`
+    - [ ] Write tests for `read_imports.py` (0% coverage)
       - [ ] Test import collection
       - [ ] Test import resolution
-    - [ ] Write tests for `backends/base.py`
+    - [ ] Write tests for `backends/base.py` (0% coverage)
       - [ ] Test backend interface
       - [ ] Test common functionality
 
@@ -61,12 +57,6 @@ this_file: TODO.md
     - [ ] Add installation guide
     - [ ] Add configuration guide
     - [ ] Add usage examples
-
-- [ ] **Performance Optimization**
-  - Optimize stub generation performance
-    - [ ] Profile current performance
-    - [ ] Identify bottlenecks
-    - [ ] Implement improvements
 
 ## 4. Development Guidelines
 
