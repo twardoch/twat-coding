@@ -1,143 +1,142 @@
-"""Importance scoring for stub generation."""
+#!/usr/bin/env -S uv run
+"""Importance scoring for symbols and code elements."""
 
-import ast
 import re
-from typing import cast
+from dataclasses import dataclass, field
+from typing import Any
 
-from pystubnik.core.types import StubResult
-from pystubnik.processors import Processor
+from loguru import logger
 
 
-class ImportanceProcessor(Processor):
-    """Processor for calculating importance scores in stub generation."""
+@dataclass
+class ImportanceConfig:
+    """Configuration for importance scoring."""
 
-    def __init__(
+    patterns: dict[str, float] = field(default_factory=dict)
+    keywords: set[str] = field(
+        default_factory=lambda: {
+            "important",
+            "critical",
+            "essential",
+            "main",
+            "key",
+        }
+    )
+    min_score: float = 0.5
+    docstring_weight: float = 0.01  # Per word in docstring
+    public_weight: float = 1.1
+    special_weight: float = 1.2
+
+
+class ImportanceProcessor:
+    """Calculate importance scores for code elements."""
+
+    def __init__(self, config: ImportanceConfig | None = None) -> None:
+        """Initialize the importance processor.
+
+        Args:
+            config: Configuration for importance scoring
+        """
+        self.config = config or ImportanceConfig()
+
+    def calculate_importance(
         self,
-        min_importance: float = 0.0,
-        importance_patterns: dict[str, float] | None = None,
-    ):
-        self.min_importance = min_importance
-        self.importance_patterns = importance_patterns or {}
-        self._compile_patterns()
-
-    def process(self, stub_result: StubResult) -> StubResult:
-        """Process importance scores in the stub result.
+        name: str,
+        docstring: str | None = None,
+        is_public: bool = True,
+        is_special: bool = False,
+        extra_info: dict[str, Any] | None = None,
+    ) -> float:
+        """Calculate importance score for a symbol.
 
         Args:
-            stub_result: The stub generation result to process
+            name: Symbol name
+            docstring: Associated docstring
+            is_public: Whether the symbol is public
+            is_special: Whether it's a special method
+            extra_info: Additional information for scoring
 
         Returns:
-            The processed stub result with importance scores
+            Importance score between 0 and 1
         """
-        tree = cast(ast.Module, ast.parse(stub_result.stub_content))
+        try:
+            score = 1.0
 
-        # Calculate importance scores for all nodes
-        scores = self._calculate_scores(tree)
+            # Check against importance patterns
+            for pattern, weight in self.config.patterns.items():
+                if re.search(pattern, name):
+                    score *= weight
 
-        # Filter out low-importance nodes
-        if self.min_importance > 0:
-            tree = cast(ast.Module, self._filter_nodes(tree, scores))
-            stub_result.stub_content = ast.unparse(tree)
+            # Docstring-based importance
+            if docstring:
+                # More detailed docstrings might indicate importance
+                word_count = len(docstring.split())
+                score *= 1 + (word_count * self.config.docstring_weight)
 
-        # Store the overall importance score
-        stub_result.importance_score = max(scores.values()) if scores else 0.0
+                # Check for specific keywords indicating importance
+                if any(
+                    keyword in docstring.lower() for keyword in self.config.keywords
+                ):
+                    score *= 1.5
 
-        return stub_result
+            # Name-based importance
+            if is_special:
+                score *= (
+                    self.config.special_weight
+                )  # Special methods are usually important
+            elif is_public:
+                score *= (
+                    self.config.public_weight
+                )  # Public methods are usually more important
 
-    def _compile_patterns(self) -> None:
-        """Compile regex patterns for importance scoring."""
-        self._compiled_patterns = [
-            (re.compile(pattern), score)
-            for pattern, score in self.importance_patterns.items()
-        ]
+            # Extra information
+            if extra_info:
+                # Handle inheritance
+                if extra_info.get("is_override"):
+                    score *= 1.1  # Overridden methods are often important
+                if extra_info.get("is_abstract"):
+                    score *= 1.2  # Abstract methods define interfaces
 
-    def _calculate_scores(self, tree: ast.AST) -> dict[ast.AST, float]:
-        """Calculate importance scores for all nodes in the AST.
+                # Handle usage
+                usage_count = extra_info.get("usage_count", 0)
+                if usage_count > 0:
+                    score *= 1 + (min(usage_count, 10) / 10)  # Cap at 2x for usage
+
+            # Normalize score to 0-1 range
+            return min(max(score / 2, 0), 1)  # Divide by 2 since we multiply a lot
+
+        except Exception as e:
+            logger.warning(f"Failed to calculate importance for {name}: {e}")
+            return 0.5  # Return neutral score on error
+
+    def should_include(
+        self,
+        name: str,
+        score: float | None = None,
+        docstring: str | None = None,
+        is_public: bool = True,
+        is_special: bool = False,
+        extra_info: dict[str, Any] | None = None,
+    ) -> bool:
+        """Determine if a symbol should be included based on importance.
 
         Args:
-            tree: The AST to analyze
+            name: Symbol name
+            score: Pre-calculated importance score
+            docstring: Associated docstring
+            is_public: Whether the symbol is public
+            is_special: Whether it's a special method
+            extra_info: Additional information for scoring
 
         Returns:
-            Dictionary mapping nodes to their importance scores
+            True if the symbol should be included
         """
-        scores: dict[ast.AST, float] = {}
-
-        for node in ast.walk(tree):
-            if isinstance(node, ast.FunctionDef | ast.ClassDef):
-                scores[node] = self._calculate_node_score(node)
-
-        return scores
-
-    def _calculate_node_score(self, node: ast.FunctionDef | ast.ClassDef) -> float:
-        """Calculate importance score for a single node.
-
-        Args:
-            node: The AST node to score
-
-        Returns:
-            The importance score for the node
-        """
-        score = 0.0
-
-        # Base score from node type
-        if isinstance(node, ast.ClassDef):
-            score += 0.5
-        elif isinstance(node, ast.FunctionDef):
-            score += 0.3
-
-        # Score from name patterns
-        for pattern, pattern_score in self._compiled_patterns:
-            if pattern.search(node.name):
-                score = max(score, pattern_score)
-
-        # Score from decorators
-        score += len(node.decorator_list) * 0.1
-
-        # Score from docstring
-        docstring = ast.get_docstring(node)
-        if docstring:
-            score += 0.2
-
-            # Additional score for type hints in docstring
-            if ":type" in docstring or ":rtype:" in docstring:
-                score += 0.1
-
-        # Score from type annotations
-        if isinstance(node, ast.FunctionDef):
-            if node.returns:
-                score += 0.2
-            score += sum(1 for arg in node.args.args if arg.annotation) * 0.1
-
-        return min(1.0, score)
-
-    def _filter_nodes(
-        self, tree: ast.Module, scores: dict[ast.AST, float]
-    ) -> ast.Module:
-        """Filter out nodes with low importance scores.
-
-        Args:
-            tree: The AST to filter
-            scores: Dictionary of node scores
-
-        Returns:
-            Filtered AST
-        """
-
-        class ImportanceFilter(ast.NodeTransformer):
-            def __init__(self, min_importance: float):
-                self.min_importance = min_importance
-
-            def visit_FunctionDef(
-                self, node: ast.FunctionDef
-            ) -> ast.FunctionDef | None:
-                if scores.get(node, 0.0) < self.min_importance:
-                    return None
-                return node
-
-            def visit_ClassDef(self, node: ast.ClassDef) -> ast.ClassDef | None:
-                if scores.get(node, 0.0) < self.min_importance:
-                    return None
-                return node
-
-        filter_transformer = ImportanceFilter(self.min_importance)
-        return cast(ast.Module, filter_transformer.visit(tree))
+        if score is None:
+            score = self.calculate_importance(
+                name,
+                docstring,
+                is_public,
+                is_special,
+                extra_info,
+            )
+        return score >= self.config.min_score

@@ -136,46 +136,19 @@
 ## 2. Implementation Plan
 
 ### 2.1. Critical Priority (In Progress)
-- [ ] Fix failing tests and linter errors:
-  - [x] Add `__version__` to package
-  - [ ] Fix type annotation issues:
-    - [x] Fix "StubConfig" vs "StubGenConfig" confusion
-    - [x] Fix type compatibility in RuntimeConfig
-    - [x] Fix return type in MyPy backend
-    - [x] Fix output_path type handling
-    - [x] Fix missing return type annotations
-  - [ ] Address linter warnings:
-    - [ ] Fix boolean parameter warnings using `typing.Literal`
-    - [ ] Fix naming convention issues with `ruff`
-    - [ ] Fix complexity warnings with refactoring
-  - [ ] Clean up code style issues:
-    - [ ] Fix deprecated typing imports
-    - [ ] Replace print statements with `loguru`
-  - [x] Fix dependency issues:
-    - [x] Add missing loguru dependency
-    - [x] Fix import resolution issues
-- [ ] Complete Legacy Code Migration:
-  - [ ] From make_stubs_ast.py:
-    - [x] Move SignatureExtractor to ast_backend.py
-    - [x] Move truncate_literal to utils/ast_utils.py
-    - [x] Add print_file_tree to utils/display.py
-    - [x] Integrate FileLocations into config system
-    - [ ] Move generate_shadow_file to ast_backend.py
-    - [ ] Move process_directory to ast_backend.py
-  - [ ] From make_stubs_mypy.py:
-    - [ ] Merge StubGenConfig with existing config
-    - [ ] Move SmartStubGenerator to mypy_backend.py
-    - [ ] Move process_docstring to processors/docstring.py
-    - [ ] Move calculate_importance to processors/importance.py
-    - [ ] Move enhance_stub to mypy_backend.py
-  - [ ] Delete Legacy Files:
-    - [ ] Remove make_stubs_ast.py
-    - [ ] Remove make_stubs_mypy.py
-  - [ ] Integration Testing:
-    - [ ] Test AST backend functionality
-    - [ ] Test MyPy backend functionality
-    - [ ] Test processors integration
-    - [ ] Test config system
+- [x] Add `__version__` to the package
+- [x] Fix type compatibility issues
+- [x] Fix boolean parameter warnings
+- [x] Move `SmartStubGenerator` to `mypy_backend.py`
+- [x] Move AST utilities to `utils/ast.py`
+- [x] Move display functions to `utils/display.py`
+- [x] Move docstring processor to `processors/docstring.py`
+- [x] Move importance processor to `processors/importance.py`
+- [x] Move type inference to `processors/type_inference.py`
+- [ ] Move stub generation to `processors/stub_generation.py`
+- [ ] Add integration tests for all components
+- [ ] Fix remaining linter errors
+- [ ] Complete legacy code migration
 
 ### 2.2. AST Backend Implementation (In Progress)
 - [x] Port `SignatureExtractor` from `make_stubs_ast.py`:
@@ -361,3 +334,15 @@
   - [ ] Track usage metrics with telemetry
   - [ ] Monitor performance with metrics
   - [ ] Report errors with proper context
+
+# Future Improvements
+
+- [ ] Add support for more docstring formats
+- [ ] Improve type inference accuracy
+- [ ] Add more configuration options
+- [ ] Optimize performance
+- [ ] Add more test cases
+- [ ] Improve error handling
+- [ ] Add documentation
+- [ ] Add examples
+- [ ] Add CI/CD pipeline

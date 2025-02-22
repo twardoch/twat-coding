@@ -13,7 +13,7 @@ import weakref
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, ClassVar
+from typing import Any, ClassVar, cast
 
 from loguru import logger
 
@@ -23,6 +23,8 @@ from pystubnik.core.types import StubResult
 from pystubnik.core.utils import read_source_file
 from ..config import StubConfig
 from ..errors import ASTError, ErrorCode
+from ..utils.ast_utils import attach_parents, truncate_literal
+from ..utils.display import print_progress
 from ..utils.memory import MemoryMonitor, memory_monitor, stream_process_ast
 
 
@@ -191,17 +193,56 @@ class ASTBackend(StubBackend):
             ASTError: If AST parsing or processing fails
         """
         try:
+            # Get file locations
+            locations = self.config.get_file_locations(source_path)
+            locations.check_paths()
+
             # Start memory monitoring
             self._memory_monitor.start()
 
-            # Get AST from cache or parse
-            tree = await self._get_ast(source_path)
+            # Read and parse source file
+            source = await self._run_in_executor(source_path.read_text)
+            source_hash = hashlib.sha256(source.encode()).hexdigest()
 
-            # Register AST nodes for weak referencing
-            self._register_nodes(tree)
+            # Try to get from cache
+            async with self._ast_cache_lock:
+                if source_path in self._ast_cache:
+                    entry = self._ast_cache[source_path]
+                    if entry.source_hash == source_hash:
+                        logger.debug(f"AST cache hit for {source_path}")
+                        return await self._process_ast(entry.node, source_path)
 
-            # Process the AST with memory optimization
-            return await self._process_ast(tree, source_path)
+            # Parse file
+            tree = await self._run_in_executor(
+                functools.partial(ast.parse, source, filename=str(source_path))
+            )
+
+            # Attach parent references
+            attach_parents(tree)
+
+            # Update cache
+            async with self._ast_cache_lock:
+                self._ast_cache[source_path] = ASTCacheEntry(
+                    node=tree,
+                    source_hash=source_hash,
+                    access_time=asyncio.get_event_loop().time(),
+                )
+                if len(self._ast_cache) > self._max_cache_size:
+                    # Remove oldest entry
+                    oldest = min(
+                        self._ast_cache.items(),
+                        key=lambda x: x[1].access_time,
+                    )
+                    del self._ast_cache[oldest[0]]
+
+            # Process AST
+            stub_content = await self._process_ast(tree, source_path)
+
+            # Write output
+            output_path = locations.output_path
+            await self._run_in_executor(output_path.write_text, stub_content)
+
+            return stub_content
 
         except Exception as e:
             raise ASTError(
@@ -216,71 +257,48 @@ class ASTBackend(StubBackend):
             logger.debug(f"Peak memory usage: {peak_mb:.1f}MB")
             self._memory_monitor.clear_stats()
 
-    async def process_module(self, module_name: str) -> str:
-        """Process a module by its import name.
+    async def process_directory(self, directory: Path) -> dict[Path, str]:
+        """Process a directory recursively.
 
         Args:
-            module_name: Fully qualified module name
-
-        Returns:
-            Generated stub content
-
-        Raises:
-            ASTError: If module processing fails
-        """
-        try:
-            # Import the module and get its file path
-            module = await self._run_in_executor(
-                functools.partial(__import__, module_name)
-            )
-            if not hasattr(module, "__file__"):
-                raise ASTError(
-                    f"Module {module_name} has no __file__ attribute",
-                    ErrorCode.AST_PARSE_ERROR,
-                )
-            source_path = Path(module.__file__)
-            return await self.generate_stub(source_path)
-
-        except Exception as e:
-            raise ASTError(
-                f"Failed to process module {module_name}: {e}",
-                ErrorCode.AST_PARSE_ERROR,
-            ) from e
-
-    async def process_package(self, package_path: Path) -> dict[Path, str]:
-        """Process a package directory recursively.
-
-        Args:
-            package_path: Path to the package directory
+            directory: Directory to process
 
         Returns:
             Dictionary mapping output paths to stub contents
 
         Raises:
-            ASTError: If package processing fails
+            ASTError: If directory processing fails
         """
         try:
-            # Find all Python files in the package
-            python_files = list(package_path.rglob("*.py"))
+            # Find all Python files matching patterns
+            python_files = []
+            for pattern in self.config.include_patterns:
+                python_files.extend(directory.rglob(pattern))
 
-            # Process files concurrently with memory monitoring
-            with memory_monitor() as monitor:
-                tasks = [self.generate_stub(path) for path in python_files]
-                stubs = await asyncio.gather(*tasks)
-                peak_mb = monitor.peak_memory / 1024 / 1024
-                logger.info(f"Package processing peak memory: {peak_mb:.1f}MB")
+            # Filter out excluded files
+            for pattern in self.config.exclude_patterns:
+                python_files = [f for f in python_files if not f.match(pattern)]
 
-            # Create output paths relative to package
-            return {
-                path.relative_to(package_path).with_suffix(".pyi"): stub
-                for path, stub in zip(python_files, stubs)
-            }
+            # Process files with progress reporting
+            results: dict[Path, str] = {}
+            total = len(python_files)
+            for i, path in enumerate(python_files, 1):
+                try:
+                    print_progress("Processing files", i, total)
+                    stub = await self.generate_stub(path)
+                    results[path] = stub
+                except Exception as e:
+                    logger.error(f"Failed to process {path}: {e}")
+                    if not self.config.ignore_errors:
+                        raise
+
+            return results
 
         except Exception as e:
             raise ASTError(
-                f"Failed to process package at {package_path}: {e}",
+                f"Failed to process directory {directory}: {e}",
                 ErrorCode.AST_PARSE_ERROR,
-                source=str(package_path),
+                source=str(directory),
             ) from e
 
     def cleanup(self) -> None:
@@ -289,69 +307,6 @@ class ASTBackend(StubBackend):
         self._ast_cache.clear()
         self._node_registry.clear()
         self._memory_monitor.stop()
-
-    async def _get_ast(self, source_path: Path) -> ast.AST:
-        """Get AST from cache or parse the file.
-
-        Args:
-            source_path: Path to the source file
-
-        Returns:
-            Parsed AST
-
-        Raises:
-            ASTError: If parsing fails
-        """
-        try:
-            # Calculate file hash
-            source = await self._run_in_executor(source_path.read_text)
-            source_hash = hashlib.sha256(source.encode()).hexdigest()
-
-            async with self._ast_cache_lock:
-                # Check cache
-                if source_path in self._ast_cache:
-                    entry = self._ast_cache[source_path]
-                    if entry.source_hash == source_hash:
-                        logger.debug(f"AST cache hit for {source_path}")
-                        return entry.node
-
-                # Parse file
-                tree = await self._run_in_executor(
-                    functools.partial(ast.parse, source, filename=str(source_path))
-                )
-
-                # Update cache
-                self._ast_cache[source_path] = ASTCacheEntry(
-                    node=tree,
-                    source_hash=source_hash,
-                    access_time=asyncio.get_event_loop().time(),
-                )
-
-                # Cleanup old entries if cache is too large
-                if len(self._ast_cache) > self._max_cache_size:
-                    oldest = min(
-                        self._ast_cache.items(),
-                        key=lambda x: x[1].access_time,
-                    )
-                    del self._ast_cache[oldest[0]]
-
-                return tree
-
-        except Exception as e:
-            raise ASTError(
-                f"Failed to parse {source_path}: {e}",
-                ErrorCode.AST_PARSE_ERROR,
-                source=str(source_path),
-            ) from e
-
-    def _register_nodes(self, node: ast.AST) -> None:
-        """Register AST nodes in the weak reference registry.
-
-        Args:
-            node: AST node to register
-        """
-        for child in ast.walk(node):
-            self._node_registry[id(child)] = child
 
     async def _process_ast(self, tree: ast.AST, source_path: Path) -> str:
         """Process an AST to generate a stub.
@@ -367,14 +322,24 @@ class ASTBackend(StubBackend):
             ASTError: If processing fails
         """
         try:
+            # Create truncation config
+            trunc_config = TruncationConfig(
+                max_sequence_length=4,  # TODO: Make configurable
+                max_string_length=17,
+                max_docstring_length=150,
+                max_file_size=3_000,
+                truncation_marker="...",
+            )
+
             # Process AST nodes in chunks to optimize memory usage
             stub_parts = []
             async for nodes in stream_process_ast(tree):
                 # Process each chunk of nodes
                 for node in nodes:
-                    # TODO: Add actual node processing logic
-                    # This is a placeholder that just stringifies the node
-                    stub_parts.append(ast.unparse(node))
+                    # Apply truncation
+                    truncated = truncate_literal(node, trunc_config)
+                    # Convert to string
+                    stub_parts.append(ast.unparse(truncated))
 
             # Combine processed parts
             return "\n".join(stub_parts)

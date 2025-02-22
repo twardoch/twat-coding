@@ -2,8 +2,9 @@
 """Configuration system for stub generation."""
 
 import os
+import sys
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, Sequence
 
 from pydantic import BaseModel, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -154,6 +155,85 @@ class StubConfig(BaseModel):
     add_header: bool = Field(
         True,
         description="Add header to generated files",
+    )
+
+    # MyPy-specific settings
+    python_version: tuple[int, int] = Field(
+        default_factory=lambda: (sys.version_info.major, sys.version_info.minor),
+        description="Python version to target",
+    )
+    no_import: bool = Field(
+        False,
+        description="Don't import modules, just parse and analyze",
+    )
+    inspect: bool = Field(
+        False,
+        description="Import and inspect modules instead of parsing source",
+    )
+    doc_dir: str = Field(
+        "",
+        description="Path to .rst documentation directory",
+    )
+    search_paths: Sequence[str | Path] = Field(
+        default_factory=list,
+        description="Module search paths",
+    )
+    interpreter: str | Path = Field(
+        default_factory=lambda: sys.executable,
+        description="Python interpreter to use",
+    )
+    ignore_errors: bool = Field(
+        True,
+        description="Ignore errors during stub generation",
+    )
+    parse_only: bool = Field(
+        False,
+        description="Don't do semantic analysis of source",
+    )
+    include_private: bool = Field(
+        False,
+        description="Include private objects in stubs",
+    )
+    modules: Sequence[str] = Field(
+        default_factory=list,
+        description="List of module names to process",
+    )
+    packages: Sequence[str] = Field(
+        default_factory=list,
+        description="List of package names to process recursively",
+    )
+    files: Sequence[str | Path] = Field(
+        default_factory=list,
+        description="List of files to process",
+    )
+    verbose: bool = Field(
+        False,
+        description="Show more detailed output",
+    )
+    quiet: bool = Field(
+        True,
+        description="Show minimal output",
+    )
+    export_less: bool = Field(
+        False,
+        description="Don't export imported names",
+    )
+    importance_patterns: dict[str, float] = Field(
+        default_factory=dict,
+        description="Dict of regex patterns to importance scores",
+    )
+    max_docstring_length: int = Field(
+        500,
+        description="Maximum length for included docstrings",
+        ge=1,
+    )
+    include_type_comments: bool = Field(
+        True,
+        description="Include type comments in stubs",
+    )
+    infer_property_types: bool = Field(
+        True,
+        description="Try to infer property types from docstrings",
     )
 
     @field_validator("output_path", mode="before")
