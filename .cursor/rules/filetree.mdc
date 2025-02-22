@@ -26,13 +26,13 @@ globs:
 │       ├── [ 248]  detailed-overview-of-python-stubbing-tools.md
 │       ├── [ 25K]  integrating-importance-analysis-modules.md
 │       ├── [267K]  managing-todo-list-tasks.md
+│       ├── [137K]  managing-todo-md-tasks.md
 │       ├── [3.0K]  overview-of-python-tools-and-their-functions.md
 │       ├── [ 58K]  project-directory-structure-for-python-package.md
 │       ├── [ 64K]  reviewing-and-tracking-todo-progress.md
 │       ├── [ 56K]  task-management-from-todo-md.md
 │       ├── [4.9K]  task-organization-and-cleanup-process.md
-│       ├── [165K]  todo-list-cleanup-and-review.md
-│       └── [ 167]  untitled.md
+│       └── [165K]  todo-list-cleanup-and-review.md
 ├── [1.0K]  LICENSE
 ├── [ 173]  MANIFEST.in
 ├── [1.4K]  README.md
@@ -75,7 +75,7 @@ globs:
 │       │   │   └── [7.4K]  type_inference.py
 │       │   ├── [1.6K]  read_imports.py
 │       │   ├── [ 160]  types
-│       │   │   ├── [9.2K]  docstring.py
+│       │   │   ├── [9.3K]  docstring.py
 │       │   │   └── [9.7K]  type_system.py
 │       │   └── [ 192]  utils
 │       │       ├── [5.6K]  ast_utils.py

@@ -454,6 +454,7 @@ async def generate_stub(
             search_paths=[],
             python_version=(sys.version_info.major, sys.version_info.minor),
             interpreter=Path(sys.executable),
+            importance_patterns={},
         )
 
     # Convert StubConfig to StubGenConfig for backend
