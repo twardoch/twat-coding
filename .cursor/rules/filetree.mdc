@@ -8,7 +8,7 @@ globs:
 │   └── [ 224]  rules
 │       ├── [2.2K]  0project.mdc
 │       ├── [ 632]  cleanup.mdc
-│       ├── [3.8K]  filetree.mdc
+│       ├── [3.9K]  filetree.mdc
 │       └── [2.0K]  quality.mdc
 ├── [  96]  .github
 │   └── [ 128]  workflows
