@@ -26,6 +26,7 @@ from ast import (
     unparse,
 )
 from pathlib import Path
+from typing import Union, Optional, List
 
 from ..config import StubConfig
 from ..utils.ast_utils import attach_parents
@@ -61,24 +62,28 @@ class StubVisitor(NodeVisitor):
         Returns:
             True if the member should be included
         """
-        if self.config.include_private:
-            return True
+        # Always include special methods
         if name.startswith("__") and name.endswith("__"):
             return True
-        return not name.startswith("_")
+        # Include private members if configured
+        if self.config.include_private:
+            return True
+        # Exclude private members (both single and double underscore)
+        return not (name.startswith("_") or name.startswith("__"))
 
     def visit_ClassDef(self, node: ClassDef) -> None:
         """Visit class definitions."""
         # Skip private classes unless they are special methods
         if not self._should_include_member(node.name):
             return
+        # Only add non-private classes
         self.classes.append(node)
         # Only visit class body if we're keeping the class
         for item in node.body:
             if isinstance(item, FunctionDef):
                 if self._should_include_member(item.name):
                     self.visit(item)
-            elif isinstance(item, Assign | AnnAssign):
+            elif isinstance(item, (Assign, AnnAssign)):
                 self.visit(item)
 
     def visit_FunctionDef(self, node: FunctionDef) -> None:
@@ -86,6 +91,7 @@ class StubVisitor(NodeVisitor):
         # Skip private functions unless they are special methods
         if not self._should_include_member(node.name):
             return
+        # Only add non-private functions
         self.functions.append(node)
         # Only visit function body if we're keeping the function
         self.generic_visit(node)
@@ -100,11 +106,11 @@ class StubVisitor(NodeVisitor):
 
     def visit_Import(self, node: Import) -> None:
         """Visit import statements."""
-        for alias in node.names:
-            if alias.name == "pathlib" or alias.name.startswith("pathlib."):
+        for name in node.names:
+            if name.name == "pathlib" or name.name.startswith("pathlib."):
                 self.imports["pathlib"].append(node)
                 break
-            elif alias.name == "typing" or alias.name.startswith("typing."):
+            elif name.name == "typing" or name.name.startswith("typing."):
                 self.imports["typing"].append(node)
                 break
             else:
@@ -120,7 +126,7 @@ class StubVisitor(NodeVisitor):
             self.imports["pathlib"].append(node)
         elif node.module == "typing":
             # Combine all typing imports into one
-            names = sorted(alias.name for alias in node.names)
+            names = sorted(name.name for name in node.names)
             if any(
                 imp
                 for imp in self.imports["typing"]
@@ -131,7 +137,7 @@ class StubVisitor(NodeVisitor):
                     for imp in self.imports["typing"]
                     if isinstance(imp, ImportFrom) and imp.module == "typing"
                 )
-                existing_names = {alias.name for alias in existing.names}
+                existing_names = {name.name for name in existing.names}
                 new_names = [
                     alias(name=name) for name in sorted(set(names) | existing_names)
                 ]
@@ -195,7 +201,7 @@ class StubVisitor(NodeVisitor):
         module = f"from {node.module} " if node.module else "from "
         if node.level > 0:
             module = f"from {'.' * node.level}{node.module if node.module else ''} "
-        names = ", ".join(sorted(alias.name for alias in node.names))
+        names = ", ".join(sorted(name.name for name in node.names))
         return f"{module}import {names}"
 
 
@@ -253,14 +259,17 @@ class StubGenerator:
         Returns:
             True if the member should be included
         """
-        if self.config.include_private:
-            return True
+        # Always include special methods
         if name.startswith("__") and name.endswith("__"):
             return True
-        return not name.startswith("_")
+        # Include private members if configured
+        if self.config.include_private:
+            return True
+        # Exclude private members (both single and double underscore)
+        return not (name.startswith("_") or name.startswith("__"))
 
     def generate_stub(
-        self, source_file: str | Path, ast_tree: AST | None = None
+        self, source_file: Union[str, Path], ast_tree: Optional[AST] = None
     ) -> str:
         """Generate a stub file from the given source file or AST.
 
@@ -274,7 +283,7 @@ class StubGenerator:
         self.current_file = Path(source_file)
 
         if ast_tree is None:
-            with open(source_file, encoding="utf-8") as f:
+            with open(source_file, "r", encoding="utf-8") as f:
                 source = f.read()
             ast_tree = parse(source)
 
@@ -283,23 +292,40 @@ class StubGenerator:
 
         attach_parents(ast_tree)
 
+        # Debug output
+        print("\nDebug: Configuration state")
+        print("=" * 80)
+        print(f"include_private: {self.config.include_private}")
+        print("=" * 80)
+
         # Initialize visitor
         visitor = StubVisitor(self.config)
+
+        # Debug output
+        print("\nDebug: Visitor configuration")
+        print("=" * 80)
+        print(f"visitor include_private: {visitor.config.include_private}")
+        print("=" * 80)
+
         visitor.visit(ast_tree)
 
-        # Print debug info
-        print("\nVisitor state after visiting AST:")
+        # Debug output
+        print("\nDebug: Visitor state after visiting AST")
         print("=" * 80)
-        print("Classes:")
+        print("Classes found:")
         for class_def in visitor.classes:
-            print(f"- {class_def.name}")
-        print("\nFunctions:")
+            print(
+                f"- {class_def.name} (should_include: {self._should_include_member(class_def.name)})"
+            )
+        print("\nFunctions found:")
         for func_def in visitor.functions:
-            print(f"- {func_def.name}")
+            print(
+                f"- {func_def.name} (should_include: {self._should_include_member(func_def.name)})"
+            )
         print("=" * 80)
 
         # Add header if configured
-        lines: list[str] = []
+        lines: List[str] = []
         if self.config.add_header:
             lines.append('"""# Generated stub file"""\n')
 
@@ -310,19 +336,39 @@ class StubGenerator:
             if sorted_imports:
                 lines.append("")
 
-        # Process classes
-        for class_def in visitor.classes:
-            if self._should_include_member(class_def.name):
-                class_lines = self._process_class_to_lines(class_def)
-                lines.extend(class_lines)
-                lines.append("")
+        # Filter out private classes before processing
+        public_classes = [
+            class_def
+            for class_def in visitor.classes
+            if self._should_include_member(class_def.name)
+        ]
 
-        # Process functions
-        for func_def in visitor.functions:
-            if self._should_include_member(func_def.name):
-                func_lines = self._process_function_to_lines(func_def)
-                lines.extend(func_lines)
-                lines.append("")
+        # Debug output
+        print("\nDebug: After filtering classes")
+        print("=" * 80)
+        print("Public classes:")
+        for class_def in public_classes:
+            print(f"- {class_def.name}")
+        print("=" * 80)
+
+        # Process public classes only
+        for class_def in public_classes:
+            class_lines = self._process_class_to_lines(class_def)
+            lines.extend(class_lines)
+            lines.append("")
+
+        # Filter out private functions before processing
+        public_functions = [
+            func_def
+            for func_def in visitor.functions
+            if self._should_include_member(func_def.name)
+        ]
+
+        # Process public functions only
+        for func_def in public_functions:
+            func_lines = self._process_function_to_lines(func_def)
+            lines.extend(func_lines)
+            lines.append("")
 
         # Process assignments
         for assignment in visitor.assignments:
@@ -334,15 +380,15 @@ class StubGenerator:
         while lines and not lines[-1].strip():
             lines.pop()
 
-        # Print debug info
-        print("\nGenerated stub content:")
+        # Debug output
+        print("\nDebug: Generated stub content")
         print("=" * 80)
-        print("\n".join(lines))
+        print(lines)
         print("=" * 80)
 
         return "\n".join(lines)
 
-    def _process_class_to_lines(self, node: ClassDef) -> list[str]:
+    def _process_class_to_lines(self, node: ClassDef) -> List[str]:
         """Process a class definition into lines of code.
 
         Args:
@@ -351,14 +397,19 @@ class StubGenerator:
         Returns:
             List of lines representing the class
         """
+        # Skip private classes
+        if not self._should_include_member(node.name):
+            return []
+
         lines = []
 
-        # Add docstring if present
+        # Add docstring if present and class is not private
         if (
             node.body
             and len(node.body) > 0
             and isinstance(node.body[0], Expr)
             and isinstance(node.body[0].value, Constant)
+            and self._should_include_member(node.name)
         ):
             docstring = get_docstring(node)
             if docstring:
@@ -379,7 +430,7 @@ class StubGenerator:
                     func_lines = self._process_function_to_lines(item)
                     if func_lines:
                         body_lines.extend(func_lines)
-            elif isinstance(item, Assign | AnnAssign):
+            elif isinstance(item, (Assign, AnnAssign)):
                 assign_lines = self._process_assignment_to_lines(item)
                 if assign_lines:
                     body_lines.extend(assign_lines)
