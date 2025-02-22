@@ -6,23 +6,26 @@ this_file: TODO.md
 
 ## 1. Immediate Priorities
 
-- [!] **Fix Import and Type Errors**
-  - *Problem*: Import errors with `TruncationConfig` and type compatibility issues
-  - *Solution*: 
-    1. Update imports to use `shared_types.TruncationConfig` instead of `types.TruncationConfig`
-    2. Fix type compatibility in `ast_utils.py` and `config.py`
-    3. Resolve remaining type errors in `__init__.py`
+- [!] **Fix Test Failures**
+  - *Problem*: Test `test_type_hints` is failing due to string comparison mismatch
+  - *Solution*:
+    1. Update test to handle AST formatting differences
+    2. Fix string comparison in test assertions
+    3. Ensure AST backend preserves type hints exactly
+
+- [!] **Fix Type Errors in __init__.py**
+  - *Problem*: Multiple type errors in `__init__.py` related to `StubConfig`
+  - *Solution*:
+    1. Update `StubConfig` to accept all required parameters
+    2. Fix type compatibility between `StubConfig` and `StubGenConfig`
+    3. Update function signatures to match expected types
 
 - [!] **Improve Test Coverage**
-  - *Current*: 10% (target: 50%)
+  - *Current*: 39% (up from 10%, target: 50%)
   - *Focus Areas*:
-    1. `src/twat_coding/pystubnik/backends/ast_backend.py` (8% coverage)
-    2. `src/twat_coding/pystubnik/processors/stub_generation.py` (0% coverage)
-    3. `src/twat_coding/pystubnik/processors/type_inference.py` (0% coverage)
-  - *Next Steps*:
-    1. Fix failing test imports first
-    2. Add core tests for AST backend
-    3. Add tests for processors
+    1. `src/twat_coding/pystubnik/processors/stub_generation.py` (0% coverage)
+    2. `src/twat_coding/pystubnik/processors/type_inference.py` (0% coverage)
+    3. `src/twat_coding/pystubnik/read_imports.py` (0% coverage)
 
 ## 2. Future Tasks
 
@@ -56,13 +59,14 @@ this_file: TODO.md
 - [x] **Type System Improvements**
   - Created `shared_types.py` for common types
   - Defined `TruncationConfig` as a shared type
-  - Implemented Protocol for type compatibility
+  - Fixed type compatibility in `ast_utils.py`
 
 ## 4. Notes
 
-- Focus on fixing the import errors first as they're blocking tests
-- Prioritize type error fixes to ensure code reliability
-- Improve test coverage incrementally, focusing on core functionality first
+- Focus on fixing the failing test first as it indicates a core functionality issue
+- Then address type errors in `__init__.py` to ensure type safety
+- Continue improving test coverage, focusing on untested modules
+- Ignore minor linting issues (line length) for now
 
 Before you do any changes or if I say "cleanup", run the `./cleanup.py install && source .venv/bin/activate && ./cleanup.py update | cat` script in the main folder. Analyze the results, describe recent changes @TODO.md to update priorities and plan next changes. PERFORM THE CHANGES, then run the `./cleanup.py update | cat` script and react to the results.
 
