@@ -38,6 +38,27 @@ This TODO.md is a detailed development specification for making `pystubnik` func
   - Added error handling for missing dependencies
   - Fixed type errors in centrality calculation
 
+- [!] **Fix Remaining Linter Errors:**
+  - Remove unused imports in `backends/__init__.py` and `processors/__init__.py`
+  - Replace deprecated type hints with modern syntax:
+    - Replace `typing.Dict` with `dict`
+    - Replace `typing.Type` with `type`
+    - Use `X | Y` instead of `Union[X, Y]`
+  - Fix line length issues in:
+    - `config.py`
+    - `core/utils.py`
+    - `types/docstring.py`
+  - Refactor complex functions:
+    - `truncate_literal` in `make_stubs_ast.py`
+    - `calculate_importance` in `importance.py`
+    - `extract_types` in `types/docstring.py`
+
+- [!] **Fix Type Checking Errors:**
+  - Fix incompatible type in `issubclass` call in `type_system.py`
+  - Fix bytes/str type mismatch in `make_stubs_ast.py`
+  - Fix AST parent attribute error in `make_stubs_ast.py`
+  - Fix type annotation in `docstring.py`
+
 - [!] **Improve Code Organization:**
   - Create `utils/` directory with:
     - `graph_utils.py`: Import graph building and analysis
@@ -55,7 +76,7 @@ This TODO.md is a detailed development specification for making `pystubnik` func
     - Test cases for config loading and validation
     - Test cases for error handling of missing dependencies
   - Add test fixtures for sample Python files
-  - Add test coverage reporting
+  - Add test coverage reporting (current coverage is only 1%)
   - Add performance benchmarks for large codebases
 
 ## 3. Feature Integration
@@ -135,7 +156,7 @@ This TODO.md is a detailed development specification for making `pystubnik` func
 ## 5. Testing and Validation
 
 - [ ] **Add Comprehensive Tests:**
-  - Unit tests for all components
+  - Unit tests for all components (current coverage is only 1%)
   - Integration tests
   - Performance tests
   - Edge case tests
@@ -167,9 +188,11 @@ This TODO.md is a detailed development specification for making `pystubnik` func
 1. [x] Add new dependencies to `pyproject.toml`
 2. [x] Fix import resolution issues
 3. [x] Fix critical linter errors
-4. [!] Improve code organization
-5. [!] Add basic tests
-6. [!] Enhance configuration system
+4. [!] Fix remaining linter errors
+5. [!] Fix type checking errors
+6. [!] Improve code organization
+7. [!] Add basic tests
+8. [!] Enhance configuration system
 
 ## 8. Notes
 
@@ -178,6 +201,9 @@ This TODO.md is a detailed development specification for making `pystubnik` func
 - All changes maintain backward compatibility
 - Performance impact should be monitored
 - Optional dependencies are now properly handled with graceful fallbacks
+- Current test coverage is only 1%, needs immediate attention
+- Several complex functions need refactoring
+- Type system needs modernization (using newer Python type hints)
 
 ---
 

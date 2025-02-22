@@ -2743,6 +2743,1081 @@ Let me fix the remaining issues:
 
 _****_
 
+```diff
+  import argparse
+  import ast
++ import importlib.util
+  import json
+  import os
++ import sys
+  from dataclasses import dataclass, field
+  from typing import Any, cast
+      }
+  
+-     try:
+-         import coverage
+-     except ImportError:
++     if not importlib.util.find_spec("coverage"):
+          available["coverage"] = False
+          print(COVERAGE_MISSING)
+  
+-     try:
+-         import pydocstyle
+-     except ImportError:
++     if not importlib.util.find_spec("pydocstyle"):
+          available["pydocstyle"] = False
+          print(PYDOCSTYLE_MISSING)
+  
+-     try:
+-         import radon.complexity
+-     except ImportError:
++     if not importlib.util.find_spec("radon"):
+          available["radon"] = False
+          print(RADON_MISSING)
+```
+
+---
+
+_****_
+
+
+
+
+
+
+
+Let me run the linter one final time to check if all issues are fixed:
+
+---
+
+_****_
+
+```bash
+ruff check src/twat_coding/pystubnik/processors/file_importance.py | cat
+```
+
+```
+::error title=Ruff (E501),file=/Users/adam/Developer/vcs/github.tw
+ardoch/pub/twat-packages/_good/twat/plugins/repos/twat_coding/src/
+twat_coding/pystubnik/processors/file_importance.py,line=431,col=8
+9,endLine=431,endColumn=93::src/twat_coding/pystubnik/processors/f
+ile_importance.py:431:89: E501 Line too long (92 > 88)
+::error title=Ruff (E501),file=/Users/adam/Developer/vcs/github.tw
+ardoch/pub/twat-packages/_good/twat/plugins/repos/twat_coding/src/
+twat_coding/pystubnik/processors/file_importance.py,line=438,col=8
+9,endLine=438,endColumn=90::src/twat_coding/pystubnik/processors/f
+ile_importance.py:438:89: E501 Line too long (89 > 88)
+
+```
+
+---
+
+_****_
+
+
+
+
+
+
+
+Let me fix the remaining line length issues:
+
+---
+
+_****_
+
+```diff
+          except Exception as e:
+              print(
+-                 f"Warning: Failed to load config file '{config_file}': {e}. Using defaults."
++                 "Warning: Failed to load config file "
++                 f"'{config_file}': {e}. Using defaults."
+              )
+      return {}
+  if __name__ == "__main__":
+      parser = argparse.ArgumentParser(
+-         description="Prioritize .py files in a Python package based on multiple metrics."
++         description=(
++             "Prioritize .py files in a Python package based on multiple metrics."
++         )
+      )
+      parser.add_argument("package_dir", help="Path to the package directory")
+```
+
+---
+
+_****_
+
+
+
+
+
+
+
+Now let's run the linter one final time to verify all issues are fixed:
+
+---
+
+_****_
+
+```bash
+ruff check src/twat_coding/pystubnik/processors/file_importance.py | cat
+```
+
+```
+(twat_coding) adam@Hamlet twat_coding % 
+
+```
+
+---
+
+_****_
+
+
+
+
+
+Great! All linter errors have been fixed. Let's update the TODO list to reflect our progress:
+
+---
+
+_****_
+
+```diff
+  
+  # TODO
+- 
+  
+  This TODO.md is a detailed development specification for making `pystubnik` functional ASAP, focusing on integrating the new file importance analysis and eliminating standalone scripts.
+  
+  ## 1. Dependencies and Environment (URGENT)
+  
+- - [!] **Add New Dependencies to `pyproject.toml`:**
++ - [x] **Add New Dependencies to `pyproject.toml`:**
+    ```toml
+    [project]
+    ```
+  
+- - [!] **Fix Import Resolution:**
+-   - Add missing type stubs: `types-toml`, `types-pydocstyle`
+-   - Fix importlab imports by adding to PYTHONPATH or using relative imports
+-   - Add proper error handling for optional dependencies
++ - [x] **Fix Import Resolution:**
++   - Added missing type stubs: `types-toml`, replaced `types-pydocstyle` with `mypy-extensions`
++   - Simplified import graph building to not rely on importlab
++   - Added proper error handling for optional dependencies
+  
+  ## 2. Code Quality Fixes
+  
+- - [!] **Fix Critical Linter Errors:**
+-   - Fix `Numbers.percentage` attribute error in `file_importance.py`
+-   - Add proper type hints for importlab classes
+-   - Fix line length issues in `file_importance.py`
+-   - Add error handling for missing dependencies
++ - [x] **Fix Critical Linter Errors:**
++   - Fixed `Numbers.percentage` attribute error in `file_importance.py`
++   - Added proper type hints for importlab classes
++   - Fixed line length issues in `file_importance.py`
++   - Added error handling for missing dependencies
+  
+- - [ ] **Improve Code Organization:**
++ - [!] **Improve Code Organization:**
+    - Move common utilities to `utils/` directory
+    - Add proper logging configuration
+    - Add debug mode for verbose output
+    - Document public APIs
+  
+- - [ ] **Add Basic Tests:**
++ - [!] **Add Basic Tests:**
+    - Unit tests for `ImportanceProcessor`
+    - Unit tests for `FileImportanceConfig`
+  ## 3. Feature Integration
+  
+- - [!] **Complete File Importance Integration:**
++ - [x] **Complete File Importance Integration:**
+    ```python
+    # In ImportanceProcessor.process():
+    ```
+  
+- - [ ] **Enhance Configuration System:**
++ - [!] **Enhance Configuration System:**
+    - Add file importance settings to `StubGenConfig`
+    - Add CLI options for file metrics
+  ## 7. Next Actions
+  
+- 1. Add new dependencies to `pyproject.toml`
+- 2. Fix import resolution issues
+- 3. Fix critical linter errors
+- 4. Complete file importance integration
+- 5. Add basic tests
+- 6. Update documentation
++ 1. ✓ Add new dependencies to `pyproject.toml`
++ 2. ✓ Fix import resolution issues
++ 3. ✓ Fix critical linter errors
++ 4. [!] Improve code organization
++ 5. [!] Add basic tests
++ 6. [!] Enhance configuration system
+  
+  ## 8. Notes
+  - All changes maintain backward compatibility
+  - Performance impact should be monitored
++ - Optional dependencies are now properly handled with graceful fallbacks
+  
+  ---
+```
+
+---
+
+_****_
+
+
+
+
+
+Now that we've fixed the critical issues and updated the TODO list, let's run the cleanup status check to verify our changes:
+
+---
+
+_****_
+
+```bash
+./cleanup.py status
+```
+
+```
+2025-02-22 03:22:13 - 
+=== PROJECT STATEMENT ===
+2025-02-22 03:22:13 - ---
+description: About this project
+globs: 
+---
+---
+name: About this project
+key: 0project
+---
+
+`twat-coding` is a Python toolkit focused on code analysis and tra
+nsformation. Its main package `pystubnik` generates "smart stubs"
+- a hybrid between full source code and type stubs that helps LLMs
+ understand large codebases efficiently. Smart stubs preserve esse
+ntial code structure (signatures, types, imports) while intelligen
+tly reducing verbosity based on code importance.
+
+## 1. Overview
+
+Pystubnik creates a "shadow" directory structure that mirrors your
+ Python package, containing smart stubs for all Python files. Thes
+e smart stubs are designed to be more informative than traditional
+ `.pyi` stub files while being more concise than full source code.
+### 1.1. What are Smart Stubs?
+
+Smart stubs are an intermediate representation that includes:
+- All function and class signatures with type hints
+- All imports (organized and optimized)
+- Docstrings (with configurable length limits)
+- Important/relevant code sections
+- Truncated versions of large data structures and strings
+- Simplified function bodies for non-critical code
+
+The verbosity level is automatically adjusted based on the code's 
+importance and complexity.
+
+## 2. Architecture
+
+### 2.1. Backends
+
+#### 2.1.1. AST Backend
+- Uses Python's built-in AST module for precise control
+- Preserves code structure while reducing verbosity
+- Configurable truncation of large literals and sequences
+- Maintains type information and docstrings
+- Supports Python 3.12+ features (type parameters, etc.)
+
+#### 2.1.2. MyPy Backend
+- Leverages mypy's stubgen for type information
+- Better type inference capabilities
+- Handles special cases (dataclasses, properties)
+- Supports type comment extraction
+
+### 2.2. Processors
+
+#### 2.2.1. Import Processor
+- Analyzes and organizes imports
+- Groups by type (stdlib, third-party, local)
+- Handles relative imports
+- Detects and removes duplicates
+
+#### 2.2.2. Docstring Processor
+- Configurable docstring preservation
+- Format detection and conversion
+- Type information extraction
+- Length-based truncation
+
+#### 2.2.3. Importance Processor
+- Scores code elements by importance
+- Pattern-based importance detection
+- Inheritance-aware scoring
+- Configurable filtering
+2025-02-22 03:22:13 - 
+=== Current Status ===
+2025-02-22 03:22:13 - Error: LOG.md is missing
+2025-02-22 03:22:13 - [ 960]  .
+├── [  64]  .benchmarks
+├── [  96]  .cursor
+│   └── [ 224]  rules
+│       ├── [2.2K]  0project.mdc
+│       ├── [ 618]  cleanup.mdc
+│       ├── [3.7K]  filetree.mdc
+│       └── [2.0K]  quality.mdc
+├── [  96]  .github
+│   └── [ 128]  workflows
+│       ├── [2.7K]  push.yml
+│       └── [1.4K]  release.yml
+├── [3.5K]  .gitignore
+├── [ 532]  .pre-commit-config.yaml
+├── [  96]  .specstory
+│   └── [ 416]  history
+│       ├── [2.0K]  .what-is-this.md
+│       ├── [ 63K]  adjusting-todo-priorities-from-cleanup-status.
+md
+│       ├── [ 79K]  cleanup-script-execution-and-todo-management.m
+d
+│       ├── [333K]  command-execution-and-todo-update.md
+│       ├── [ 248]  detailed-overview-of-python-stubbing-tools.md
+│       ├── [ 25K]  integrating-importance-analysis-modules.md
+│       ├── [3.0K]  overview-of-python-tools-and-their-functions.m
+d
+│       ├── [ 58K]  project-directory-structure-for-python-package
+.md
+│       ├── [ 64K]  reviewing-and-tracking-todo-progress.md
+│       ├── [4.9K]  task-organization-and-cleanup-process.md
+│       └── [ 90K]  todo-list-cleanup-and-review.md
+├── [1.0K]  LICENSE
+├── [ 173]  MANIFEST.in
+├── [1.4K]  README.md
+├── [4.9K]  TODO.md
+├── [ 12K]  cleanup.py
+├── [  96]  cursor
+│   └── [  96]  rules
+│       └── [  31]  0project.mdc
+├── [  96]  dist
+│   └── [   1]  .gitkeep
+├── [ 305]  mypy.ini
+├── [ 426]  package.toml
+├── [4.8K]  pyproject.toml
+├── [215K]  repomix-output.txt
+├── [ 128]  src
+│   └── [ 256]  twat_coding
+│       ├── [ 144]  __init__.py
+│       ├── [ 480]  pystubnik
+│       │   ├── [5.3K]  README.md
+│       │   ├── [ 14K]  __init__.py
+│       │   ├── [ 192]  backends
+│       │   │   ├── [1.4K]  __init__.py
+│       │   │   ├── [ 12K]  ast_backend.py
+│       │   │   ├── [2.1K]  base.py
+│       │   │   └── [1.1K]  mypy_backend.py
+│       │   ├── [9.5K]  config.py
+│       │   ├── [ 160]  core
+│       │   │   ├── [4.9K]  config.py
+│       │   │   ├── [3.9K]  types.py
+│       │   │   └── [8.2K]  utils.py
+│       │   ├── [5.1K]  errors.py
+│       │   ├── [ 14K]  make_stubs_ast.py
+│       │   ├── [ 11K]  make_stubs_mypy.py
+│       │   ├── [ 288]  processors
+│       │   │   ├── [1.2K]  __init__.py
+│       │   │   ├── [5.0K]  docstring.py
+│       │   │   ├── [ 15K]  file_importance.py
+│       │   │   ├── [6.3K]  importance.py
+│       │   │   ├── [6.6K]  imports.py
+│       │   │   ├── [ 11K]  stub_generation.py
+│       │   │   └── [7.4K]  type_inference.py
+│       │   ├── [2.0K]  pypacky2.sh
+│       │   ├── [1.6K]  read_imports.py
+│       │   ├── [ 128]  types
+│       │   │   ├── [8.5K]  docstring.py
+│       │   │   └── [8.2K]  type_system.py
+│       │   └── [ 160]  utils
+│       │       ├── [5.3K]  ast_utils.py
+│       │       ├── [1.8K]  display.py
+│       │       └── [5.2K]  memory.py
+│       └── [1.6K]  twat_coding.py
+└── [ 128]  tests
+    └── [ 165]  test_package.py
+
+20 directories, 60 files
+
+2025-02-22 03:22:13 - 
+Project structure:
+2025-02-22 03:22:13 - [ 960]  .
+├── [  64]  .benchmarks
+├── [  96]  .cursor
+│   └── [ 224]  rules
+│       ├── [2.2K]  0project.mdc
+│       ├── [ 618]  cleanup.mdc
+│       ├── [3.7K]  filetree.mdc
+│       └── [2.0K]  quality.mdc
+├── [  96]  .github
+│   └── [ 128]  workflows
+│       ├── [2.7K]  push.yml
+│       └── [1.4K]  release.yml
+├── [3.5K]  .gitignore
+├── [ 532]  .pre-commit-config.yaml
+├── [  96]  .specstory
+│   └── [ 416]  history
+│       ├── [2.0K]  .what-is-this.md
+│       ├── [ 63K]  adjusting-todo-priorities-from-cleanup-status.
+md
+│       ├── [ 79K]  cleanup-script-execution-and-todo-management.m
+d
+│       ├── [333K]  command-execution-and-todo-update.md
+│       ├── [ 248]  detailed-overview-of-python-stubbing-tools.md
+│       ├── [ 25K]  integrating-importance-analysis-modules.md
+│       ├── [3.0K]  overview-of-python-tools-and-their-functions.m
+d
+│       ├── [ 58K]  project-directory-structure-for-python-package
+.md
+│       ├── [ 64K]  reviewing-and-tracking-todo-progress.md
+│       ├── [4.9K]  task-organization-and-cleanup-process.md
+│       └── [ 90K]  todo-list-cleanup-and-review.md
+├── [1.0K]  LICENSE
+├── [ 173]  MANIFEST.in
+├── [1.4K]  README.md
+├── [4.9K]  TODO.md
+├── [ 12K]  cleanup.py
+├── [  96]  cursor
+│   └── [  96]  rules
+│       └── [  31]  0project.mdc
+├── [  96]  dist
+│   └── [   1]  .gitkeep
+├── [ 305]  mypy.ini
+├── [ 426]  package.toml
+├── [4.8K]  pyproject.toml
+├── [215K]  repomix-output.txt
+├── [ 128]  src
+│   └── [ 256]  twat_coding
+│       ├── [ 144]  __init__.py
+│       ├── [ 480]  pystubnik
+│       │   ├── [5.3K]  README.md
+│       │   ├── [ 14K]  __init__.py
+│       │   ├── [ 192]  backends
+│       │   │   ├── [1.4K]  __init__.py
+│       │   │   ├── [ 12K]  ast_backend.py
+│       │   │   ├── [2.1K]  base.py
+│       │   │   └── [1.1K]  mypy_backend.py
+│       │   ├── [9.5K]  config.py
+│       │   ├── [ 160]  core
+│       │   │   ├── [4.9K]  config.py
+│       │   │   ├── [3.9K]  types.py
+│       │   │   └── [8.2K]  utils.py
+│       │   ├── [5.1K]  errors.py
+│       │   ├── [ 14K]  make_stubs_ast.py
+│       │   ├── [ 11K]  make_stubs_mypy.py
+│       │   ├── [ 288]  processors
+│       │   │   ├── [1.2K]  __init__.py
+│       │   │   ├── [5.0K]  docstring.py
+│       │   │   ├── [ 15K]  file_importance.py
+│       │   │   ├── [6.3K]  importance.py
+│       │   │   ├── [6.6K]  imports.py
+│       │   │   ├── [ 11K]  stub_generation.py
+│       │   │   └── [7.4K]  type_inference.py
+│       │   ├── [2.0K]  pypacky2.sh
+│       │   ├── [1.6K]  read_imports.py
+│       │   ├── [ 128]  types
+│       │   │   ├── [8.5K]  docstring.py
+│       │   │   └── [8.2K]  type_system.py
+│       │   └── [ 160]  utils
+│       │       ├── [5.3K]  ast_utils.py
+│       │       ├── [1.8K]  display.py
+│       │       └── [5.2K]  memory.py
+│       └── [1.6K]  twat_coding.py
+└── [ 128]  tests
+    └── [ 165]  test_package.py
+
+20 directories, 60 files
+
+2025-02-22 03:22:13 - On branch main
+Your branch is ahead of 'origin/main' by 1 commit.
+  (use "git push" to publish your local commits)
+
+Changes not staged for commit:
+  (use "git add/rm <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working direc
+tory)
+        modified:   .cursor/rules/filetree.mdc
+        deleted:    .specstory/history/untitled.md
+        modified:   TODO.md
+        modified:   pyproject.toml
+        modified:   src/twat_coding/pystubnik/processors/file_impo
+rtance.py
+        modified:   src/twat_coding/pystubnik/processors/importanc
+e.py
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        .specstory/history/todo-list-cleanup-and-review.md
+
+no changes added to commit (use "git add" and/or "git commit -a")
+
+2025-02-22 03:22:13 - On branch main
+Your branch is ahead of 'origin/main' by 1 commit.
+  (use "git push" to publish your local commits)
+
+Changes not staged for commit:
+  (use "git add/rm <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working direc
+tory)
+        modified:   .cursor/rules/filetree.mdc
+        deleted:    .specstory/history/untitled.md
+        modified:   TODO.md
+        modified:   pyproject.toml
+        modified:   src/twat_coding/pystubnik/processors/file_impo
+rtance.py
+        modified:   src/twat_coding/pystubnik/processors/importanc
+e.py
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        .specstory/history/todo-list-cleanup-and-review.md
+
+no changes added to commit (use "git add" and/or "git commit -a")
+
+2025-02-22 03:22:13 - 
+=== Environment Status ===
+2025-02-22 03:22:13 - Setting up virtual environment
+2025-02-22 03:22:14 - Virtual environment created and activated
+2025-02-22 03:22:14 - Installing package with all extras
+2025-02-22 03:22:14 - Setting up virtual environment
+2025-02-22 03:22:14 - Virtual environment created and activated
+2025-02-22 03:22:15 - Package installed successfully
+2025-02-22 03:22:15 - Running code quality checks
+2025-02-22 03:22:15 - >>> Running code fixes...
+2025-02-22 03:22:15 - ::error title=Ruff (F401),file=/Users/adam/D
+eveloper/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/
+repos/twat_coding/src/twat_coding/pystubnik/backends/__init__.py,l
+ine=7,col=17,endLine=7,endColumn=20::src/twat_coding/pystubnik/bac
+kends/__init__.py:7:17: F401 `abc.ABC` imported but unused
+::error title=Ruff (UP035),file=/Users/adam/Developer/vcs/github.t
+wardoch/pub/twat-packages/_good/twat/plugins/repos/twat_coding/src
+/twat_coding/pystubnik/backends/__init__.py,line=9,col=1,endLine=9
+,endColumn=40::src/twat_coding/pystubnik/backends/__init__.py:9:1:
+ UP035 `typing.Dict` is deprecated, use `dict` instead
+::error title=Ruff (UP035),file=/Users/adam/Developer/vcs/github.t
+wardoch/pub/twat-packages/_good/twat/plugins/repos/twat_coding/src
+/twat_coding/pystubnik/backends/__init__.py,line=9,col=1,endLine=9
+,endColumn=40::src/twat_coding/pystubnik/backends/__init__.py:9:1:
+ UP035 `typing.Type` is deprecated, use `type` instead
+::error title=Ruff (F401),file=/Users/adam/Developer/vcs/github.tw
+ardoch/pub/twat-packages/_good/twat/plugins/repos/twat_coding/src/
+twat_coding/pystubnik/backends/__init__.py,line=9,col=20,endLine=9
+,endColumn=24::src/twat_coding/pystubnik/backends/__init__.py:9:20
+: F401 `typing.Dict` imported but unused
+::error title=Ruff (F401),file=/Users/adam/Developer/vcs/github.tw
+ardoch/pub/twat-packages/_good/twat/plugins/repos/twat_coding/src/
+twat_coding/pystubnik/backends/__init__.py,line=9,col=36,endLine=9
+,endColumn=40::src/twat_coding/pystubnik/backends/__init__.py:9:36
+: F401 `typing.Type` imported but unused
+::error title=Ruff (B027),file=/Users/adam/Developer/vcs/github.tw
+ardoch/pub/twat-packages/_good/twat/plugins/repos/twat_coding/src/
+twat_coding/pystubnik/backends/base.py,line=67,col=5,endLine=72,en
+dColumn=13::src/twat_coding/pystubnik/backends/base.py:67:5: B027
+`StubBackend.cleanup` is an empty method in an abstract base class
+, but has no abstract decorator
+::error title=Ruff (E501),file=/Users/adam/Developer/vcs/github.tw
+ardoch/pub/twat-packages/_good/twat/plugins/repos/twat_coding/src/
+twat_coding/pystubnik/config.py,line=74,col=89,endLine=74,endColum
+n=98::src/twat_coding/pystubnik/config.py:74:89: E501 Line too lon
+g (97 > 88)
+::error title=Ruff (UP007),file=/Users/adam/Developer/vcs/github.t
+wardoch/pub/twat-packages/_good/twat/plugins/repos/twat_coding/src
+/twat_coding/pystubnik/core/types.py,line=152,col=12,endLine=152,e
+ndColumn=28::src/twat_coding/pystubnik/core/types.py:152:12: UP007
+ Use `X | Y` for type annotations
+::error title=Ruff (E501),file=/Users/adam/Developer/vcs/github.tw
+ardoch/pub/twat-packages/_good/twat/plugins/repos/twat_coding/src/
+twat_coding/pystubnik/core/utils.py,line=239,col=89,endLine=239,en
+dColumn=171::src/twat_coding/pystubnik/core/utils.py:239:89: E501
+Line too long (170 > 88)
+::error title=Ruff (C901),file=/Users/adam/Developer/vcs/github.tw
+ardoch/pub/twat-packages/_good/twat/plugins/repos/twat_coding/src/
+twat_coding/pystubnik/make_stubs_ast.py,line=73,col=5,endLine=73,e
+ndColumn=21::src/twat_coding/pystubnik/make_stubs_ast.py:73:5: C90
+1 `truncate_literal` is too complex (12 > 10)
+::error title=Ruff (F401),file=/Users/adam/Developer/vcs/github.tw
+ardoch/pub/twat-packages/_good/twat/plugins/repos/twat_coding/src/
+twat_coding/pystubnik/processors/__init__.py,line=7,col=17,endLine
+=7,endColumn=20::src/twat_coding/pystubnik/processors/__init__.py:
+7:17: F401 `abc.ABC` imported but unused
+::error title=Ruff (UP035),file=/Users/adam/Developer/vcs/github.t
+wardoch/pub/twat-packages/_good/twat/plugins/repos/twat_coding/src
+/twat_coding/pystubnik/processors/__init__.py,line=8,col=1,endLine
+=8,endColumn=45::src/twat_coding/pystubnik/processors/__init__.py:
+8:1: UP035 `typing.Dict` is deprecated, use `dict` instead
+::error title=Ruff (UP035),file=/Users/adam/Developer/vcs/github.t
+wardoch/pub/twat-packages/_good/twat/plugins/repos/twat_coding/src
+/twat_coding/pystubnik/processors/__init__.py,line=8,col=1,endLine
+=8,endColumn=45::src/twat_coding/pystubnik/processors/__init__.py:
+8:1: UP035 `typing.Type` is deprecated, use `type` instead
+::error title=Ruff (F401),file=/Users/adam/Developer/vcs/github.tw
+ardoch/pub/twat-packages/_good/twat/plugins/repos/twat_coding/src/
+twat_coding/pystubnik/processors/__init__.py,line=8,col=20,endLine
+=8,endColumn=23::src/twat_coding/pystubnik/processors/__init__.py:
+8:20: F401 `typing.Any` imported but unused
+::error title=Ruff (F401),file=/Users/adam/Developer/vcs/github.tw
+ardoch/pub/twat-packages/_good/twat/plugins/repos/twat_coding/src/
+twat_coding/pystubnik/processors/__init__.py,line=8,col=25,endLine
+=8,endColumn=29::src/twat_coding/pystubnik/processors/__init__.py:
+8:25: F401 `typing.Dict` imported but unused
+::error title=Ruff (F401),file=/Users/adam/Developer/vcs/github.tw
+ardoch/pub/twat-packages/_good/twat/plugins/repos/twat_coding/src/
+twat_coding/pystubnik/processors/__init__.py,line=8,col=41,endLine
+=8,endColumn=45::src/twat_coding/pystubnik/processors/__init__.py:
+8:41: F401 `typing.Type` imported but unused
+::error title=Ruff (C901),file=/Users/adam/Developer/vcs/github.tw
+ardoch/pub/twat-packages/_good/twat/plugins/repos/twat_coding/src/
+twat_coding/pystubnik/processors/importance.py,line=84,col=9,endLi
+ne=84,endColumn=29::src/twat_coding/pystubnik/processors/importanc
+e.py:84:9: C901 `calculate_importance` is too complex (13 > 10)
+::error title=Ruff (C901),file=/Users/adam/Developer/vcs/github.tw
+ardoch/pub/twat-packages/_good/twat/plugins/repos/twat_coding/src/
+twat_coding/pystubnik/types/docstring.py,line=59,col=9,endLine=59,
+endColumn=22::src/twat_coding/pystubnik/types/docstring.py:59:9: C
+901 `extract_types` is too complex (13 > 10)
+::error title=Ruff (E501),file=/Users/adam/Developer/vcs/github.tw
+ardoch/pub/twat-packages/_good/twat/plugins/repos/twat_coding/src/
+twat_coding/pystubnik/types/docstring.py,line=122,col=89,endLine=1
+22,endColumn=94::src/twat_coding/pystubnik/types/docstring.py:122:
+89: E501 Line too long (93 > 88)
+::error title=Ruff (UP007),file=/Users/adam/Developer/vcs/github.t
+wardoch/pub/twat-packages/_good/twat/plugins/repos/twat_coding/src
+/twat_coding/pystubnik/types/docstring.py,line=173,col=32,endLine=
+173,endColumn=73::src/twat_coding/pystubnik/types/docstring.py:173
+:32: UP007 Use `X | Y` for type annotations
+
+2025-02-22 03:22:15 - 28 files left unchanged
+
+2025-02-22 03:22:15 - >>>Running type checks...
+2025-02-22 03:22:18 - src/twat_coding/pystubnik/types/type_system.
+py:149: error: Argument 2 to "issubclass" has incompatible type "<
+typing special form>"; expected "_ClassInfo"  [arg-type]
+src/twat_coding/pystubnik/processors/file_importance.py:229: error
+: Returning Any from function declared to return "float"  [no-any-
+return]
+src/twat_coding/pystubnik/processors/file_importance.py:296: error
+: Incompatible types in assignment (expression has type "None", va
+riable has type "dict[str, int]")  [assignment]
+src/twat_coding/pystubnik/processors/file_importance.py:428: error
+: Returning Any from function declared to return "dict[str, Any]"
+ [no-any-return]
+src/twat_coding/pystubnik/make_stubs_ast.py:94: error: Incompatibl
+e types in assignment (expression has type "bytes", variable has t
+ype "str")  [assignment]
+src/twat_coding/pystubnik/make_stubs_ast.py:276: error: "AST" has 
+no attribute "parent"  [attr-defined]
+src/twat_coding/pystubnik/types/docstring.py:201: error: Type expe
+cted within [...]  [misc]
+Found 7 errors in 4 files (checked 29 source files)
+
+2025-02-22 03:22:18 - >>> Running tests...
+2025-02-22 03:22:20 - .
+
+                             [100%]
+
+---------- coverage: platform darwin, python 3.12.8-final-0 ------
+----
+Name                                                      Stmts
+
+Miss  Cover
+------------------------------------------------------------------
+-----------
+src/twat_coding/__init__.py                                   2
+
+   0   100%
+src/twat_coding/__version__.py                                4
+
+   0   100%
+src/twat_coding/pystubnik/__init__.py                        95
+
+  95     0%
+src/twat_coding/pystubnik/backends/__init__.py               18
+
+  18     0%
+src/twat_coding/pystubnik/backends/ast_backend.py           146
+
+ 146     0%
+src/twat_coding/pystubnik/backends/base.py                   19
+
+  19     0%
+src/twat_coding/pystubnik/backends/mypy_backend.py            9
+
+   9     0%
+src/twat_coding/pystubnik/config.py                         115
+
+ 115     0%
+src/twat_coding/pystubnik/errors.py                          53
+
+  53     0%
+src/twat_coding/pystubnik/make_stubs_ast.py                 205
+
+ 205     0%
+src/twat_coding/pystubnik/make_stubs_mypy.py                114
+
+ 114     0%
+src/twat_coding/pystubnik/processors/__init__.py             17
+
+  17     0%
+src/twat_coding/pystubnik/processors/docstring.py            67
+
+  67     0%
+src/twat_coding/pystubnik/processors/file_importance.py     196
+
+ 196     0%
+src/twat_coding/pystubnik/processors/importance.py           64
+
+  64     0%
+src/twat_coding/pystubnik/processors/imports.py              87
+
+  87     0%
+src/twat_coding/pystubnik/processors/stub_generation.py     116
+
+ 116     0%
+src/twat_coding/pystubnik/processors/type_inference.py       66
+
+  66     0%
+src/twat_coding/pystubnik/read_imports.py                    29
+
+  29     0%
+src/twat_coding/twat_coding.py                               29
+
+  29     0%
+------------------------------------------------------------------
+-----------
+TOTAL                                                      1451
+
+1445     1%
+
+1 passed in 0.17s
+
+2025-02-22 03:22:20 - All checks completed
+2025-02-22 03:22:20 - 
+=== TODO.md ===
+2025-02-22 03:22:20 - Before you do any changes or if I say "clean
+up", run the `./cleanup.py install && source .venv/bin/activate &&
+ ./cleanup.py update` script in the main folder. Analyze the resul
+ts, describe recent changes @TODO.md to update priorities and plan
+ next changes. PERFORM THE CHANGES, then run the `cleanup.py statu
+s` script and react to the results.
+
+When you edit @TODO.md, lead in lines with empty GFM checkboxes if
+ things aren't done (`- [ ] `) vs. filled (`- [x] `) if done, and
+`- [!]` if they're NEXT TODO.
+
+Don't use `pip`, use `uv pip`. 
+
+# TODO
+
+This TODO.md is a detailed development specification for making `p
+ystubnik` functional ASAP, focusing on integrating the new file im
+portance analysis and eliminating standalone scripts.
+
+## 1. Dependencies and Environment (URGENT)
+
+- [x] **Add New Dependencies to `pyproject.toml`:**
+  ```toml
+  [project]
+  dependencies = [
+      # ... existing deps ...
+      "networkx>=3.2.1",     # For import graph analysis
+      "radon>=6.0.1",       # For code complexity metrics
+      "coverage>=7.4.1",    # For test coverage analysis
+      "pydocstyle>=6.3.0", # For docstring quality checks
+      "importlab>=0.8",    # For import graph building
+      "toml>=0.10.2",      # For pyproject.toml parsing
+  ]
+  ```
+
+- [x] **Fix Import Resolution:**
+  - Added missing type stubs: `types-toml`, replaced `types-pydocs
+tyle` with `mypy-extensions`
+  - Simplified import graph building to not rely on importlab
+  - Added proper error handling for optional dependencies
+
+## 2. Code Quality Fixes
+
+- [x] **Fix Critical Linter Errors:**
+  - Fixed `Numbers.percentage` attribute error in `file_importance
+.py`
+  - Added proper type hints for importlab classes
+  - Fixed line length issues in `file_importance.py`
+  - Added error handling for missing dependencies
+
+- [!] **Improve Code Organization:**
+  - Move common utilities to `utils/` directory
+  - Add proper logging configuration
+  - Add debug mode for verbose output
+  - Document public APIs
+
+- [!] **Add Basic Tests:**
+  - Unit tests for `ImportanceProcessor`
+  - Unit tests for `FileImportanceConfig`
+  - Integration tests for combined scoring
+  - Test with real-world packages
+
+## 3. Feature Integration
+
+- [x] **Complete File Importance Integration:**
+  ```python
+  # In ImportanceProcessor.process():
+  def process(self, stub_result: StubResult) -> StubResult:
+      # Calculate file scores
+      package_dir = str(stub_result.source_path.parent)
+      self._file_scores = calculate_file_scores(package_dir, self.
+config.file_importance)
+      
+      # Process AST
+      tree = ast.parse(stub_result.stub_content)
+      for node in ast.walk(tree):
+          if isinstance(node, (ast.FunctionDef, ast.ClassDef)):
+              score = self.calculate_importance(
+                  name=node.name,
+                  docstring=ast.get_docstring(node),
+                  is_public=not node.name.startswith('_'),
+                  is_special=node.name.startswith('__'),
+                  extra_info={"file_path": stub_result.source_path
+}
+              )
+              # TODO: Store score in node.importance_score
+              
+      return stub_result
+  ```
+
+- [!] **Enhance Configuration System:**
+  - Add file importance settings to `StubGenConfig`
+  - Add CLI options for file metrics
+  - Add configuration validation
+  - Document all options
+
+- [ ] **Improve Processors:**
+  - Update `DocstringProcessor` to handle file-level docs
+  - Update `ImportProcessor` to use import graph
+  - Add caching for file scores
+  - Add progress reporting
+
+## 4. Documentation and Examples
+
+- [ ] **Update Documentation:**
+  - Add file importance metrics explanation
+  - Add configuration examples
+  - Add usage examples
+  - Add troubleshooting guide
+
+- [ ] **Add Examples:**
+  - Basic usage examples
+  - Configuration examples
+  - Integration examples
+  - Custom metric examples
+
+## 5. Testing and Validation
+
+- [ ] **Add Comprehensive Tests:**
+  - Test all importance metrics
+  - Test configuration options
+  - Test error handling
+  - Test with large codebases
+
+- [ ] **Add Benchmarks:**
+  - Measure performance impact
+  - Compare with original version
+  - Profile memory usage
+  - Optimize bottlenecks
+
+## 6. Final Steps
+
+- [ ] **Clean Up Old Code:**
+  - Remove standalone scripts
+  - Update imports
+  - Remove deprecated code
+  - Update documentation
+
+- [ ] **Release Preparation:**
+  - Update version numbers
+  - Update changelog
+  - Update README
+  - Prepare release notes
+
+## 7. Next Actions
+
+1. ✓ Add new dependencies to `pyproject.toml`
+2. ✓ Fix import resolution issues
+3. ✓ Fix critical linter errors
+4. [!] Improve code organization
+5. [!] Add basic tests
+6. [!] Enhance configuration system
+
+## 8. Notes
+
+- The file importance analysis is now integrated into the main pac
+kage
+- The new system combines both file-level and symbol-level importa
+nce
+- All changes maintain backward compatibility
+- Performance impact should be monitored
+- Optional dependencies are now properly handled with graceful fal
+lbacks
+
+---
+
+
+
+
+```
+
+---
+
+_****_
+
+
+
+
+
+Based on the cleanup status check, we've made good progress but there are still some issues to address:
+
+1. **Type Checking Errors** in `file_importance.py`:
+   - Line 229: Returning Any from function declared to return "float"
+   - Line 296: Incompatible types in assignment
+   - Line 428: Returning Any from function declared to return "dict[str, Any]"
+
+Let's fix these type checking errors:
+
+---
+
+_****_
+
+```diff
+  import json
+  import os
++ import sys
+  from dataclasses import dataclass, field
+- from typing import Any, cast
++ from typing import Any, cast, TypeVar
+  
+  import networkx as nx
+  from pydocstyle import check as pydocstyle_check
+  from radon.complexity import cc_visit
++ 
++ # Type variables for better type safety
++ T = TypeVar("T")
++ 
++ 
++ def _cast_or_default(value: Any, default: T) -> T:
++     """Cast a value to the type of the default or return the default if casting fails."""
++     try:
++         if isinstance(value, type(default)):
++             return cast(T, value)
++         return default
++     except Exception:
++         return default
++ 
+  
+  # Optional dependency error messages
+          if not complexities:
+              return 0.0
+-         total_complexity = sum(c.complexity for c in complexities)
++         total_complexity = sum(
++             _cast_or_default(c.complexity, 0.0) for c in complexities
++         )
+          return total_complexity / len(complexities)
+      except Exception as e:
+          cov.load()
+          analysis = cov._analyze(file_path)
+-         total_lines = analysis.numbers.n_statements
+-         covered_lines = analysis.numbers.n_executed
++         total_lines = _cast_or_default(analysis.numbers.n_statements, 0)
++         covered_lines = _cast_or_default(analysis.numbers.n_executed, 0)
+          return (covered_lines / total_lines * 100) if total_lines > 0 else 0.0
+      except Exception as e:
+      try:
+          violations = list(pydocstyle_check([file_path], ignore=["D100", "D101"]))
+-         return max(0, 1 - (len(violations) / 10))
++         return max(0.0, 1.0 - (len(violations) / 10))
+      except Exception as e:
+          print(f"Warning: Failed to assess documentation quality for {file_path}: {e}")
+          if sum(personalization.values()) == 0:
+              personalization = None
+-         return cast(dict[str, float], nx.pagerank(G, personalization=personalization))
++         result = nx.pagerank(G, personalization=personalization)
++         return {k: _cast_or_default(v, 0.0) for k, v in result.items()}
+      elif centrality_measure == "betweenness":
+-         return cast(dict[str, float], nx.betweenness_centrality(G))
++         result = nx.betweenness_centrality(G)
++         return {k: _cast_or_default(v, 0.0) for k, v in result.items()}
+      elif centrality_measure == "eigenvector":
+          try:
+-             return cast(dict[str, float], nx.eigenvector_centrality(G, max_iter=500))
++             result = nx.eigenvector_centrality(G, max_iter=500)
++             return {k: _cast_or_default(v, 0.0) for k, v in result.items()}
+          except nx.PowerIterationFailedConvergence:
+              return {file: 0.0 for file in py_files}
+              "Using PageRank."
+          )
+-         return cast(dict[str, float], nx.pagerank(G))
++         result = nx.pagerank(G)
++         return {k: _cast_or_default(v, 0.0) for k, v in result.items()}
+  
+  
+          try:
+              with open(config_file) as f:
+-                 return json.load(f)
++                 config = json.load(f)
++                 return cast(dict[str, Any], config)
+          except Exception as e:
+              print(
+```
+
+---
+
+_****_
+
+
+
+
+
+
+
+Now let's run the type checker to verify our fixes:
+
+---
+
+_****_
+
+```bash
+mypy src/twat_coding/pystubnik/processors/file_importance.py | cat
+```
+
+```
+src/twat_coding/pystubnik/types/type_system.py:149: error: Argumen
+t 2 to "issubclass" has incompatible type "<typing special form>";
+ expected "_ClassInfo"  [arg-type]
+src/twat_coding/pystubnik/processors/file_importance.py:313: error
+: Incompatible types in assignment (expression has type "None", va
+riable has type "dict[str, int]")  [assignment]
+Found 2 errors in 2 files (checked 1 source file)
+
+```
+
+---
+
+_****_
+
+
+
+I see we still have a couple of type errors to fix. Let me address those:
+
+---
+
+_****_
+
 
 
 ---
@@ -2750,6 +3825,1140 @@ _****_
 _****_
 
 
+
+Let me try to reapply the edit:
+
+---
+
+_****_
+
+
+
+---
+
+_****_
+
+
+
+I see that the reapply worked but made a significant change to the function. Let me check the current state of the file:
+
+---
+
+_****_
+
+Read file: src/twat_coding/pystubnik/processors/file_importance.py
+
+---
+
+_****_
+
+
+
+I see the issue now. Let me fix the centrality calculation function to match its usage in the code:
+
+---
+
+_****_
+
+```diff
+  
+  
+- def _calculate_centrality(graph: dict[str, list[str]]) -> dict[str, int]:
+-     """Calculate centrality scores for nodes in the graph.
++ def _calculate_centrality(
++     G: nx.DiGraph,
++     py_files: list[str],
++     centrality_measure: str,
++     entry_points: dict[str, bool],
++ ) -> dict[str, float]:
++     """Calculate centrality scores for files in the import graph.
+  
+      Args:
+-         graph: Dictionary representing the graph where keys are nodes and values are lists of neighbors
++         G: The import dependency graph
++         py_files: List of Python files
++         centrality_measure: Type of centrality to calculate
++         entry_points: Dict mapping files to their entry point status
+  
+      Returns:
+-         Dictionary mapping nodes to their centrality scores
++         Dictionary mapping files to their centrality scores
+      """
+-     centrality: dict[str, int] = {}
+-     for node in graph:
+-         centrality[node] = len(graph[node])
+-     return centrality
++     personalization = {file: 1.0 if entry_points[file] else 0.0 for file in py_files}
++ 
++     if centrality_measure == "pagerank":
++         if sum(personalization.values()) == 0:
++             personalization = None
++         result = nx.pagerank(G, personalization=personalization)
++         return {k: float(v) for k, v in result.items()}
++     elif centrality_measure == "betweenness":
++         result = nx.betweenness_centrality(G)
++         return {k: float(v) for k, v in result.items()}
++     elif centrality_measure == "eigenvector":
++         try:
++             result = nx.eigenvector_centrality(G, max_iter=500)
++             return {k: float(v) for k, v in result.items()}
++         except nx.PowerIterationFailedConvergence:
++             return {file: 0.0 for file in py_files}
++     else:
++         print(
++             f"Warning: Unsupported centrality measure '{centrality_measure}'. "
++             "Using PageRank."
++         )
++         result = nx.pagerank(G)
++         return {k: float(v) for k, v in result.items()}
+  
+  
+```
+
+---
+
+_****_
+
+
+
+Now let's run the type checker again to see if we've fixed the issues:
+
+---
+
+_****_
+
+```bash
+mypy src/twat_coding/pystubnik/processors/file_importance.py | cat
+```
+
+```
+src/twat_coding/pystubnik/types/type_system.py:149: error: Argumen
+t 2 to "issubclass" has incompatible type "<typing special form>";
+ expected "_ClassInfo"  [arg-type]
+src/twat_coding/pystubnik/processors/file_importance.py:313: error
+: Incompatible types in assignment (expression has type "None", va
+riable has type "dict[str, float]")  [assignment]
+Found 2 errors in 2 files (checked 1 source file)
+
+```
+
+---
+
+_****_
+
+
+
+
+
+I see we still have an issue with the `None` assignment. Let me fix that:
+
+---
+
+_****_
+
+```diff
+          Dictionary mapping files to their centrality scores
+      """
+-     personalization = {file: 1.0 if entry_points[file] else 0.0 for file in py_files}
++     personalization_dict = {
++         file: 1.0 if entry_points[file] else 0.0 for file in py_files
++     }
+  
+      if centrality_measure == "pagerank":
+-         if sum(personalization.values()) == 0:
+-             personalization = None
+-         result = nx.pagerank(G, personalization=personalization)
++         # If all values are 0, use uniform personalization
++         if sum(personalization_dict.values()) == 0:
++             personalization_dict = {file: 1.0 for file in py_files}
++         result = nx.pagerank(G, personalization=personalization_dict)
+          return {k: float(v) for k, v in result.items()}
+      elif centrality_measure == "betweenness":
+```
+
+---
+
+_****_
+
+
+
+
+
+Now let's run the type checker one final time:
+
+---
+
+_****_
+
+```bash
+mypy src/twat_coding/pystubnik/processors/file_importance.py | cat
+```
+
+```
+src/twat_coding/pystubnik/types/type_system.py:149: error: Argumen
+t 2 to "issubclass" has incompatible type "<typing special form>";
+ expected "_ClassInfo"  [arg-type]
+Found 1 error in 1 file (checked 1 source file)
+
+```
+
+---
+
+_****_
+
+
+
+Great! We've fixed all the type errors in `file_importance.py`. The remaining error is in a different file (`type_system.py`) and appears to be related to a more general typing issue with `issubclass`. Since that's in a different file and wasn't part of our current task, we can consider our work on `file_importance.py` complete.
+
+Here's a summary of what we've fixed:
+1. Restored the proper centrality calculation function with correct type hints
+2. Fixed the type error with the personalization dictionary by ensuring it never becomes `None`
+3. Improved the handling of the case where all personalization values are 0
+4. Ensured all return values are properly typed as `float`
+
+Would you like me to help you with anything else in the codebase?
+
+---
+
+_**User**_
+
+In @TODO.md , mark things you’ve done with `- [x]` and mark things that you must do next with `- [!]`
+
+Then run
+
+./cleanup.py install && source .venv/bin/activate && ./cleanup.py update
+
+Observe the results, adjust @TODO.md — treat it like a spec, make sure to include DETAILS so that the developer who takes over knows EXACTLY what to do! 
+
+---
+
+_**Assistant**_
+
+I'll help update the TODO.md and run the cleanup process. First, let me edit the TODO.md file:
+
+---
+
+_****_
+
+```diff
+    - Fixed line length issues in `file_importance.py`
+    - Added error handling for missing dependencies
++   - Fixed type errors in centrality calculation
+  
+  - [!] **Improve Code Organization:**
+-   - Move common utilities to `utils/` directory
+-   - Add proper logging configuration
+-   - Add debug mode for verbose output
+-   - Document public APIs
++   - Create `utils/` directory with:
++     - `graph_utils.py`: Import graph building and analysis
++     - `metrics.py`: Code complexity, coverage, and doc quality metrics
++     - `config.py`: Configuration handling and validation
++     - `logging.py`: Centralized logging setup
++   - Move common functions from `file_importance.py` to appropriate utils
++   - Add proper error handling and logging throughout
++   - Document all utility functions with type hints and docstrings
+  
+  - [!] **Add Basic Tests:**
+-   - Unit tests for `ImportanceProcessor`
+-   - Unit tests for `FileImportanceConfig`
+-   - Integration tests for combined scoring
+-   - Test with real-world packages
++   - Create `tests/processors/test_file_importance.py` with:
++     - Test cases for graph building with mock files
++     - Test cases for each metric calculation
++     - Test cases for config loading and validation
++     - Test cases for error handling of missing dependencies
++   - Add test fixtures for sample Python files
++   - Add test coverage reporting
++   - Add performance benchmarks for large codebases
+  
+  ## 3. Feature Integration
+  
+  - [!] **Enhance Configuration System:**
+-   - Add file importance settings to `StubGenConfig`
+-   - Add CLI options for file metrics
+-   - Add configuration validation
+-   - Document all options
+- 
+- - [ ] **Improve Processors:**
+-   - Update `DocstringProcessor` to handle file-level docs
+-   - Update `ImportProcessor` to use import graph
+-   - Add caching for file scores
+-   - Add progress reporting
++   - Create `FileImportanceConfig` class with:
++     ```python
++     @dataclass
++     class FileImportanceConfig:
++         exclude_dirs: list[str]
++         centrality_measure: Literal["pagerank", "betweenness", "eigenvector"]
++         coverage_data_path: Path | None
++         weights: dict[str, float]
++         min_coverage_threshold: float
++         max_complexity_threshold: float
++         doc_quality_checks: list[str]
++         cache_results: bool
++     ```
++   - Add validation for all config fields
++   - Add CLI options for all config settings
++   - Add config file support (JSON/TOML)
++   - Add config documentation and examples
++ 
++ - [!] **Improve Processors:**
++   - Update `DocstringProcessor` to:
++     - Handle file-level docstrings
++     - Use file importance scores
++     - Add quality metrics
++   - Update `ImportProcessor` to:
++     - Use cached import graph
++     - Handle circular imports
++     - Support namespace packages
++   - Add progress reporting with rich
++   - Add caching system for file scores
+  
+  ## 4. Documentation and Examples
+  
+  - [ ] **Update Documentation:**
+-   - Add file importance metrics explanation
+-   - Add configuration examples
+-   - Add usage examples
++   - Add architecture overview
++   - Add metric explanations
++   - Add configuration guide
+    - Add troubleshooting guide
++   - Add performance tips
++   - Add migration guide
+  
+  - [ ] **Add Examples:**
+    - Basic usage examples
++   - Custom metric examples
++   - Integration examples
+    - Configuration examples
+-   - Integration examples
+-   - Custom metric examples
++   - Performance optimization examples
+  
+  ## 5. Testing and Validation
+  
+  - [ ] **Add Comprehensive Tests:**
+-   - Test all importance metrics
+-   - Test configuration options
+-   - Test error handling
+-   - Test with large codebases
++   - Unit tests for all components
++   - Integration tests
++   - Performance tests
++   - Edge case tests
++   - Regression tests
+  
+  - [ ] **Add Benchmarks:**
+-   - Measure performance impact
+-   - Compare with original version
+-   - Profile memory usage
+-   - Optimize bottlenecks
++   - Measure processing time
++   - Measure memory usage
++   - Compare with baseline
++   - Profile bottlenecks
++   - Document optimizations
+  
+  ## 6. Final Steps
+  ## 7. Next Actions
+  
+- 1. ✓ Add new dependencies to `pyproject.toml`
+- 2. ✓ Fix import resolution issues
+- 3. ✓ Fix critical linter errors
++ 1. [x] Add new dependencies to `pyproject.toml`
++ 2. [x] Fix import resolution issues
++ 3. [x] Fix critical linter errors
+  4. [!] Improve code organization
+  5. [!] Add basic tests
+```
+
+---
+
+_****_
+
+
+
+Now let's run the cleanup script:
+
+---
+
+_****_
+
+```bash
+./cleanup.py install && source .venv/bin/activate && ./cleanup.py update
+```
+
+```
+2025-02-22 03:28:55 - 
+=== Package Installation ===
+2025-02-22 03:28:55 - Installing package with all extras
+2025-02-22 03:28:55 - Setting up virtual environment
+2025-02-22 03:28:56 - Virtual environment created and activated
+2025-02-22 03:28:57 - Package installed successfully
+
+2025-02-22 03:28:57 - 
+=== PROJECT STATEMENT ===
+2025-02-22 03:28:57 - ---
+description: About this project
+globs: 
+---
+---
+name: About this project
+key: 0project
+---
+
+`twat-coding` is a Python toolkit focused on code analysis and tra
+nsformation. Its main package `pystubnik` generates "smart stubs"
+- a hybrid between full source code and type stubs that helps LLMs
+ understand large codebases efficiently. Smart stubs preserve esse
+ntial code structure (signatures, types, imports) while intelligen
+tly reducing verbosity based on code importance.
+
+## 1. Overview
+
+Pystubnik creates a "shadow" directory structure that mirrors your
+ Python package, containing smart stubs for all Python files. Thes
+e smart stubs are designed to be more informative than traditional
+ `.pyi` stub files while being more concise than full source code.
+### 1.1. What are Smart Stubs?
+
+Smart stubs are an intermediate representation that includes:
+- All function and class signatures with type hints
+- All imports (organized and optimized)
+- Docstrings (with configurable length limits)
+- Important/relevant code sections
+- Truncated versions of large data structures and strings
+- Simplified function bodies for non-critical code
+
+The verbosity level is automatically adjusted based on the code's 
+importance and complexity.
+
+## 2. Architecture
+
+### 2.1. Backends
+
+#### 2.1.1. AST Backend
+- Uses Python's built-in AST module for precise control
+- Preserves code structure while reducing verbosity
+- Configurable truncation of large literals and sequences
+- Maintains type information and docstrings
+- Supports Python 3.12+ features (type parameters, etc.)
+
+#### 2.1.2. MyPy Backend
+- Leverages mypy's stubgen for type information
+- Better type inference capabilities
+- Handles special cases (dataclasses, properties)
+- Supports type comment extraction
+
+### 2.2. Processors
+
+#### 2.2.1. Import Processor
+- Analyzes and organizes imports
+- Groups by type (stdlib, third-party, local)
+- Handles relative imports
+- Detects and removes duplicates
+
+#### 2.2.2. Docstring Processor
+- Configurable docstring preservation
+- Format detection and conversion
+- Type information extraction
+- Length-based truncation
+
+#### 2.2.3. Importance Processor
+- Scores code elements by importance
+- Pattern-based importance detection
+- Inheritance-aware scoring
+- Configurable filtering
+2025-02-22 03:28:57 - 
+=== Current Status ===
+2025-02-22 03:28:57 - Error: LOG.md is missing
+2025-02-22 03:28:57 - [ 960]  .
+├── [  64]  .benchmarks
+├── [  96]  .cursor
+│   └── [ 224]  rules
+│       ├── [2.2K]  0project.mdc
+│       ├── [ 618]  cleanup.mdc
+│       ├── [3.7K]  filetree.mdc
+│       └── [2.0K]  quality.mdc
+├── [  96]  .github
+│   └── [ 128]  workflows
+│       ├── [2.7K]  push.yml
+│       └── [1.4K]  release.yml
+├── [3.5K]  .gitignore
+├── [ 532]  .pre-commit-config.yaml
+├── [  96]  .specstory
+│   └── [ 416]  history
+│       ├── [2.0K]  .what-is-this.md
+│       ├── [ 63K]  adjusting-todo-priorities-from-cleanup-status.
+md
+│       ├── [ 79K]  cleanup-script-execution-and-todo-management.m
+d
+│       ├── [333K]  command-execution-and-todo-update.md
+│       ├── [ 248]  detailed-overview-of-python-stubbing-tools.md
+│       ├── [ 25K]  integrating-importance-analysis-modules.md
+│       ├── [3.0K]  overview-of-python-tools-and-their-functions.m
+d
+│       ├── [ 58K]  project-directory-structure-for-python-package
+.md
+│       ├── [ 64K]  reviewing-and-tracking-todo-progress.md
+│       ├── [4.9K]  task-organization-and-cleanup-process.md
+│       └── [ 90K]  todo-list-cleanup-and-review.md
+├── [1.0K]  LICENSE
+├── [ 173]  MANIFEST.in
+├── [1.4K]  README.md
+├── [6.2K]  TODO.md
+├── [ 12K]  cleanup.py
+├── [  96]  cursor
+│   └── [  96]  rules
+│       └── [  31]  0project.mdc
+├── [  96]  dist
+│   └── [   1]  .gitkeep
+├── [ 305]  mypy.ini
+├── [ 426]  package.toml
+├── [4.8K]  pyproject.toml
+├── [215K]  repomix-output.txt
+├── [ 128]  src
+│   └── [ 256]  twat_coding
+│       ├── [ 144]  __init__.py
+│       ├── [ 480]  pystubnik
+│       │   ├── [5.3K]  README.md
+│       │   ├── [ 14K]  __init__.py
+│       │   ├── [ 192]  backends
+│       │   │   ├── [1.4K]  __init__.py
+│       │   │   ├── [ 12K]  ast_backend.py
+│       │   │   ├── [2.1K]  base.py
+│       │   │   └── [1.1K]  mypy_backend.py
+│       │   ├── [9.5K]  config.py
+│       │   ├── [ 160]  core
+│       │   │   ├── [4.9K]  config.py
+│       │   │   ├── [3.9K]  types.py
+│       │   │   └── [8.2K]  utils.py
+│       │   ├── [5.1K]  errors.py
+│       │   ├── [ 14K]  make_stubs_ast.py
+│       │   ├── [ 11K]  make_stubs_mypy.py
+│       │   ├── [ 288]  processors
+│       │   │   ├── [1.2K]  __init__.py
+│       │   │   ├── [5.0K]  docstring.py
+│       │   │   ├── [ 16K]  file_importance.py
+│       │   │   ├── [6.3K]  importance.py
+│       │   │   ├── [6.6K]  imports.py
+│       │   │   ├── [ 11K]  stub_generation.py
+│       │   │   └── [7.4K]  type_inference.py
+│       │   ├── [2.0K]  pypacky2.sh
+│       │   ├── [1.6K]  read_imports.py
+│       │   ├── [ 128]  types
+│       │   │   ├── [8.5K]  docstring.py
+│       │   │   └── [8.2K]  type_system.py
+│       │   └── [ 160]  utils
+│       │       ├── [5.3K]  ast_utils.py
+│       │       ├── [1.8K]  display.py
+│       │       └── [5.2K]  memory.py
+│       └── [1.6K]  twat_coding.py
+└── [ 128]  tests
+    └── [ 165]  test_package.py
+
+20 directories, 60 files
+
+2025-02-22 03:28:57 - 
+Project structure:
+2025-02-22 03:28:57 - [ 960]  .
+├── [  64]  .benchmarks
+├── [  96]  .cursor
+│   └── [ 224]  rules
+│       ├── [2.2K]  0project.mdc
+│       ├── [ 618]  cleanup.mdc
+│       ├── [3.7K]  filetree.mdc
+│       └── [2.0K]  quality.mdc
+├── [  96]  .github
+│   └── [ 128]  workflows
+│       ├── [2.7K]  push.yml
+│       └── [1.4K]  release.yml
+├── [3.5K]  .gitignore
+├── [ 532]  .pre-commit-config.yaml
+├── [  96]  .specstory
+│   └── [ 416]  history
+│       ├── [2.0K]  .what-is-this.md
+│       ├── [ 63K]  adjusting-todo-priorities-from-cleanup-status.
+md
+│       ├── [ 79K]  cleanup-script-execution-and-todo-management.m
+d
+│       ├── [333K]  command-execution-and-todo-update.md
+│       ├── [ 248]  detailed-overview-of-python-stubbing-tools.md
+│       ├── [ 25K]  integrating-importance-analysis-modules.md
+│       ├── [3.0K]  overview-of-python-tools-and-their-functions.m
+d
+│       ├── [ 58K]  project-directory-structure-for-python-package
+.md
+│       ├── [ 64K]  reviewing-and-tracking-todo-progress.md
+│       ├── [4.9K]  task-organization-and-cleanup-process.md
+│       └── [ 90K]  todo-list-cleanup-and-review.md
+├── [1.0K]  LICENSE
+├── [ 173]  MANIFEST.in
+├── [1.4K]  README.md
+├── [6.2K]  TODO.md
+├── [ 12K]  cleanup.py
+├── [  96]  cursor
+│   └── [  96]  rules
+│       └── [  31]  0project.mdc
+├── [  96]  dist
+│   └── [   1]  .gitkeep
+├── [ 305]  mypy.ini
+├── [ 426]  package.toml
+├── [4.8K]  pyproject.toml
+├── [215K]  repomix-output.txt
+├── [ 128]  src
+│   └── [ 256]  twat_coding
+│       ├── [ 144]  __init__.py
+│       ├── [ 480]  pystubnik
+│       │   ├── [5.3K]  README.md
+│       │   ├── [ 14K]  __init__.py
+│       │   ├── [ 192]  backends
+│       │   │   ├── [1.4K]  __init__.py
+│       │   │   ├── [ 12K]  ast_backend.py
+│       │   │   ├── [2.1K]  base.py
+│       │   │   └── [1.1K]  mypy_backend.py
+│       │   ├── [9.5K]  config.py
+│       │   ├── [ 160]  core
+│       │   │   ├── [4.9K]  config.py
+│       │   │   ├── [3.9K]  types.py
+│       │   │   └── [8.2K]  utils.py
+│       │   ├── [5.1K]  errors.py
+│       │   ├── [ 14K]  make_stubs_ast.py
+│       │   ├── [ 11K]  make_stubs_mypy.py
+│       │   ├── [ 288]  processors
+│       │   │   ├── [1.2K]  __init__.py
+│       │   │   ├── [5.0K]  docstring.py
+│       │   │   ├── [ 16K]  file_importance.py
+│       │   │   ├── [6.3K]  importance.py
+│       │   │   ├── [6.6K]  imports.py
+│       │   │   ├── [ 11K]  stub_generation.py
+│       │   │   └── [7.4K]  type_inference.py
+│       │   ├── [2.0K]  pypacky2.sh
+│       │   ├── [1.6K]  read_imports.py
+│       │   ├── [ 128]  types
+│       │   │   ├── [8.5K]  docstring.py
+│       │   │   └── [8.2K]  type_system.py
+│       │   └── [ 160]  utils
+│       │       ├── [5.3K]  ast_utils.py
+│       │       ├── [1.8K]  display.py
+│       │       └── [5.2K]  memory.py
+│       └── [1.6K]  twat_coding.py
+└── [ 128]  tests
+    └── [ 165]  test_package.py
+
+20 directories, 60 files
+
+2025-02-22 03:28:57 - On branch main
+Your branch is ahead of 'origin/main' by 1 commit.
+  (use "git push" to publish your local commits)
+
+Changes not staged for commit:
+  (use "git add/rm <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working direc
+tory)
+        modified:   .cursor/rules/filetree.mdc
+        deleted:    .specstory/history/untitled.md
+        modified:   TODO.md
+        modified:   pyproject.toml
+        modified:   src/twat_coding/pystubnik/processors/file_impo
+rtance.py
+        modified:   src/twat_coding/pystubnik/processors/importanc
+e.py
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        .specstory/history/todo-list-cleanup-and-review.md
+
+no changes added to commit (use "git add" and/or "git commit -a")
+
+2025-02-22 03:28:57 - On branch main
+Your branch is ahead of 'origin/main' by 1 commit.
+  (use "git push" to publish your local commits)
+
+Changes not staged for commit:
+  (use "git add/rm <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working direc
+tory)
+        modified:   .cursor/rules/filetree.mdc
+        deleted:    .specstory/history/untitled.md
+        modified:   TODO.md
+        modified:   pyproject.toml
+        modified:   src/twat_coding/pystubnik/processors/file_impo
+rtance.py
+        modified:   src/twat_coding/pystubnik/processors/importanc
+e.py
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        .specstory/history/todo-list-cleanup-and-review.md
+
+no changes added to commit (use "git add" and/or "git commit -a")
+
+2025-02-22 03:28:57 - 
+=== Environment Status ===
+2025-02-22 03:28:57 - Setting up virtual environment
+2025-02-22 03:28:58 - Virtual environment created and activated
+2025-02-22 03:28:58 - Installing package with all extras
+2025-02-22 03:28:58 - Setting up virtual environment
+2025-02-22 03:28:58 - Virtual environment created and activated
+2025-02-22 03:28:58 - Package installed successfully
+2025-02-22 03:28:58 - Running code quality checks
+2025-02-22 03:28:58 - >>> Running code fixes...
+2025-02-22 03:28:58 - ::error title=Ruff (F401),file=/Users/adam/D
+eveloper/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/
+repos/twat_coding/src/twat_coding/pystubnik/backends/__init__.py,l
+ine=7,col=17,endLine=7,endColumn=20::src/twat_coding/pystubnik/bac
+kends/__init__.py:7:17: F401 `abc.ABC` imported but unused
+::error title=Ruff (UP035),file=/Users/adam/Developer/vcs/github.t
+wardoch/pub/twat-packages/_good/twat/plugins/repos/twat_coding/src
+/twat_coding/pystubnik/backends/__init__.py,line=9,col=1,endLine=9
+,endColumn=40::src/twat_coding/pystubnik/backends/__init__.py:9:1:
+ UP035 `typing.Dict` is deprecated, use `dict` instead
+::error title=Ruff (UP035),file=/Users/adam/Developer/vcs/github.t
+wardoch/pub/twat-packages/_good/twat/plugins/repos/twat_coding/src
+/twat_coding/pystubnik/backends/__init__.py,line=9,col=1,endLine=9
+,endColumn=40::src/twat_coding/pystubnik/backends/__init__.py:9:1:
+ UP035 `typing.Type` is deprecated, use `type` instead
+::error title=Ruff (F401),file=/Users/adam/Developer/vcs/github.tw
+ardoch/pub/twat-packages/_good/twat/plugins/repos/twat_coding/src/
+twat_coding/pystubnik/backends/__init__.py,line=9,col=20,endLine=9
+,endColumn=24::src/twat_coding/pystubnik/backends/__init__.py:9:20
+: F401 `typing.Dict` imported but unused
+::error title=Ruff (F401),file=/Users/adam/Developer/vcs/github.tw
+ardoch/pub/twat-packages/_good/twat/plugins/repos/twat_coding/src/
+twat_coding/pystubnik/backends/__init__.py,line=9,col=36,endLine=9
+,endColumn=40::src/twat_coding/pystubnik/backends/__init__.py:9:36
+: F401 `typing.Type` imported but unused
+::error title=Ruff (B027),file=/Users/adam/Developer/vcs/github.tw
+ardoch/pub/twat-packages/_good/twat/plugins/repos/twat_coding/src/
+twat_coding/pystubnik/backends/base.py,line=67,col=5,endLine=72,en
+dColumn=13::src/twat_coding/pystubnik/backends/base.py:67:5: B027
+`StubBackend.cleanup` is an empty method in an abstract base class
+, but has no abstract decorator
+::error title=Ruff (E501),file=/Users/adam/Developer/vcs/github.tw
+ardoch/pub/twat-packages/_good/twat/plugins/repos/twat_coding/src/
+twat_coding/pystubnik/config.py,line=74,col=89,endLine=74,endColum
+n=98::src/twat_coding/pystubnik/config.py:74:89: E501 Line too lon
+g (97 > 88)
+::error title=Ruff (UP007),file=/Users/adam/Developer/vcs/github.t
+wardoch/pub/twat-packages/_good/twat/plugins/repos/twat_coding/src
+/twat_coding/pystubnik/core/types.py,line=152,col=12,endLine=152,e
+ndColumn=28::src/twat_coding/pystubnik/core/types.py:152:12: UP007
+ Use `X | Y` for type annotations
+::error title=Ruff (E501),file=/Users/adam/Developer/vcs/github.tw
+ardoch/pub/twat-packages/_good/twat/plugins/repos/twat_coding/src/
+twat_coding/pystubnik/core/utils.py,line=239,col=89,endLine=239,en
+dColumn=171::src/twat_coding/pystubnik/core/utils.py:239:89: E501
+Line too long (170 > 88)
+::error title=Ruff (C901),file=/Users/adam/Developer/vcs/github.tw
+ardoch/pub/twat-packages/_good/twat/plugins/repos/twat_coding/src/
+twat_coding/pystubnik/make_stubs_ast.py,line=73,col=5,endLine=73,e
+ndColumn=21::src/twat_coding/pystubnik/make_stubs_ast.py:73:5: C90
+1 `truncate_literal` is too complex (12 > 10)
+::error title=Ruff (F401),file=/Users/adam/Developer/vcs/github.tw
+ardoch/pub/twat-packages/_good/twat/plugins/repos/twat_coding/src/
+twat_coding/pystubnik/processors/__init__.py,line=7,col=17,endLine
+=7,endColumn=20::src/twat_coding/pystubnik/processors/__init__.py:
+7:17: F401 `abc.ABC` imported but unused
+::error title=Ruff (UP035),file=/Users/adam/Developer/vcs/github.t
+wardoch/pub/twat-packages/_good/twat/plugins/repos/twat_coding/src
+/twat_coding/pystubnik/processors/__init__.py,line=8,col=1,endLine
+=8,endColumn=45::src/twat_coding/pystubnik/processors/__init__.py:
+8:1: UP035 `typing.Dict` is deprecated, use `dict` instead
+::error title=Ruff (UP035),file=/Users/adam/Developer/vcs/github.t
+wardoch/pub/twat-packages/_good/twat/plugins/repos/twat_coding/src
+/twat_coding/pystubnik/processors/__init__.py,line=8,col=1,endLine
+=8,endColumn=45::src/twat_coding/pystubnik/processors/__init__.py:
+8:1: UP035 `typing.Type` is deprecated, use `type` instead
+::error title=Ruff (F401),file=/Users/adam/Developer/vcs/github.tw
+ardoch/pub/twat-packages/_good/twat/plugins/repos/twat_coding/src/
+twat_coding/pystubnik/processors/__init__.py,line=8,col=20,endLine
+=8,endColumn=23::src/twat_coding/pystubnik/processors/__init__.py:
+8:20: F401 `typing.Any` imported but unused
+::error title=Ruff (F401),file=/Users/adam/Developer/vcs/github.tw
+ardoch/pub/twat-packages/_good/twat/plugins/repos/twat_coding/src/
+twat_coding/pystubnik/processors/__init__.py,line=8,col=25,endLine
+=8,endColumn=29::src/twat_coding/pystubnik/processors/__init__.py:
+8:25: F401 `typing.Dict` imported but unused
+::error title=Ruff (F401),file=/Users/adam/Developer/vcs/github.tw
+ardoch/pub/twat-packages/_good/twat/plugins/repos/twat_coding/src/
+twat_coding/pystubnik/processors/__init__.py,line=8,col=41,endLine
+=8,endColumn=45::src/twat_coding/pystubnik/processors/__init__.py:
+8:41: F401 `typing.Type` imported but unused
+::error title=Ruff (E501),file=/Users/adam/Developer/vcs/github.tw
+ardoch/pub/twat-packages/_good/twat/plugins/repos/twat_coding/src/
+twat_coding/pystubnik/processors/file_importance.py,line=29,col=89
+,endLine=29,endColumn=90::src/twat_coding/pystubnik/processors/fil
+e_importance.py:29:89: E501 Line too long (89 > 88)
+::error title=Ruff (C901),file=/Users/adam/Developer/vcs/github.tw
+ardoch/pub/twat-packages/_good/twat/plugins/repos/twat_coding/src/
+twat_coding/pystubnik/processors/importance.py,line=84,col=9,endLi
+ne=84,endColumn=29::src/twat_coding/pystubnik/processors/importanc
+e.py:84:9: C901 `calculate_importance` is too complex (13 > 10)
+::error title=Ruff (C901),file=/Users/adam/Developer/vcs/github.tw
+ardoch/pub/twat-packages/_good/twat/plugins/repos/twat_coding/src/
+twat_coding/pystubnik/types/docstring.py,line=59,col=9,endLine=59,
+endColumn=22::src/twat_coding/pystubnik/types/docstring.py:59:9: C
+901 `extract_types` is too complex (13 > 10)
+::error title=Ruff (E501),file=/Users/adam/Developer/vcs/github.tw
+ardoch/pub/twat-packages/_good/twat/plugins/repos/twat_coding/src/
+twat_coding/pystubnik/types/docstring.py,line=122,col=89,endLine=1
+22,endColumn=94::src/twat_coding/pystubnik/types/docstring.py:122:
+89: E501 Line too long (93 > 88)
+::error title=Ruff (UP007),file=/Users/adam/Developer/vcs/github.t
+wardoch/pub/twat-packages/_good/twat/plugins/repos/twat_coding/src
+/twat_coding/pystubnik/types/docstring.py,line=173,col=32,endLine=
+173,endColumn=73::src/twat_coding/pystubnik/types/docstring.py:173
+:32: UP007 Use `X | Y` for type annotations
+
+2025-02-22 03:28:58 - 28 files left unchanged
+
+2025-02-22 03:28:58 - >>>Running type checks...
+2025-02-22 03:29:03 - src/twat_coding/pystubnik/types/type_system.
+py:149: error: Argument 2 to "issubclass" has incompatible type "<
+typing special form>"; expected "_ClassInfo"  [arg-type]
+src/twat_coding/pystubnik/make_stubs_ast.py:94: error: Incompatibl
+e types in assignment (expression has type "bytes", variable has t
+ype "str")  [assignment]
+src/twat_coding/pystubnik/make_stubs_ast.py:276: error: "AST" has 
+no attribute "parent"  [attr-defined]
+src/twat_coding/pystubnik/types/docstring.py:201: error: Type expe
+cted within [...]  [misc]
+Found 4 errors in 3 files (checked 29 source files)
+
+2025-02-22 03:29:03 - >>> Running tests...
+2025-02-22 03:29:05 - .
+
+                             [100%]
+
+---------- coverage: platform darwin, python 3.12.8-final-0 ------
+----
+Name                                                      Stmts
+
+Miss  Cover
+------------------------------------------------------------------
+-----------
+src/twat_coding/__init__.py                                   2
+
+   0   100%
+src/twat_coding/__version__.py                                4
+
+   0   100%
+src/twat_coding/pystubnik/__init__.py                        95
+
+  95     0%
+src/twat_coding/pystubnik/backends/__init__.py               18
+
+  18     0%
+src/twat_coding/pystubnik/backends/ast_backend.py           146
+
+ 146     0%
+src/twat_coding/pystubnik/backends/base.py                   19
+
+  19     0%
+src/twat_coding/pystubnik/backends/mypy_backend.py            9
+
+   9     0%
+src/twat_coding/pystubnik/config.py                         115
+
+ 115     0%
+src/twat_coding/pystubnik/errors.py                          53
+
+  53     0%
+src/twat_coding/pystubnik/make_stubs_ast.py                 205
+
+ 205     0%
+src/twat_coding/pystubnik/make_stubs_mypy.py                114
+
+ 114     0%
+src/twat_coding/pystubnik/processors/__init__.py             17
+
+  17     0%
+src/twat_coding/pystubnik/processors/docstring.py            67
+
+  67     0%
+src/twat_coding/pystubnik/processors/file_importance.py     209
+
+ 209     0%
+src/twat_coding/pystubnik/processors/importance.py           64
+
+  64     0%
+src/twat_coding/pystubnik/processors/imports.py              87
+
+  87     0%
+src/twat_coding/pystubnik/processors/stub_generation.py     116
+
+ 116     0%
+src/twat_coding/pystubnik/processors/type_inference.py       66
+
+  66     0%
+src/twat_coding/pystubnik/read_imports.py                    29
+
+  29     0%
+src/twat_coding/twat_coding.py                               29
+
+  29     0%
+------------------------------------------------------------------
+-----------
+TOTAL                                                      1464
+
+1458     1%
+
+1 passed in 0.18s
+
+2025-02-22 03:29:05 - All checks completed
+2025-02-22 03:29:05 - 
+=== TODO.md ===
+2025-02-22 03:29:05 - Before you do any changes or if I say "clean
+up", run the `./cleanup.py install && source .venv/bin/activate &&
+ ./cleanup.py update` script in the main folder. Analyze the resul
+ts, describe recent changes @TODO.md to update priorities and plan
+ next changes. PERFORM THE CHANGES, then run the `cleanup.py statu
+s` script and react to the results.
+
+When you edit @TODO.md, lead in lines with empty GFM checkboxes if
+ things aren't done (`- [ ] `) vs. filled (`- [x] `) if done, and
+`- [!]` if they're NEXT TODO.
+
+Don't use `pip`, use `uv pip`. 
+
+# TODO
+
+This TODO.md is a detailed development specification for making `p
+ystubnik` functional ASAP, focusing on integrating the new file im
+portance analysis and eliminating standalone scripts.
+
+## 1. Dependencies and Environment (URGENT)
+
+- [x] **Add New Dependencies to `pyproject.toml`:**
+  ```toml
+  [project]
+  dependencies = [
+      # ... existing deps ...
+      "networkx>=3.2.1",     # For import graph analysis
+      "radon>=6.0.1",       # For code complexity metrics
+      "coverage>=7.4.1",    # For test coverage analysis
+      "pydocstyle>=6.3.0", # For docstring quality checks
+      "importlab>=0.8",    # For import graph building
+      "toml>=0.10.2",      # For pyproject.toml parsing
+  ]
+  ```
+
+- [x] **Fix Import Resolution:**
+  - Added missing type stubs: `types-toml`, replaced `types-pydocs
+tyle` with `mypy-extensions`
+  - Simplified import graph building to not rely on importlab
+  - Added proper error handling for optional dependencies
+
+## 2. Code Quality Fixes
+
+- [x] **Fix Critical Linter Errors:**
+  - Fixed `Numbers.percentage` attribute error in `file_importance
+.py`
+  - Added proper type hints for importlab classes
+  - Fixed line length issues in `file_importance.py`
+  - Added error handling for missing dependencies
+  - Fixed type errors in centrality calculation
+
+- [!] **Improve Code Organization:**
+  - Create `utils/` directory with:
+    - `graph_utils.py`: Import graph building and analysis
+    - `metrics.py`: Code complexity, coverage, and doc quality met
+rics
+    - `config.py`: Configuration handling and validation
+    - `logging.py`: Centralized logging setup
+  - Move common functions from `file_importance.py` to appropriate
+ utils
+  - Add proper error handling and logging throughout
+  - Document all utility functions with type hints and docstrings
+
+- [!] **Add Basic Tests:**
+  - Create `tests/processors/test_file_importance.py` with:
+    - Test cases for graph building with mock files
+    - Test cases for each metric calculation
+    - Test cases for config loading and validation
+    - Test cases for error handling of missing dependencies
+  - Add test fixtures for sample Python files
+  - Add test coverage reporting
+  - Add performance benchmarks for large codebases
+
+## 3. Feature Integration
+
+- [x] **Complete File Importance Integration:**
+  ```python
+  # In ImportanceProcessor.process():
+  def process(self, stub_result: StubResult) -> StubResult:
+      # Calculate file scores
+      package_dir = str(stub_result.source_path.parent)
+      self._file_scores = calculate_file_scores(package_dir, self.
+config.file_importance)
+      
+      # Process AST
+      tree = ast.parse(stub_result.stub_content)
+      for node in ast.walk(tree):
+          if isinstance(node, (ast.FunctionDef, ast.ClassDef)):
+              score = self.calculate_importance(
+                  name=node.name,
+                  docstring=ast.get_docstring(node),
+                  is_public=not node.name.startswith('_'),
+                  is_special=node.name.startswith('__'),
+                  extra_info={"file_path": stub_result.source_path
+}
+              )
+              # TODO: Store score in node.importance_score
+              
+      return stub_result
+  ```
+
+- [!] **Enhance Configuration System:**
+  - Create `FileImportanceConfig` class with:
+    ```python
+    @dataclass
+    class FileImportanceConfig:
+        exclude_dirs: list[str]
+        centrality_measure: Literal["pagerank", "betweenness", "ei
+genvector"]
+        coverage_data_path: Path | None
+        weights: dict[str, float]
+        min_coverage_threshold: float
+        max_complexity_threshold: float
+        doc_quality_checks: list[str]
+        cache_results: bool
+    ```
+  - Add validation for all config fields
+  - Add CLI options for all config settings
+  - Add config file support (JSON/TOML)
+  - Add config documentation and examples
+
+- [!] **Improve Processors:**
+  - Update `DocstringProcessor` to:
+    - Handle file-level docstrings
+    - Use file importance scores
+    - Add quality metrics
+  - Update `ImportProcessor` to:
+    - Use cached import graph
+    - Handle circular imports
+    - Support namespace packages
+  - Add progress reporting with rich
+  - Add caching system for file scores
+
+## 4. Documentation and Examples
+
+- [ ] **Update Documentation:**
+  - Add architecture overview
+  - Add metric explanations
+  - Add configuration guide
+  - Add troubleshooting guide
+  - Add performance tips
+  - Add migration guide
+
+- [ ] **Add Examples:**
+  - Basic usage examples
+  - Custom metric examples
+  - Integration examples
+  - Configuration examples
+  - Performance optimization examples
+
+## 5. Testing and Validation
+
+- [ ] **Add Comprehensive Tests:**
+  - Unit tests for all components
+  - Integration tests
+  - Performance tests
+  - Edge case tests
+  - Regression tests
+
+- [ ] **Add Benchmarks:**
+  - Measure processing time
+  - Measure memory usage
+  - Compare with baseline
+  - Profile bottlenecks
+  - Document optimizations
+
+## 6. Final Steps
+
+- [ ] **Clean Up Old Code:**
+  - Remove standalone scripts
+  - Update imports
+  - Remove deprecated code
+  - Update documentation
+
+- [ ] **Release Preparation:**
+  - Update version numbers
+  - Update changelog
+  - Update README
+  - Prepare release notes
+
+## 7. Next Actions
+
+1. [x] Add new dependencies to `pyproject.toml`
+2. [x] Fix import resolution issues
+3. [x] Fix critical linter errors
+4. [!] Improve code organization
+5. [!] Add basic tests
+6. [!] Enhance configuration system
+
+## 8. Notes
+
+- The file importance analysis is now integrated into the main pac
+kage
+- The new system combines both file-level and symbol-level importa
+nce
+- All changes maintain backward compatibility
+- Performance impact should be monitored
+- Optional dependencies are now properly handled with graceful fal
+lbacks
+
+---
+
+
+2025-02-22 03:29:05 -  M .cursor/rules/filetree.mdc
+ D .specstory/history/untitled.md
+ M TODO.md
+ M pyproject.toml
+ M src/twat_coding/pystubnik/processors/file_importance.py
+ M src/twat_coding/pystubnik/processors/importance.py
+?? .specstory/history/todo-list-cleanup-and-review.md
+
+2025-02-22 03:29:05 - Changes detected in repository
+2025-02-22 03:29:05 - [main 92b471f] Update repository files
+ 7 files changed, 3141 insertions(+), 205 deletions(-)
+ create mode 100644 .specstory/history/todo-list-cleanup-and-revie
+w.md
+ delete mode 100644 .specstory/history/untitled.md
+
+2025-02-22 03:29:05 - Changes committed successfully
+
+
+```
+
+---
+
+_****_
+
+
+
+Based on the cleanup results, I notice several things that need attention:
+
+1. Code Quality Issues:
+   - Multiple unused imports in various files
+   - Deprecated type hints (using `typing.Dict` instead of `dict`)
+   - Complex functions that need refactoring (C901 errors)
+   - Line length issues in several files
+
+2. Type Checking Issues:
+   - Type system incompatibility in `type_system.py`
+   - Type errors in `make_stubs_ast.py`
+   - Type annotation issues in `docstring.py`
+
+3. Test Coverage:
+   - Only 1% test coverage overall
+   - Most modules have 0% coverage
+
+Let me update the TODO.md to reflect these findings and adjust priorities:
 
 ---
 
