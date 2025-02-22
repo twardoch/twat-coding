@@ -5,10 +5,10 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Union
 
+from .. import _convert_to_stub_gen_config
 from ..config import StubConfig
-from ..core.config import StubGenConfig
+from ..core.config import PathConfig, StubGenConfig
 from ..core.types import StubResult
-from .._convert_to_stub_gen_config import _convert_to_stub_gen_config
 
 
 class StubBackend(ABC):
@@ -24,7 +24,7 @@ class StubBackend(ABC):
         if isinstance(config, StubConfig):
             self._config = _convert_to_stub_gen_config(config)
         else:
-            self._config = config
+            self._config = config or StubGenConfig(paths=PathConfig())
 
     @abstractmethod
     async def generate_stub(self, source_path: Path) -> StubResult:
@@ -39,14 +39,14 @@ class StubBackend(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def process_module(self, module_name: str) -> str:
+    async def process_module(self, module_name: str) -> StubResult:
         """Process a module by its import name.
 
         Args:
             module_name: Fully qualified module name
 
         Returns:
-            Generated stub content as a string
+            Generated stub result
 
         Raises:
             StubGenerationError: If module processing fails
@@ -54,14 +54,14 @@ class StubBackend(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def process_package(self, package_path: Path) -> dict[Path, str]:
+    async def process_package(self, package_path: Path) -> dict[Path, StubResult]:
         """Process a package directory recursively.
 
         Args:
             package_path: Path to the package directory
 
         Returns:
-            Dictionary mapping output paths to stub contents
+            Dictionary mapping output paths to stub results
 
         Raises:
             StubGenerationError: If package processing fails
