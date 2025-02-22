@@ -4,9 +4,9 @@ This module provides the abstract base class for stub generation backends
 and a registry to manage different backend implementations.
 """
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from pathlib import Path
-from typing import Dict, Protocol, Type
+from typing import Protocol
 
 from pystubnik.core.types import StubResult
 
