@@ -16,8 +16,16 @@ from typing import Any, ClassVar, cast
 
 from loguru import logger
 
-from ..core.config import StubGenConfig
-from ..core.shared_types import TruncationConfig
+from ..config import StubConfig
+from ..core.config import (
+    Backend,
+    PathConfig,
+    ProcessingConfig,
+    RuntimeConfig,
+    StubGenConfig,
+    TruncationConfig,
+)
+from ..core.types import StubResult
 from ..errors import ASTError, ErrorCode
 from ..utils.ast_utils import attach_parents, truncate_literal
 from ..utils.display import print_progress
@@ -129,6 +137,51 @@ class SignatureExtractor(ast.NodeTransformer):
         return cast(ast.ClassDef, self.generic_visit(node))
 
 
+def _convert_to_stub_gen_config(config: StubConfig) -> StubGenConfig:
+    """Convert StubConfig to StubGenConfig.
+
+    Args:
+        config: Source configuration
+
+    Returns:
+        Converted configuration
+    """
+    return StubGenConfig(
+        paths=PathConfig(
+            output_dir=config.output_path or Path("out"),
+            doc_dir=Path(config.doc_dir) if config.doc_dir else None,
+            search_paths=[Path(p) for p in config.search_paths],
+            modules=list(config.modules),
+            packages=list(config.packages),
+            files=list(config.files),
+        ),
+        runtime=RuntimeConfig.create(
+            backend=Backend.AST if config.backend == "ast" else Backend.MYPY,
+            python_version=config.python_version,
+            interpreter=config.interpreter,
+            no_import=config.no_import,
+            inspect=config.inspect,
+            parse_only=config.parse_only,
+            ignore_errors=config.ignore_errors,
+            verbose=config.verbose,
+            quiet=config.quiet,
+            parallel=config.parallel,
+            max_workers=config.max_workers,
+        ),
+        processing=ProcessingConfig(
+            include_docstrings=config.docstring_type_hints,
+            include_private=config.include_private,
+            include_type_comments=config.include_type_comments,
+            infer_property_types=config.infer_property_types,
+            export_less=config.export_less,
+            importance_patterns=dict(config.importance_patterns),
+        ),
+        truncation=TruncationConfig(
+            max_docstring_length=config.max_docstring_length,
+        ),
+    )
+
+
 class ASTBackend(StubBackend):
     """AST-based stub generation backend with advanced concurrency."""
 
@@ -137,65 +190,58 @@ class ASTBackend(StubBackend):
     _ast_cache_lock: ClassVar[asyncio.Lock] = asyncio.Lock()
     _max_cache_size: ClassVar[int] = 100
 
-    def __init__(self, config: StubGenConfig):
+    def __init__(self, config: StubConfig | StubGenConfig):
         """Initialize the backend.
 
         Args:
-            config: Stub generation configuration
+            config: Configuration for stub generation
         """
-        super().__init__()
-        self.config = config
-        self._executor = ThreadPoolExecutor(
-            max_workers=config.runtime.max_workers
-            if config.runtime.max_workers
-            else None
-        )
-        self._node_registry: weakref.WeakValueDictionary[int, ast.AST] = (
-            weakref.WeakValueDictionary()
-        )
+        self._config = config  # Store config as protected attribute
+        self.processors = []  # List of processors to apply to stubs
+
+        # Handle different config types
+        if isinstance(config, StubConfig):
+            self._executor = ThreadPoolExecutor(
+                max_workers=config.max_workers if config.parallel else 1
+            )
+            self.include_patterns = config.include_patterns
+            self.exclude_patterns = config.exclude_patterns
+            self._stub_gen_config = config.stub_gen_config
+        else:  # StubGenConfig
+            self._executor = ThreadPoolExecutor(
+                max_workers=config.runtime.max_workers if config.runtime.parallel else 1
+            )
+            self.include_patterns = ["*.py"]  # Default patterns
+            self.exclude_patterns = ["test_*.py", "*_test.py"]
+            self._stub_gen_config = config
+
         self._memory_monitor = MemoryMonitor()
+        self._node_registry = weakref.WeakValueDictionary()
+
+    @property
+    def config(self) -> StubConfig | StubGenConfig:
+        """Get the current configuration.
+
+        Returns:
+            Current configuration
+        """
+        return self._config
 
     async def generate_stub(
         self, source_path: Path, output_path: Path | None = None
     ) -> str:
-        """Generate a stub for a Python source file using AST parsing.
+        """Generate a stub for a Python source file.
 
         Args:
             source_path: Path to the source file
-            output_path: Optional output path for the stub file
+            output_path: Optional path to write the stub to
 
         Returns:
-            Generated stub content
-
-        Raises:
-            ASTError: If AST parsing or processing fails
+            Generated stub content as a string
         """
         try:
-            # Get file locations
-            input_path, stub_path = self.config.get_file_locations(source_path)
-            output_path = output_path or stub_path
-
-            # Start memory monitoring
-            self._memory_monitor.start()
-
             # Read source file
-            try:
-                source = input_path.read_text()
-            except Exception as e:
-                raise ASTError(
-                    f"Failed to read source file {input_path}: {e}",
-                    ErrorCode.IO_READ_ERROR,
-                ) from e
-
-            # Calculate importance score
-            file_score = 0.5  # Default score
-            try:
-                from ..processors.importance import ImportanceProcessor
-
-                processor = ImportanceProcessor()
-                file_score = processor._get_file_score({"file_path": source_path})
-            except Exception as e:
-                logger.warning(f"Failed to calculate importance score: {e}")
+            source = await self._run_in_executor(source_path.read_text)
 
             # Parse AST
             tree = await self._run_in_executor(
@@ -204,25 +250,36 @@ class ASTBackend(StubBackend):
             attach_parents(tree)
 
             # Transform AST
-            transformer = SignatureExtractor(self.config, len(source), file_score)
+            transformer = SignatureExtractor(self._stub_gen_config, len(source))
             transformed = transformer.visit(tree)
+
+            # Generate stub content
             stub_content = ast.unparse(transformed)
 
-            return stub_content
+            # Create StubResult for processors
+            result = StubResult(
+                source_path=source_path,
+                stub_content=stub_content,
+                imports=[],  # TODO: Extract imports
+                errors=[],
+                importance_score=0.0,
+                metadata={},
+            )
+
+            # Apply processors if available
+            if hasattr(self, "processors"):
+                for processor in self.processors:
+                    result = processor.process(result)
+
+            return result.stub_content
 
         except Exception as e:
-            if isinstance(e, ASTError):
-                raise
+            logger.error(f"Error generating stub for {source_path}: {e}")
             raise ASTError(
-                f"Failed to generate stub for {source_path}: {e}",
-                ErrorCode.AST_TRANSFORM_ERROR,
-            ) from e
-        finally:
-            # Stop memory monitoring and log stats
-            self._memory_monitor.stop()
-            peak_mb = self._memory_monitor.peak_memory / 1024 / 1024
-            logger.debug(f"Peak memory usage: {peak_mb:.1f}MB")
-            self._memory_monitor.clear_stats()
+                code=ErrorCode.AST_TRANSFORM_ERROR,
+                message=f"Failed to generate stub for {source_path}",
+                details={"error": str(e)},
+            )
 
     async def process_directory(self, directory: Path) -> dict[Path, str]:
         """Process a directory recursively.
@@ -239,11 +296,11 @@ class ASTBackend(StubBackend):
         try:
             # Find all Python files matching patterns
             python_files: list[Path] = []
-            for pattern in self.config.include_patterns:
+            for pattern in self.include_patterns:
                 python_files.extend(directory.rglob(pattern))
 
             # Filter out excluded files
-            for pattern in self.config.exclude_patterns:
+            for pattern in self.exclude_patterns:
                 python_files = [f for f in python_files if not f.match(pattern)]
 
             # Process files with progress reporting
@@ -256,7 +313,12 @@ class ASTBackend(StubBackend):
                     results[path] = stub
                 except Exception as e:
                     logger.error(f"Failed to process {path}: {e}")
-                    if not self.config.ignore_errors:
+                    if not (
+                        isinstance(self._config, StubConfig)
+                        and self._config.ignore_errors
+                        or isinstance(self._config, StubGenConfig)
+                        and self._config.runtime.ignore_errors
+                    ):
                         raise
 
             return results

@@ -300,10 +300,13 @@ class SmartStubGenerator:
         Returns:
             Initialized backend
         """
+        # Convert StubGenConfig to StubConfig for the backend
+        stub_config = _convert_to_stub_config(self.config)
+
         if self.config.runtime.backend == Backend.AST:
-            return ASTBackend(self.config)
+            return ASTBackend(stub_config)
         elif self.config.runtime.backend == Backend.MYPY:
-            return MypyBackend(self.config)
+            return MypyBackend(stub_config)
         else:
             raise ConfigError(
                 f"Unknown backend: {self.config.runtime.backend}",
@@ -315,18 +318,24 @@ class SmartStubGenerator:
         try:
             # Generate stub
             result = asyncio.run(backend.generate_stub(file_path))
-            if isinstance(result, StubResult):
+            if isinstance(result, str):
+                stub_content = result
+            elif isinstance(result, StubResult):
                 # Apply processors
                 for processor in self.processors:
                     result = processor.process(result)
-
-                # Write stub
-                output_path = (
-                    self.config.paths.output_dir / file_path.with_suffix(".pyi").name
-                )
-                output_path.write_text(result.stub_content)
+                stub_content = result.stub_content
             else:
-                logger.error(f"Invalid result type for {file_path}")
+                logger.error(
+                    f"Unexpected result type from generate_stub: {type(result)}"
+                )
+                return
+
+            # Write stub
+            output_path = (
+                self.config.paths.output_dir / file_path.with_suffix(".pyi").name
+            )
+            output_path.write_text(stub_content)
 
         except Exception as e:
             logger.error(f"Failed to process {file_path}: {e}")
@@ -391,7 +400,7 @@ async def generate_stub(
     source_path: PathLike,
     output_path: PathLike | None = None,
     backend: str = "ast",
-    config: StubGenConfig | None = None,
+    config: StubConfig | None = None,
 ) -> StubResult:
     """Generate a type stub for a Python source file.
 
@@ -412,7 +421,17 @@ async def generate_stub(
 
     # Use default config if none provided
     if config is None:
-        config = StubGenConfig(paths=PathConfig())
+        config = StubConfig(
+            input_path=source_path,
+            output_path=output_path_obj or Path("out"),
+            backend=backend,
+            parallel=True,
+            max_workers=None,
+            files=[source_path],
+            include_patterns=["*.py"],
+            exclude_patterns=["test_*.py", "*_test.py"],
+            stub_gen_config=_convert_to_stub_gen_config(config),
+        )
 
     # Initialize backend
     backend_obj: StubBackend

@@ -6,12 +6,13 @@ from pathlib import Path
 from typing import Any
 
 from ..config import StubConfig
+from ..core.config import StubGenConfig
 
 
 class StubBackend(ABC):
     """Abstract base class for stub generation backends."""
 
-    def __init__(self, config: StubConfig) -> None:
+    def __init__(self, config: StubConfig | StubGenConfig) -> None:
         """Initialize the backend.
 
         Args:
