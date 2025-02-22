@@ -8,6 +8,7 @@ from typing import Any
 
 from loguru import logger
 
+from ..core.config import ImportanceLevel
 from ..core.types import StubResult
 from . import Processor
 from .file_importance import FileImportanceConfig, prioritize_files
@@ -62,25 +63,28 @@ class ImportanceProcessor(Processor):
         Returns:
             The processed stub result with importance scores
         """
-        # Calculate file-level importance if needed
-        if not self._file_scores:
-            try:
-                package_dir = str(stub_result.source_path.parent)
-                self._file_scores = prioritize_files(
-                    package_dir, self.config.file_importance
-                )
-            except Exception as e:
-                logger.warning(f"Failed to calculate file importance: {e}")
-
-        # Get file importance score
-        file_score = self._file_scores.get(str(stub_result.source_path), 0.5)
-
-        # Adjust stub result's importance score
-        stub_result.importance_score = file_score
-        stub_result.metadata["file_score"] = file_score
-
-        # Process individual symbols
         try:
+            # Calculate file-level importance if needed
+            if not self._file_scores:
+                try:
+                    package_dir = str(stub_result.source_path.parent)
+                    self._file_scores = prioritize_files(
+                        package_dir, self.config.file_importance
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to calculate file importance: {e}")
+
+            # Get file importance score
+            file_score = self._file_scores.get(str(stub_result.source_path), 0.5)
+
+            # Adjust stub result's importance score
+            stub_result.importance_score = file_score
+            stub_result.metadata["file_score"] = file_score
+            stub_result.metadata["importance_level"] = self._get_importance_level(
+                file_score
+            )
+
+            # Process individual symbols
             tree = ast.parse(stub_result.stub_content)
             for node in ast.walk(tree):
                 if isinstance(node, ast.FunctionDef | ast.ClassDef):
@@ -93,7 +97,13 @@ class ImportanceProcessor(Processor):
                         and node.name.endswith("__"),
                         extra_info={"file_path": stub_result.source_path},
                     )
-                    stub_result.metadata[f"{node.name}_score"] = score
+
+                    # Store symbol metadata
+                    symbol_key = f"{node.__class__.__name__.lower()}_{node.name}"
+                    stub_result.metadata[f"{symbol_key}_score"] = score
+                    stub_result.metadata[f"{symbol_key}_level"] = (
+                        self._get_importance_level(score)
+                    )
 
                     # For low importance functions, replace body with ellipsis
                     if score < 0.7 and isinstance(node, ast.FunctionDef):
@@ -101,19 +111,33 @@ class ImportanceProcessor(Processor):
 
             # Update stub content with modified AST
             stub_result.stub_content = ast.unparse(tree)
+
         except Exception as e:
             logger.warning(
-                f"Error processing symbols in {stub_result.source_path}: {e}"
+                f"Error processing importance in {stub_result.source_path}: {e}"
             )
 
         return stub_result
 
-    def _get_file_score(self, extra_info: dict[str, Any] | None) -> float:
-        """Get the file-level base score."""
-        if extra_info and "file_path" in extra_info:
-            file_path = extra_info["file_path"]
-            return self._file_scores.get(str(file_path), 1.0)
-        return 1.0
+    def _get_importance_level(self, score: float) -> str:
+        """Convert a numeric score to an importance level.
+
+        Args:
+            score: Numeric importance score
+
+        Returns:
+            String representation of importance level
+        """
+        if score >= ImportanceLevel.CRITICAL.value:
+            return "CRITICAL"
+        elif score >= ImportanceLevel.HIGH.value:
+            return "HIGH"
+        elif score >= ImportanceLevel.NORMAL.value:
+            return "NORMAL"
+        elif score >= ImportanceLevel.LOW.value:
+            return "LOW"
+        else:
+            return "IGNORE"
 
     def _calculate_pattern_score(self, name: str) -> float:
         """Calculate score based on importance patterns."""
@@ -186,6 +210,13 @@ class ImportanceProcessor(Processor):
         except Exception as e:
             logger.warning(f"Error calculating importance for {name}: {e}")
             return self.config.min_score
+
+    def _get_file_score(self, extra_info: dict[str, Any] | None) -> float:
+        """Get the file-level base score."""
+        if extra_info and "file_path" in extra_info:
+            file_path = extra_info["file_path"]
+            return self._file_scores.get(str(file_path), 1.0)
+        return 1.0
 
     def should_include(
         self,

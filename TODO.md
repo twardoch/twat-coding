@@ -22,17 +22,24 @@ this_file: TODO.md
     2. Fixed type errors in `ast_backend.py` for imports and assignments.
     3. Fixed type error in `__init__.py` for `MypyBackend` argument type.
 
-- [!] **Improve Test Coverage**
+- [x] **Improve Test Coverage**
   - *Tasks*:
-    1. Add tests for configuration conversion.
-    2. Add tests for backend type compatibility.
-    3. Add tests for docstring type extraction.
+    1. Added tests for configuration conversion.
+    2. Added tests for backend type compatibility.
+    3. Added tests for docstring type extraction.
 
-- [ ] **Integrate File Importance**
+- [x] **Integrate File Importance**
   - *Tasks*:
-    1. Enhance `StubResult` with metadata.
-    2. Update `SignatureExtractor` for importance-based decisions.
-    3. Configure `ImportanceProcessor` to apply scores.
+    1. Enhanced `StubResult` with metadata for importance tracking.
+    2. Updated `ImportanceProcessor` to calculate and store importance scores.
+    3. Modified `SignatureExtractor` to use importance scores for docstring preservation.
+    4. Added importance level tracking (CRITICAL, HIGH, NORMAL, LOW, IGNORE).
+
+- [!] **Enhance Type Inference**
+  - *Tasks*:
+    1. Improve type inference from docstrings.
+    2. Add support for more complex type annotations.
+    3. Handle generic types and type variables.
 
 ## 3. Future Tasks
 
@@ -73,11 +80,17 @@ this_file: TODO.md
   - Fixed `StubConfig` attribute access in `core/conversion.py`.
   - Fixed circular import between `__init__.py` and `ast_backend.py`.
 
+- [x] **Integrate File Importance**
+  - Enhanced `StubResult` with metadata for importance tracking.
+  - Updated `ImportanceProcessor` to calculate and store importance scores.
+  - Modified `SignatureExtractor` to use importance scores for docstring preservation.
+  - Added importance level tracking (CRITICAL, HIGH, NORMAL, LOW, IGNORE).
+
 ## 5. Next Actions
 
-1. Add tests for configuration conversion
-2. Add tests for backend type compatibility
-3. Add tests for docstring type extraction
+1. Improve type inference from docstrings
+2. Add support for more complex type annotations
+3. Handle generic types and type variables
 
 ## 6. Notes
 

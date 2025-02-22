@@ -226,7 +226,12 @@ class ASTBackend(StubBackend):
             attach_parents(tree)
 
             # Transform AST
-            transformer = SignatureExtractor(self.config, len(source))
+            stub_gen_config = (
+                self.config
+                if isinstance(self.config, StubGenConfig)
+                else convert_to_stub_gen_config(self.config)
+            )
+            transformer = SignatureExtractor(stub_gen_config, len(source))
             transformed = transformer.visit(tree)
 
             # Generate stub content
@@ -238,14 +243,27 @@ class ASTBackend(StubBackend):
                 stub_content=stub_content,
                 imports=[],  # TODO: Extract imports
                 errors=[],
-                importance_score=0.0,
-                metadata={},
+                importance_score=0.0,  # Will be set by ImportanceProcessor
+                metadata={
+                    "source_size": len(source),
+                    "node_count": sum(1 for _ in ast.walk(tree)),
+                },
             )
 
             # Apply processors if available
             if hasattr(self, "processors"):
                 for processor in self.processors:
                     result = processor.process(result)
+
+                # Update transformer with importance score if available
+                if result.importance_score > 0:
+                    transformer = SignatureExtractor(
+                        stub_gen_config,
+                        len(source),
+                        result.importance_score,
+                    )
+                    transformed = transformer.visit(tree)
+                    result.stub_content = ast.unparse(transformed)
 
             return result
 

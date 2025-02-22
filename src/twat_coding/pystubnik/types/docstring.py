@@ -198,9 +198,12 @@ class DocstringTypeExtractor:
                     raise TypeInferenceError("Empty union type")
                 if len(types) == 1:
                     return types[0]
+                # Create a union of all types
+                union_type = types[0].annotation
+                for t in types[1:]:
+                    union_type = union_type | t.annotation
                 return TypeInfo(
-                    annotation=tuple(t.annotation for t in types)[0]
-                    | tuple(t.annotation for t in types)[1:],
+                    annotation=union_type,
                     source="docstring",
                     confidence=0.7,
                     metadata={"original": type_str, "union_types": types},
