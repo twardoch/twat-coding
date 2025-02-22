@@ -23,7 +23,7 @@ globs:
 │       ├── [ 97K]  cleanup-script-execution-and-todo-management-1.md
 │       ├── [ 85K]  cleanup-script-execution-and-todo-management-2.md
 │       ├── [322K]  cleanup-script-execution-and-todo-management.md
-│       ├── [209K]  code-cleanup-and-todo-update-process.md
+│       ├── [241K]  code-cleanup-and-todo-update-process.md
 │       ├── [333K]  command-execution-and-todo-update.md
 │       ├── [ 248]  detailed-overview-of-python-stubbing-tools.md
 │       ├── [ 25K]  integrating-importance-analysis-modules.md
@@ -40,7 +40,7 @@ globs:
 ├── [1.0K]  LICENSE
 ├── [ 173]  MANIFEST.in
 ├── [1.4K]  README.md
-├── [3.8K]  TODO.md
+├── [4.5K]  TODO.md
 ├── [ 12K]  cleanup.py
 ├── [  96]  cursor
 │   └── [  96]  rules
@@ -54,7 +54,7 @@ globs:
 ├── [ 128]  src
 │   └── [ 256]  twat_coding
 │       ├── [ 144]  __init__.py
-│       ├── [ 448]  pystubnik
+│       ├── [ 480]  pystubnik
 │       │   ├── [5.3K]  README.md
 │       │   ├── [ 16K]  __init__.py
 │       │   ├── [ 224]  backends
@@ -62,6 +62,7 @@ globs:
 │       │   │   ├── [ 12K]  ast_backend.py
 │       │   │   ├── [2.4K]  base.py
 │       │   │   └── [ 982]  mypy_backend.py
+│       │   ├── [5.9K]  cli.py
 │       │   ├── [8.8K]  config.py
 │       │   ├── [ 256]  core
 │       │   │   ├── [6.1K]  config.py
@@ -90,4 +91,4 @@ globs:
 └── [ 128]  tests
     └── [ 11K]  test_package.py
 
-20 directories, 67 files
+20 directories, 68 files

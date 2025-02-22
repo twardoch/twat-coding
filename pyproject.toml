@@ -13,6 +13,7 @@ dependencies = [
     "pydantic-settings>=2.1.0",
     "loguru>=0.7.2",
     "rich>=13.7.0",
+    "fire>=0.5.0",
     "click>=8.1.7",
     "psutil>=5.9.8",
     "memory-profiler>=0.61.0",
@@ -117,7 +118,7 @@ addopts = "-ra -q --cov=twat_coding"
 testpaths = ["tests"]
 
 [project.scripts]
-twat-coding = "twat_coding.__main__:main"
+twat-coding = "twat_coding.pystubnik.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/twardoch/twat-coding"

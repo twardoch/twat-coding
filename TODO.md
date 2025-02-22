@@ -6,26 +6,46 @@ this_file: TODO.md
 
 ## 1. Immediate Priorities
 
-- [!] **Add CLI Interface**
-  - *Using Fire for Command Line*:
-    - [!] Create basic CLI with Fire
-      - [!] Add command to generate stubs for a file
-      - [!] Add command to generate stubs for a directory
-      - [!] Add command to configure stub generation options
-    - [ ] Add progress bar using rich
-    - [ ] Add colorful output for errors and warnings
+- [!] **Fix Private Class Exclusion**
+  - *Critical Bug*:
+    - [!] Fix failing test in `test_stub_generation_config`
+    - [!] Ensure private classes are properly excluded in `StubVisitor`
+    - [!] Add test cases for special methods and nested private classes
 
-- [!] **Fix Critical Issues**
+- [x] **Add CLI Interface**
+  - *Using Fire for Command Line*:
+    - [x] Create `cli.py` with Fire interface
+      - [x] Add `generate` command for single file
+      - [x] Add `generate-dir` command for directory
+      - [x] Add `--config` option for configuration file
+    - [x] Add progress bar using rich
+    - [x] Add colorful output for errors and warnings
+
+- [!] **Add Config File Support**
+  - *YAML Configuration*:
+    - [!] Add YAML config file support to CLI
+    - [!] Add config validation using Pydantic
+    - [!] Add config file examples
+
+- [!] **Fix Type Annotations**
   - *High Priority Fixes*:
-    - [!] Fix remaining type hints in stub_generation.py
-    - [!] Fix complexity issues in stub_generation.py
-      - [!] Refactor `generate_stub` method (complexity: 13 > 10)
-      - [!] Refactor `_process_class_to_lines` method (complexity: 11 > 10)
-      - [!] Refactor `_sort_imports` method (complexity: 11 > 10)
+    - [!] Add missing type annotations in `stub_generation.py`:
+      - [!] Fix "sorted_imports" type annotation
+      - [!] Fix "imports" type annotation
+      - [!] Fix ImportFrom/Import type mismatches
+
+- [!] **Reduce Code Complexity**
+  - *Refactoring*:
+    - [!] Split `generate_stub` method (complexity: 13 > 10)
+      - [!] Extract AST processing logic
+      - [!] Extract content generation logic
+    - [!] Split `_sort_imports` method (complexity: 11 > 10)
+      - [!] Extract import categorization logic
+      - [!] Extract sorting logic
 
 ## 2. Near-term Tasks
 
-- [ ] **Improve Test Coverage (Current: 45%)**
+- [ ] **Improve Test Coverage (Current: 46%)**
   - *Critical Modules with Low Coverage*:
     - [ ] Write tests for `type_inference.py` (0% coverage)
       - [ ] Test basic type inference
