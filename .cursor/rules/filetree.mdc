@@ -2,13 +2,13 @@
 description: File tree of the project
 globs: 
 ---
-[ 960]  .
+[ 928]  .
 ├── [  64]  .benchmarks
 ├── [  96]  .cursor
 │   └── [ 224]  rules
 │       ├── [2.2K]  0project.mdc
 │       ├── [ 632]  cleanup.mdc
-│       ├── [4.1K]  filetree.mdc
+│       ├── [4.2K]  filetree.mdc
 │       └── [2.0K]  quality.mdc
 ├── [  96]  .github
 │   └── [ 128]  workflows
@@ -17,7 +17,7 @@ globs:
 ├── [3.5K]  .gitignore
 ├── [ 532]  .pre-commit-config.yaml
 ├── [  96]  .specstory
-│   └── [ 640]  history
+│   └── [ 672]  history
 │       ├── [2.0K]  .what-is-this.md
 │       ├── [ 63K]  adjusting-todo-priorities-from-cleanup-status.md
 │       ├── [ 97K]  cleanup-script-execution-and-todo-management-1.md
@@ -35,7 +35,8 @@ globs:
 │       ├── [ 64K]  reviewing-and-tracking-todo-progress.md
 │       ├── [ 56K]  task-management-from-todo-md.md
 │       ├── [4.9K]  task-organization-and-cleanup-process.md
-│       └── [165K]  todo-list-cleanup-and-review.md
+│       ├── [165K]  todo-list-cleanup-and-review.md
+│       └── [3.3K]  untitled.md
 ├── [1.0K]  LICENSE
 ├── [ 173]  MANIFEST.in
 ├── [1.4K]  README.md
@@ -75,7 +76,7 @@ globs:
 │       │   │   ├── [ 16K]  file_importance.py
 │       │   │   ├── [8.6K]  importance.py
 │       │   │   ├── [6.6K]  imports.py
-│       │   │   ├── [ 26K]  stub_generation.py
+│       │   │   ├── [ 24K]  stub_generation.py
 │       │   │   └── [7.4K]  type_inference.py
 │       │   ├── [1.6K]  read_imports.py
 │       │   ├── [ 160]  types
@@ -89,4 +90,4 @@ globs:
 └── [ 128]  tests
     └── [ 11K]  test_package.py
 
-20 directories, 66 files
+20 directories, 67 files

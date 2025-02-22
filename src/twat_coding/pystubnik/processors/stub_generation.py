@@ -74,42 +74,24 @@ class StubVisitor(NodeVisitor):
         """Visit class definitions."""
         # Skip private classes unless they are special methods
         if not self._should_include_member(node.name):
-            print(f"\nDebug: Skipping private class {node.name}")
             return
 
-        # Only add non-private classes
-        if not node.name.startswith("_") or (
-            node.name.startswith("__") and node.name.endswith("__")
-        ):
-            print(f"\nDebug: Adding public class {node.name}")
-            self.classes.append(node)
-            # Only visit class body if we're keeping the class
-            for item in node.body:
-                if isinstance(item, FunctionDef):
-                    if self._should_include_member(item.name):
-                        self.visit(item)
-                elif isinstance(item, Assign | AnnAssign):
-                    self.visit(item)
-        else:
-            print(f"\nDebug: Skipping private class {node.name} (second check)")
+        self.classes.append(node)
+        # Visit class body for methods and assignments
+        for item in node.body:
+            if isinstance(item, FunctionDef):
+                self.visit(item)
+            elif isinstance(item, Assign | AnnAssign):
+                self.visit(item)
 
     def visit_FunctionDef(self, node: FunctionDef) -> None:
         """Visit function definitions."""
         # Skip private functions unless they are special methods
         if not self._should_include_member(node.name):
-            print(f"\nDebug: Skipping private function {node.name}")
             return
 
-        # Only add non-private functions
-        if not node.name.startswith("_") or (
-            node.name.startswith("__") and node.name.endswith("__")
-        ):
-            print(f"\nDebug: Adding public function {node.name}")
-            self.functions.append(node)
-            # Only visit function body if we're keeping the function
-            self.generic_visit(node)
-        else:
-            print(f"\nDebug: Skipping private function {node.name} (second check)")
+        self.functions.append(node)
+        self.generic_visit(node)
 
     def visit_Assign(self, node: Assign) -> None:
         """Visit assignments."""
@@ -307,37 +289,9 @@ class StubGenerator:
 
         attach_parents(ast_tree)
 
-        # Debug output
-        print("\nDebug: Configuration state")
-        print("=" * 80)
-        print(f"include_private: {self.config.include_private}")
-        print("=" * 80)
-
-        # Initialize visitor
+        # Initialize visitor and process AST
         visitor = StubVisitor(self.config)
-
-        # Debug output
-        print("\nDebug: Visitor configuration")
-        print("=" * 80)
-        print(f"visitor include_private: {visitor.config.include_private}")
-        print("=" * 80)
-
         visitor.visit(ast_tree)
-
-        # Debug output
-        print("\nDebug: Visitor state after visiting AST")
-        print("=" * 80)
-        print("Classes found:")
-        for class_def in visitor.classes:
-            print(
-                f"- {class_def.name} (should_include: {self._should_include_member(class_def.name)})"
-            )
-        print("\nFunctions found:")
-        for func_def in visitor.functions:
-            print(
-                f"- {func_def.name} (should_include: {self._should_include_member(func_def.name)})"
-            )
-        print("=" * 80)
 
         # Add header if configured
         lines: list[str] = []
@@ -351,39 +305,19 @@ class StubGenerator:
             if sorted_imports:
                 lines.append("")
 
-        # Filter out private classes before processing
-        public_classes = [
-            class_def
-            for class_def in visitor.classes
-            if self._should_include_member(class_def.name)
-        ]
-
-        # Debug output
-        print("\nDebug: After filtering classes")
-        print("=" * 80)
-        print("Public classes:")
-        for class_def in public_classes:
-            print(f"- {class_def.name}")
-        print("=" * 80)
-
         # Process public classes only
-        for class_def in public_classes:
-            class_lines = self._process_class_to_lines(class_def)
-            lines.extend(class_lines)
-            lines.append("")
-
-        # Filter out private functions before processing
-        public_functions = [
-            func_def
-            for func_def in visitor.functions
-            if self._should_include_member(func_def.name)
-        ]
+        for class_def in visitor.classes:
+            if self._should_include_member(class_def.name):
+                class_lines = self._process_class_to_lines(class_def)
+                lines.extend(class_lines)
+                lines.append("")
 
         # Process public functions only
-        for func_def in public_functions:
-            func_lines = self._process_function_to_lines(func_def)
-            lines.extend(func_lines)
-            lines.append("")
+        for func_def in visitor.functions:
+            if self._should_include_member(func_def.name):
+                func_lines = self._process_function_to_lines(func_def)
+                lines.extend(func_lines)
+                lines.append("")
 
         # Process assignments
         for assignment in visitor.assignments:
@@ -394,12 +328,6 @@ class StubGenerator:
         # Remove trailing newlines and join
         while lines and not lines[-1].strip():
             lines.pop()
-
-        # Debug output
-        print("\nDebug: Generated stub content")
-        print("=" * 80)
-        print(lines)
-        print("=" * 80)
 
         return "\n".join(lines)
 
