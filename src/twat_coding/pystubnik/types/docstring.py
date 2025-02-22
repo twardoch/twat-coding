@@ -5,7 +5,7 @@ import ast
 import re
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Any, ClassVar, cast
+from typing import Any, ClassVar
 
 from docstring_parser import parse as parse_docstring
 from loguru import logger
@@ -228,10 +228,7 @@ class DocstringTypeExtractor:
                     key_info = self._parse_type_string(key_type)
                     value_info = self._parse_type_string(value_type)
                     return TypeInfo(
-                        annotation=dict[
-                            cast(type, key_info.annotation),
-                            cast(type, value_info.annotation),
-                        ],
+                        annotation=dict[key_info.annotation, value_info.annotation],
                         source="docstring",
                         confidence=0.7,
                         metadata={

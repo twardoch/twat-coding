@@ -17,10 +17,11 @@ globs:
 ├── [3.5K]  .gitignore
 ├── [ 532]  .pre-commit-config.yaml
 ├── [  96]  .specstory
-│   └── [ 480]  history
+│   └── [ 512]  history
 │       ├── [2.0K]  .what-is-this.md
 │       ├── [ 63K]  adjusting-todo-priorities-from-cleanup-status.md
-│       ├── [ 79K]  cleanup-script-execution-and-todo-management.md
+│       ├── [ 97K]  cleanup-script-execution-and-todo-management-1.md
+│       ├── [ 83K]  cleanup-script-execution-and-todo-management.md
 │       ├── [333K]  command-execution-and-todo-update.md
 │       ├── [ 248]  detailed-overview-of-python-stubbing-tools.md
 │       ├── [ 25K]  integrating-importance-analysis-modules.md
@@ -73,8 +74,8 @@ globs:
 │       │   │   └── [7.4K]  type_inference.py
 │       │   ├── [1.6K]  read_imports.py
 │       │   ├── [ 160]  types
-│       │   │   ├── [9.3K]  docstring.py
-│       │   │   └── [9.8K]  type_system.py
+│       │   │   ├── [9.2K]  docstring.py
+│       │   │   └── [9.7K]  type_system.py
 │       │   └── [ 192]  utils
 │       │       ├── [5.6K]  ast_utils.py
 │       │       ├── [1.8K]  display.py
@@ -83,4 +84,4 @@ globs:
 └── [ 128]  tests
     └── [2.3K]  test_package.py
 
-20 directories, 60 files
+20 directories, 61 files

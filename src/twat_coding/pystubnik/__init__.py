@@ -414,20 +414,16 @@ async def generate_stub(
     source_path = Path(source_path)
     output_path_obj = Path(output_path) if output_path else None
 
-    config = config or StubGenConfig(paths=PathConfig())
-
-    # Convert StubGenConfig to StubConfig
-    stub_config = _convert_to_stub_config(config)
-    stub_config.input_path = source_path
-    stub_config.output_path = output_path_obj
-    stub_config.backend = "ast" if backend == "ast" else "mypy"  # Convert to Literal
+    # Use default config if none provided
+    if config is None:
+        config = StubGenConfig(paths=PathConfig())
 
     # Initialize backend
     backend_obj: StubBackend
     if backend == "ast":
-        backend_obj = ASTBackend(stub_config)
+        backend_obj = ASTBackend(config)
     elif backend == "mypy":
-        backend_obj = MypyBackend(stub_config)
+        backend_obj = MypyBackend(config)
     else:
         raise ValueError(f"Unsupported backend: {backend}")
 

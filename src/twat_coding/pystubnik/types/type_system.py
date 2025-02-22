@@ -145,11 +145,7 @@ class TypeRegistry:
                     },
                 )
             # Handle Protocol
-            elif (
-                isinstance(resolved, type)
-                and issubclass(resolved, Protocol)
-                and resolved is not Protocol
-            ):
+            elif _is_protocol(resolved):
                 type_info = TypeInfo(
                     annotation=resolved,
                     source="protocol",
