@@ -80,14 +80,16 @@ class StubVisitor(NodeVisitor):
         if not self._should_include_member(node.name):
             return
 
-        self.classes.append(node)
-        # Visit class body for methods and assignments
-        for item in node.body:
-            if isinstance(item, FunctionDef):
-                if self._should_include_member(item.name):
+        # Only collect non-private classes
+        if not node.name.startswith("_"):
+            self.classes.append(node)
+            # Visit class body for methods and assignments
+            for item in node.body:
+                if isinstance(item, FunctionDef):
+                    if self._should_include_member(item.name):
+                        self.visit(item)
+                elif isinstance(item, Assign | AnnAssign):
                     self.visit(item)
-            elif isinstance(item, Assign | AnnAssign):
-                self.visit(item)
 
     def visit_FunctionDef(self, node: FunctionDef) -> None:
         """Visit function definitions."""
@@ -358,9 +360,9 @@ class StubGenerator:
 
         lines: list[str] = []
 
-        # Add docstring if present
+        # Add docstring if present and class is not private
         docstring = get_docstring(node)
-        if docstring:
+        if docstring and not node.name.startswith("_"):
             lines.append(f'"""{docstring}"""')
 
         # Build class definition line
