@@ -80,16 +80,14 @@ class StubVisitor(NodeVisitor):
         if not self._should_include_member(node.name):
             return
 
-        # Only collect non-private classes
-        if not node.name.startswith("_"):
-            self.classes.append(node)
-            # Visit class body for methods and assignments
-            for item in node.body:
-                if isinstance(item, FunctionDef):
-                    if self._should_include_member(item.name):
-                        self.visit(item)
-                elif isinstance(item, Assign | AnnAssign):
+        self.classes.append(node)
+        # Visit class body for methods and assignments
+        for item in node.body:
+            if isinstance(item, FunctionDef):
+                if self._should_include_member(item.name):
                     self.visit(item)
+            elif isinstance(item, Assign | AnnAssign):
+                self.visit(item)
 
     def visit_FunctionDef(self, node: FunctionDef) -> None:
         """Visit function definitions."""
