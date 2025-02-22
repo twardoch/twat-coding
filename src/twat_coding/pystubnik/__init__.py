@@ -321,12 +321,16 @@ class SmartStubGenerator:
             # Generate stub
             result = asyncio.run(backend.generate_stub(file_path))
             if isinstance(result, str):
-                stub_content = result
+                result = StubResult(
+                    stub_content=result,
+                    source_path=file_path,
+                    imports=[],
+                    errors=[],
+                )
             elif isinstance(result, StubResult):
                 # Apply processors
                 for processor in self.processors:
                     result = processor.process(result)
-                stub_content = result.stub_content
             else:
                 logger.error(
                     f"Unexpected result type from generate_stub: {type(result)}"
@@ -337,7 +341,7 @@ class SmartStubGenerator:
             output_path = (
                 self.config.paths.output_dir / file_path.with_suffix(".pyi").name
             )
-            output_path.write_text(stub_content)
+            output_path.write_text(result.stub_content)
 
         except Exception as e:
             logger.error(f"Failed to process {file_path}: {e}")
