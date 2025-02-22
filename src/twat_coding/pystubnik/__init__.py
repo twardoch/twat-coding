@@ -50,6 +50,12 @@ def _convert_to_stub_config(config: StubGenConfig) -> StubConfig:
     Returns:
         Converted configuration
     """
+    # Convert paths to strings for search_paths
+    search_paths = [str(p) for p in config.paths.search_paths]
+
+    # Convert files to list[Path]
+    files = list(config.paths.files)  # Convert Sequence to list
+
     return StubConfig(
         input_path=config.paths.files[0] if config.paths.files else Path("."),
         output_path=config.paths.output_dir,
@@ -63,14 +69,14 @@ def _convert_to_stub_config(config: StubGenConfig) -> StubConfig:
         no_import=config.runtime.no_import,
         inspect=config.runtime.inspect,
         doc_dir=str(config.paths.doc_dir) if config.paths.doc_dir else "",
-        search_paths=config.paths.search_paths,
+        search_paths=search_paths,
         interpreter=config.runtime.interpreter,
         ignore_errors=config.runtime.ignore_errors,
         parse_only=config.runtime.parse_only,
         include_private=config.processing.include_private,
-        modules=config.paths.modules,
-        packages=config.paths.packages,
-        files=config.paths.files,
+        modules=list(config.paths.modules),  # Convert Sequence to list
+        packages=list(config.paths.packages),  # Convert Sequence to list
+        files=files,
         verbose=config.runtime.verbose,
         quiet=config.runtime.quiet,
         export_less=config.processing.export_less,
@@ -84,14 +90,59 @@ def _convert_to_stub_config(config: StubGenConfig) -> StubConfig:
     )
 
 
+def _convert_to_stub_gen_config(config: StubConfig) -> StubGenConfig:
+    """Convert StubConfig to StubGenConfig.
+
+    Args:
+        config: Source configuration
+
+    Returns:
+        Converted configuration
+    """
+    return StubGenConfig(
+        paths=PathConfig(
+            output_dir=config.output_path or Path("out"),
+            doc_dir=Path(config.doc_dir) if config.doc_dir else None,
+            search_paths=[Path(p) for p in config.search_paths],
+            modules=list(config.modules),
+            packages=list(config.packages),
+            files=list(config.files),
+        ),
+        runtime=RuntimeConfig.create(
+            backend=Backend.AST if config.backend == "ast" else Backend.MYPY,
+            python_version=config.python_version,
+            interpreter=config.interpreter,
+            no_import=config.no_import,
+            inspect=config.inspect,
+            parse_only=config.parse_only,
+            ignore_errors=config.ignore_errors,
+            verbose=config.verbose,
+            quiet=config.quiet,
+            parallel=config.parallel,
+            max_workers=config.max_workers,
+        ),
+        processing=ProcessingConfig(
+            include_docstrings=config.docstring_type_hints,
+            include_private=config.include_private,
+            include_type_comments=config.include_type_comments,
+            infer_property_types=config.infer_property_types,
+            export_less=config.export_less,
+            importance_patterns=dict(config.importance_patterns),
+        ),
+        truncation=TruncationConfig(
+            max_docstring_length=config.max_docstring_length,
+        ),
+    )
+
+
 class Processor(Protocol):
     """Protocol for stub processors."""
 
-    def process(self, stub: StubResult) -> StubResult:
+    def process(self, stub_result: StubResult) -> StubResult:
         """Process a stub result.
 
         Args:
-            stub: Input stub result
+            stub_result: Input stub result
 
         Returns:
             Processed stub result
@@ -248,17 +299,15 @@ class SmartStubGenerator:
         Returns:
             Initialized backend
         """
-        match self.config.runtime.backend:
-            case Backend.AST:
-                return ASTBackend(_convert_to_stub_config(self.config))
-            case Backend.MYPY:
-                return MypyBackend(_convert_to_stub_config(self.config))
-            case Backend.HYBRID:
-                # TODO: Implement hybrid backend
-                logger.warning("Hybrid backend not implemented, falling back to AST")
-                return ASTBackend(_convert_to_stub_config(self.config))
-            case _:
-                raise ValueError(f"Unknown backend: {self.config.runtime.backend}")
+        if self.config.runtime.backend == Backend.AST:
+            return ASTBackend(self.config)
+        elif self.config.runtime.backend == Backend.MYPY:
+            return MypyBackend(self.config)
+        else:
+            raise ConfigError(
+                f"Unknown backend: {self.config.runtime.backend}",
+                ErrorCode.CONFIG_VALIDATION_ERROR,
+            )
 
     def _process_file(self, backend: StubBackend, file_path: Path) -> None:
         """Process a single file.

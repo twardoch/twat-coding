@@ -137,12 +137,13 @@ class ASTBackend(StubBackend):
     _ast_cache_lock: ClassVar[asyncio.Lock] = asyncio.Lock()
     _max_cache_size: ClassVar[int] = 100
 
-    def __init__(self, config: StubGenConfig) -> None:
-        """Initialize the AST backend.
+    def __init__(self, config: StubGenConfig):
+        """Initialize the backend.
 
         Args:
-            config: Configuration for stub generation
+            config: Stub generation configuration
         """
+        super().__init__()
         self.config = config
         self._executor = ThreadPoolExecutor(
             max_workers=config.runtime.max_workers

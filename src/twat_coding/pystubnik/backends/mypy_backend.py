@@ -6,7 +6,7 @@ based on the original make_stubs_mypy.py implementation.
 
 from pathlib import Path
 
-from ..core.config import PathConfig, StubGenConfig
+from ..core.config import StubGenConfig
 from . import StubBackend
 
 
@@ -14,7 +14,13 @@ class MypyBackend(StubBackend):
     """MyPy-based stub generation backend."""
 
     def __init__(self, config: StubGenConfig | None = None):
-        self.config = config or StubGenConfig(paths=PathConfig())
+        """Initialize the backend.
+
+        Args:
+            config: Stub generation configuration
+        """
+        super().__init__()
+        self.config = config
 
     async def generate_stub(
         self, source_path: Path, output_path: Path | None = None

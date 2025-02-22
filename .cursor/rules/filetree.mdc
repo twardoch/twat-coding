@@ -50,13 +50,13 @@ globs:
 │       ├── [ 144]  __init__.py
 │       ├── [ 416]  pystubnik
 │       │   ├── [5.3K]  README.md
-│       │   ├── [ 14K]  __init__.py
+│       │   ├── [ 16K]  __init__.py
 │       │   ├── [ 224]  backends
 │       │   │   ├── [1.4K]  __init__.py
 │       │   │   ├── [ 11K]  ast_backend.py
 │       │   │   ├── [2.1K]  base.py
-│       │   │   └── [1019]  mypy_backend.py
-│       │   ├── [8.0K]  config.py
+│       │   │   └── [1.1K]  mypy_backend.py
+│       │   ├── [8.8K]  config.py
 │       │   ├── [ 224]  core
 │       │   │   ├── [6.1K]  config.py
 │       │   │   ├── [ 492]  shared_types.py
