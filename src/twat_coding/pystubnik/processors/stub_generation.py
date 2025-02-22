@@ -2,16 +2,13 @@
 """Stub generation processor for creating type stub files."""
 
 import ast
-import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, ClassVar, Sequence
-
-from loguru import logger
+from typing import ClassVar, cast
 
 from ..errors import ErrorCode, StubGenerationError
-from ..types.type_system import TypeInfo, TypeRegistry
-from ..utils.ast_utils import attach_parents, truncate_literal, TruncationConfig
+from ..types.type_system import TypeRegistry
+from ..utils.ast_utils import TruncationConfig, attach_parents
 
 
 @dataclass
@@ -88,6 +85,12 @@ class StubGenerator:
             attach_parents(tree)
 
             # Process the AST
+            if not isinstance(tree, ast.Module):
+                raise StubGenerationError(
+                    "Expected Module AST node",
+                    ErrorCode.AST_PARSE_ERROR,
+                    source=str(source_path),
+                )
             processed = self._process_module(tree)
 
             # Generate stub content
@@ -112,40 +115,93 @@ class StubGenerator:
         # Create a new module for the stub
         stub = ast.Module(body=[], type_ignores=[])
 
-        # Process imports first
-        imports = []
-        for child in node.body:
-            if isinstance(child, (ast.Import, ast.ImportFrom)):
-                if self._should_keep_import(child):
-                    imports.append(child)
+        # Process imports and definitions
+        imports = self._collect_imports(node)
+        definitions = self._collect_definitions(node)
 
-        # Process remaining nodes
+        # Build the stub body
+        stub.body = self._build_stub_body(imports, definitions)
+
+        return stub
+
+    def _collect_imports(self, node: ast.Module) -> list[ast.Import | ast.ImportFrom]:
+        """Collect and process import statements.
+
+        Args:
+            node: Module AST to process
+
+        Returns:
+            List of processed import statements
+        """
+        imports = [
+            child
+            for child in node.body
+            if isinstance(child, ast.Import | ast.ImportFrom)
+            and self._should_keep_import(child)
+        ]
+
+        if self.config.sort_imports and imports:
+            # Sort imports by module name
+            imports_with_keys = [
+                (self._import_sort_key(cast(ast.Import | ast.ImportFrom, imp)), imp)
+                for imp in imports
+            ]
+            imports_with_keys.sort(key=lambda x: x[0])
+            imports = [imp for _, imp in imports_with_keys]
+
+        return imports
+
+    def _collect_definitions(self, node: ast.Module) -> list[ast.stmt]:
+        """Collect and process module definitions.
+
+        Args:
+            node: Module AST to process
+
+        Returns:
+            List of processed definitions
+        """
         definitions = []
         for child in node.body:
-            if isinstance(child, (ast.Import, ast.ImportFrom)):
-                continue
-            if processed := self._process_node(child):
-                definitions.append(processed)
+            if not isinstance(child, ast.Import | ast.ImportFrom):
+                if processed := self._process_node(child):
+                    if isinstance(processed, ast.stmt):
+                        definitions.append(processed)
+        return definitions
 
-        # Combine and sort imports
-        if self.config.sort_imports:
-            imports.sort(key=self._import_sort_key)
+    def _build_stub_body(
+        self,
+        imports: list[ast.Import | ast.ImportFrom],
+        definitions: list[ast.stmt],
+    ) -> list[ast.stmt]:
+        """Build the final stub body from components.
+
+        Args:
+            imports: List of processed import statements
+            definitions: List of processed definitions
+
+        Returns:
+            Complete list of statements for the stub body
+        """
+        body: list[ast.stmt] = []
 
         # Add header if configured
         if self.config.add_header:
             header = ast.Expr(value=ast.Constant(value=self.config.header_template))
-            stub.body.append(header)
+            body.append(header)
 
-        # Combine all parts
-        stub.body.extend(imports)
+        # Add imports
+        body.extend(imports)
+
+        # Add separator if needed
         if imports and definitions:
-            # Add blank line between imports and definitions
-            stub.body.append(ast.Expr(value=ast.Constant(value="")))
-        stub.body.extend(definitions)
+            body.append(ast.Expr(value=ast.Constant(value="")))
 
-        return stub
+        # Add definitions
+        body.extend(definitions)
 
-    def _process_node(self, node: ast.AST) -> ast.AST | None:
+        return body
+
+    def _process_node(self, node: ast.AST) -> ast.stmt | None:
         """Process a single AST node for stub generation.
 
         Args:
@@ -231,7 +287,7 @@ class StubGenerator:
 
         return stub_func
 
-    def _process_assignment(self, node: ast.AnnAssign | ast.Assign) -> ast.AST | None:
+    def _process_assignment(self, node: ast.AnnAssign | ast.Assign) -> ast.stmt | None:
         """Process an assignment for stub generation.
 
         Args:
@@ -244,17 +300,15 @@ class StubGenerator:
             case ast.AnnAssign():
                 # Preserve annotated assignments
                 return node
-            case ast.Assign(targets=[ast.Name(id=name)]):
+            case ast.Assign(
+                targets=[ast.Name() as name_node], value=ast.Constant() as value
+            ):
                 # Only keep module-level assignments of constants
-                if (
-                    isinstance(node.value, ast.Constant)
-                    and not name.startswith("_")
-                    or name.isupper()
-                ):
+                if not name_node.id.startswith("_") or name_node.id.isupper():
                     return ast.AnnAssign(
-                        target=node.targets[0],
-                        annotation=ast.Name(id=type(node.value.value).__name__),
-                        value=truncate_literal(node.value, self.config.truncation),
+                        target=name_node,
+                        annotation=ast.Name(id=type(value.value).__name__),
+                        value=value,
                         simple=1,
                     )
         return None
@@ -291,7 +345,7 @@ class StubGenerator:
             return (1, node.module or "")
         return (0, node.names[0].name)
 
-    def _generate_content(self, node: ast.AST) -> str:
+    def _generate_content(self, node: ast.Module) -> str:
         """Generate stub content from processed AST.
 
         Args:

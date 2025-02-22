@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Any
 
 from ..config import StubConfig
-from ..errors import StubGenerationError
 
 
 class StubBackend(ABC):

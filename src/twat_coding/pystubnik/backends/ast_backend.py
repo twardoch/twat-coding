@@ -13,19 +13,17 @@ import weakref
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, ClassVar, cast
+from typing import Any, ClassVar
 
 from loguru import logger
-
 from pystubnik.backends import StubBackend
-from pystubnik.core.config import PathConfig, StubGenConfig, TruncationConfig
-from pystubnik.core.types import StubResult
-from pystubnik.core.utils import read_source_file
+from pystubnik.core.config import StubGenConfig, TruncationConfig
+
 from ..config import StubConfig
 from ..errors import ASTError, ErrorCode
 from ..utils.ast_utils import attach_parents, truncate_literal
 from ..utils.display import print_progress
-from ..utils.memory import MemoryMonitor, memory_monitor, stream_process_ast
+from ..utils.memory import MemoryMonitor, stream_process_ast
 
 
 @dataclass
@@ -271,7 +269,7 @@ class ASTBackend(StubBackend):
         """
         try:
             # Find all Python files matching patterns
-            python_files = []
+            python_files: list[Path] = []
             for pattern in self.config.include_patterns:
                 python_files.extend(directory.rglob(pattern))
 

@@ -3,13 +3,11 @@
 
 import ast
 import re
-from dataclasses import dataclass, field
-from typing import Any, ClassVar, cast
+from typing import Any, ClassVar
 
 from loguru import logger
 
-from ..errors import ErrorCode, StubGenerationError
-from ..types.type_system import TypeInfo, TypeInferenceError, TypeRegistry
+from ..types.type_system import TypeInferenceError, TypeInfo, TypeRegistry
 
 
 class TypeInferenceProcessor:
@@ -166,7 +164,7 @@ class TypeInferenceProcessor:
             types: Dictionary to update with inferred types
         """
         for child in ast.walk(node):
-            if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            if isinstance(child, ast.FunctionDef | ast.AsyncFunctionDef):
                 return_types = set()
                 for return_node in ast.walk(child):
                     if isinstance(return_node, ast.Return) and return_node.value:

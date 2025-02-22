@@ -6,16 +6,17 @@ with support for multiple backends and intelligent processing of imports,
 docstrings, and code importance.
 """
 
+from collections.abc import Mapping, Sequence
+from importlib.metadata import version
 from pathlib import Path
 from typing import Any, Optional, Union
-from collections.abc import Mapping, Sequence
 
 from loguru import logger
-from importlib.metadata import version
 
 from .backends import StubBackend
 from .backends.ast_backend import AstBackend
 from .backends.mypy_backend import MypyBackend
+from .config import StubConfig
 from .core.config import (
     Backend,
     ImportanceLevel,
@@ -34,11 +35,10 @@ from .core.types import (
     StubResult,
 )
 from .core.utils import setup_logging
-from .processors.docstring import DocstringProcessor
-from .processors.imports import ImportProcessor
-from .processors.importance import ImportanceProcessor
-from .config import StubConfig
 from .errors import ASTError, ConfigError, ErrorCode, MyPyError, StubGenerationError
+from .processors.docstring import DocstringProcessor
+from .processors.importance import ImportanceProcessor
+from .processors.imports import ImportProcessor
 
 
 class SmartStubGenerator:

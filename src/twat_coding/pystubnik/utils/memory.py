@@ -6,13 +6,22 @@ import asyncio
 import gc
 import os
 import threading
+from collections.abc import AsyncGenerator, Generator
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Any, AsyncGenerator, Generator
+from typing import Any
 
-import psutil
 from loguru import logger
-from memory_profiler import profile as memory_profile
+
+try:
+    import psutil
+    from memory_profiler import profile as memory_profile
+
+    HAS_MEMORY_TOOLS = True
+except ImportError:
+    HAS_MEMORY_TOOLS = False
+    psutil = None
+    memory_profile = None
 
 
 @dataclass
@@ -38,6 +47,12 @@ class MemoryMonitor:
         Args:
             interval: Monitoring interval in seconds
         """
+        if not HAS_MEMORY_TOOLS:
+            logger.warning(
+                "psutil and memory_profiler not available, memory monitoring disabled"
+            )
+            return
+
         self.interval = interval
         self._process = psutil.Process(os.getpid())
         self._stop_event = threading.Event()
@@ -46,6 +61,9 @@ class MemoryMonitor:
 
     def start(self) -> None:
         """Start monitoring memory usage."""
+        if not HAS_MEMORY_TOOLS:
+            return
+
         if self._monitor_thread is not None:
             return
 
@@ -77,7 +95,7 @@ class MemoryMonitor:
 
     def stop(self) -> None:
         """Stop monitoring memory usage."""
-        if self._monitor_thread is None:
+        if not HAS_MEMORY_TOOLS or self._monitor_thread is None:
             return
         self._stop_event.set()
         self._monitor_thread.join()
@@ -119,10 +137,10 @@ def memory_monitor(interval: float = 1.0) -> Generator[MemoryMonitor, None, None
 
 
 async def stream_process_ast(
-    node: Any,
+    node: ast.AST,
     chunk_size: int = 1000,
     gc_interval: int = 10,
-) -> AsyncGenerator[list[Any], None]:
+) -> AsyncGenerator[list[ast.AST], None]:
     """Process AST nodes in chunks to reduce memory usage.
 
     Args:
@@ -162,4 +180,7 @@ def profile_memory(func: Any) -> Any:
     Returns:
         Profiled function
     """
+    if not HAS_MEMORY_TOOLS:
+        logger.warning("memory_profiler not available, profiling disabled")
+        return func
     return memory_profile(func)

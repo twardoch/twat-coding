@@ -4,13 +4,12 @@
 import ast
 import re
 from dataclasses import dataclass
-from typing import Any, ClassVar, Literal, Union, cast
+from typing import Any, ClassVar, Union, cast
 
 from docstring_parser import parse as parse_docstring
-from docstring_parser.common import DocstringParam, DocstringReturns, DocstringStyle
 from loguru import logger
 
-from ..types.type_system import TypeInfo, TypeInferenceError, TypeRegistry
+from ..types.type_system import TypeInferenceError, TypeInfo, TypeRegistry
 
 
 @dataclass

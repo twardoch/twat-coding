@@ -7,7 +7,7 @@ based on the original make_stubs_mypy.py implementation.
 from pathlib import Path
 
 from pystubnik.backends import StubBackend
-from pystubnik.core.config import StubGenConfig, PathConfig
+from pystubnik.core.config import PathConfig, StubGenConfig
 from pystubnik.core.types import StubResult
 
 

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Core type definitions for pystubnik."""
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
+from enum import Enum
 from pathlib import Path
 from typing import Any, Protocol, Union
-from collections.abc import Sequence
-from enum import Enum
 
 
 @dataclass(frozen=True)

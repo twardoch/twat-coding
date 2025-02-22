@@ -2,13 +2,13 @@
 description: File tree of the project
 globs: 
 ---
-[ 928]  .
+[ 960]  .
 ├── [  64]  .benchmarks
 ├── [  96]  .cursor
 │   └── [ 224]  rules
 │       ├── [2.2K]  0project.mdc
 │       ├── [ 516]  cleanup.mdc
-│       ├── [2.7K]  filetree.mdc
+│       ├── [3.4K]  filetree.mdc
 │       └── [2.0K]  quality.mdc
 ├── [  96]  .github
 │   └── [ 128]  workflows
@@ -17,9 +17,10 @@ globs:
 ├── [3.5K]  .gitignore
 ├── [ 532]  .pre-commit-config.yaml
 ├── [  96]  .specstory
-│   └── [ 256]  history
+│   └── [ 288]  history
 │       ├── [2.0K]  .what-is-this.md
 │       ├── [ 63K]  adjusting-todo-priorities-from-cleanup-status.md
+│       ├── [268K]  command-execution-and-todo-update.md
 │       ├── [ 248]  detailed-overview-of-python-stubbing-tools.md
 │       ├── [3.0K]  overview-of-python-tools-and-their-functions.md
 │       ├── [ 58K]  project-directory-structure-for-python-package.md
@@ -27,7 +28,7 @@ globs:
 ├── [1.0K]  LICENSE
 ├── [ 173]  MANIFEST.in
 ├── [1.4K]  README.md
-├── [7.4K]  TODO.md
+├── [ 13K]  TODO.md
 ├── [ 12K]  cleanup.py
 ├── [  96]  cursor
 │   └── [  96]  rules
@@ -36,33 +37,45 @@ globs:
 │   └── [   1]  .gitkeep
 ├── [ 305]  mypy.ini
 ├── [ 426]  package.toml
-├── [5.8K]  pyproject.toml
+├── [4.3K]  pyproject.toml
 ├── [288K]  repomix-output.txt
 ├── [ 128]  src
 │   └── [ 256]  twat_coding
 │       ├── [ 144]  __init__.py
-│       ├── [ 352]  pystubnik
+│       ├── [ 480]  pystubnik
 │       │   ├── [5.3K]  README.md
-│       │   ├── [9.7K]  __init__.py
-│       │   ├── [ 160]  backends
+│       │   ├── [ 10K]  __init__.py
+│       │   ├── [ 192]  backends
 │       │   │   ├── [1.4K]  __init__.py
-│       │   │   ├── [9.8K]  ast_backend.py
+│       │   │   ├── [ 12K]  ast_backend.py
+│       │   │   ├── [2.1K]  base.py
 │       │   │   └── [1.1K]  mypy_backend.py
+│       │   ├── [9.5K]  config.py
 │       │   ├── [ 160]  core
 │       │   │   ├── [4.9K]  config.py
 │       │   │   ├── [3.9K]  types.py
 │       │   │   └── [8.2K]  utils.py
+│       │   ├── [5.1K]  errors.py
 │       │   ├── [ 14K]  make_stubs_ast.py
 │       │   ├── [8.9K]  make_stubs_mypy.py
-│       │   ├── [ 192]  processors
+│       │   ├── [ 256]  processors
 │       │   │   ├── [1.2K]  __init__.py
-│       │   │   ├── [1.8K]  docstring.py
+│       │   │   ├── [5.0K]  docstring.py
 │       │   │   ├── [4.4K]  importance.py
-│       │   │   └── [6.6K]  imports.py
+│       │   │   ├── [6.6K]  imports.py
+│       │   │   ├── [ 11K]  stub_generation.py
+│       │   │   └── [7.4K]  type_inference.py
 │       │   ├── [2.0K]  pypacky2.sh
-│       │   └── [1.6K]  read_imports.py
+│       │   ├── [1.6K]  read_imports.py
+│       │   ├── [ 128]  types
+│       │   │   ├── [8.5K]  docstring.py
+│       │   │   └── [8.2K]  type_system.py
+│       │   └── [ 160]  utils
+│       │       ├── [4.0K]  ast_utils.py
+│       │       ├── [1.8K]  display.py
+│       │       └── [5.2K]  memory.py
 │       └── [1.6K]  twat_coding.py
 └── [ 128]  tests
     └── [ 165]  test_package.py
 
-18 directories, 44 files
+20 directories, 55 files

@@ -5,10 +5,10 @@ import ast
 import os
 import re
 import sys
+from collections.abc import Callable, Iterable, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import TypeVar
-from collections.abc import Callable, Iterable, Sequence
 
 from loguru import logger
 

@@ -2,11 +2,11 @@
 """Configuration for pystubnik stub generation."""
 
 import sys
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from pathlib import Path
 from typing import Any
-from collections.abc import Mapping, Sequence
 
 
 class Backend(Enum):

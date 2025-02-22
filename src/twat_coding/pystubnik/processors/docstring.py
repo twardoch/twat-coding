@@ -1,18 +1,27 @@
-"""Docstring processing for stub generation."""
+"""Docstring processing functionality."""
 
-import ast
 from dataclasses import dataclass
-from typing import Any, Sequence
+from typing import Literal
 
-from docstring_parser import parse as parse_docstring
-from docstring_parser.common import DocstringParam, DocstringReturns, DocstringStyle
+from docstring_parser import parse
+from docstring_parser.common import DocstringStyle
 from loguru import logger
-from mypy.stubdoc import FunctionSig, infer_sig_from_docstring, parse_all_signatures
 
-from pystubnik.core.types import StubResult
-from pystubnik.processors import Processor
-from ..errors import TypeInferenceError
+from ..core.types import (
+    ClassInfo,
+    FunctionInfo,
+    ModuleInfo,
+    StubResult,
+)
+from ..errors import StubGenerationError
 from ..types.type_system import TypeInfo
+
+
+class TypeInferenceError(StubGenerationError):
+    """Error raised when type inference fails."""
+
+    def __init__(self, message: str, details: dict[str, str] | None = None) -> None:
+        super().__init__(message, "TYPE001", details)
 
 
 @dataclass
@@ -20,194 +29,133 @@ class DocstringResult:
     """Result of docstring processing."""
 
     docstring: str | None
-    signatures: list[FunctionSig]
+    signatures: list[FunctionInfo]
     param_types: dict[str, TypeInfo]
     return_type: TypeInfo | None
     yield_type: TypeInfo | None
     raises: list[tuple[TypeInfo, str]]  # (exception_type, description)
 
 
-class DocstringProcessor(Processor):
-    """Processor for handling docstrings in stub generation."""
+class DocstringProcessor:
+    """Processes docstrings to extract type information and signatures."""
 
     def __init__(
         self,
-        max_length: int = 500,
-        include_docstrings: bool = True,
-        doc_format: Literal["google", "numpy", "rest"] = "google",
-        doc_dir: str | None = None,
+        style: Literal["google", "numpy", "rest"] = "google",
+        max_length: int | None = None,
+        preserve_sections: list[str] | None = None,
     ) -> None:
-        """Initialize the docstring processor.
+        """Initialize docstring processor.
 
         Args:
-            max_length: Maximum length for included docstrings
-            include_docstrings: Whether to include docstrings in output
-            doc_format: Docstring format to expect
-            doc_dir: Path to .rst documentation directory
+            style: Docstring style to use for parsing
+            max_length: Maximum length for docstrings before truncation
+            preserve_sections: List of section names to always preserve
         """
+        self.style = DocstringStyle.GOOGLE
+        if style == "numpy":
+            self.style = DocstringStyle.NUMPYDOC
+        elif style == "rest":
+            self.style = DocstringStyle.REST
+
         self.max_length = max_length
-        self.include_docstrings = include_docstrings
-        self.doc_format = doc_format
-        self.doc_dir = doc_dir
+        self.preserve_sections = preserve_sections or [
+            "Args",
+            "Returns",
+            "Yields",
+            "Raises",
+        ]
 
     def process(self, stub_result: StubResult) -> StubResult:
-        """Process docstrings in the stub result.
+        """Process docstrings in a stub result.
 
         Args:
             stub_result: The stub generation result to process
 
         Returns:
-            The processed stub result with modified docstrings
+            The processed stub result
         """
-        if not self.include_docstrings:
-            # Remove all docstrings from the stub content
-            tree = ast.parse(stub_result.stub_content)
-            for node in ast.walk(tree):
-                if isinstance(node, ast.Module | ast.ClassDef | ast.FunctionDef):
-                    node.body = [
-                        n
-                        for n in node.body
-                        if not isinstance(n, ast.Expr)
-                        or not isinstance(n.value, ast.Str)
-                    ]
-            stub_result.stub_content = ast.unparse(tree)
-        elif self.doc_format != "plain":
-            # TODO: Implement docstring format conversion (e.g., Google style to NumPy style)
-            pass
+        logger.debug(f"Processing docstrings for {stub_result.source_path}")
+
+        # Process module docstring
+        module_info = self._process_module_docstring(stub_result)
+
+        # Process function docstrings
+        for function in module_info.functions:
+            self._process_function_docstring(function)
+
+        # Process class docstrings
+        for class_info in module_info.classes:
+            self._process_class_docstring(class_info)
+
+            # Process method docstrings
+            for method in class_info.methods:
+                self._process_function_docstring(method)
+
+            # Process property docstrings
+            for prop in class_info.properties:
+                self._process_function_docstring(prop)
 
         return stub_result
 
-    def _format_docstring(self, docstring: str | None) -> str | None:
-        """Format a docstring according to the configured format.
+    def _process_module_docstring(self, stub_result: StubResult) -> ModuleInfo:
+        """Process the module-level docstring.
 
         Args:
-            docstring: The docstring to format
+            stub_result: The stub generation result
 
         Returns:
-            The formatted docstring
+            The processed module info
         """
-        if not docstring:
-            return None
+        logger.debug("Processing module docstring")
+        # TODO: Implement module docstring processing
+        return ModuleInfo(name="", path=stub_result.source_path)
 
-        # TODO: Implement docstring format conversion
-        return docstring
-
-    def process_docstring(
-        self,
-        docstring: str | None,
-        context: str = "",
-    ) -> DocstringResult:
-        """Process docstring to extract type information and signatures.
+    def _process_function_docstring(self, function: FunctionInfo) -> None:
+        """Process a function or method docstring.
 
         Args:
-            docstring: Docstring to process
-            context: Context for error reporting
-
-        Returns:
-            Processed docstring information
-
-        Raises:
-            TypeInferenceError: If docstring processing fails
+            function: The function info to process
         """
+        if not function.docstring:
+            return
+
+        logger.debug(f"Processing docstring for function {function.name}")
+
         try:
-            if not docstring:
-                return DocstringResult(
-                    docstring=None,
-                    signatures=[],
-                    param_types={},
-                    return_type=None,
-                    yield_type=None,
-                    raises=[],
-                )
-
-            # Truncate if too long
-            if len(docstring) > self.max_length:
-                docstring = docstring[: self.max_length] + "..."
-
-            # Try to infer signatures from docstring
-            sigs = infer_sig_from_docstring(docstring, context) or []
-
-            # If doc_dir is specified, try to find additional signatures
-            if self.doc_dir:
-                try:
-                    doc_sigs, _ = parse_all_signatures([docstring])
-                    sigs.extend(
-                        FunctionSig(name=s.name, args=s.args, ret_type=s.ret_type)
-                        for s in doc_sigs
-                    )
-                except Exception as e:
-                    logger.debug(f"Failed to parse doc signatures: {e}")
-
-            # Parse docstring for type information
-            doc = parse_docstring(docstring)
+            docstring = parse(function.docstring, style=self.style)
 
             # Extract parameter types
-            param_types = {}
-            for param in doc.params:
+            for param in docstring.params:
                 if param.type_name:
-                    try:
-                        type_info = self._parse_type_string(param.type_name)
-                        param_types[param.arg_name] = type_info
-                    except TypeInferenceError as e:
-                        logger.warning(
-                            f"Failed to parse type for parameter {param.arg_name}: {e}"
-                        )
+                    arg = next(
+                        (a for a in function.args if a.name == param.arg_name), None
+                    )
+                    if arg:
+                        # Update arg type if found in docstring
+                        object.__setattr__(arg, "type", param.type_name)
 
             # Extract return type
-            return_type = None
-            if doc.returns and doc.returns.type_name:
-                try:
-                    return_type = self._parse_type_string(doc.returns.type_name)
-                except TypeInferenceError as e:
-                    logger.warning(f"Failed to parse return type: {e}")
-
-            # Extract yield type
-            yield_type = None
-            if hasattr(doc, "yields") and doc.yields and doc.yields.type_name:
-                try:
-                    yield_type = self._parse_type_string(doc.yields.type_name)
-                except TypeInferenceError as e:
-                    logger.warning(f"Failed to parse yield type: {e}")
-
-            # Extract raises information
-            raises = []
-            for raises_section in doc.raises:
-                if raises_section.type_name:
-                    try:
-                        exc_type = self._parse_type_string(raises_section.type_name)
-                        raises.append((exc_type, raises_section.description or ""))
-                    except TypeInferenceError as e:
-                        logger.warning(
-                            f"Failed to parse exception type {raises_section.type_name}: {e}"
-                        )
-
-            return DocstringResult(
-                docstring=docstring if self.include_docstrings else None,
-                signatures=sigs,
-                param_types=param_types,
-                return_type=return_type,
-                yield_type=yield_type,
-                raises=raises,
-            )
+            if docstring.returns and docstring.returns.type_name:
+                object.__setattr__(function, "return_type", docstring.returns.type_name)
 
         except Exception as e:
-            raise TypeInferenceError(
-                f"Failed to process docstring: {e}",
-                details={"context": context, "docstring": docstring or ""},
-            ) from e
+            logger.warning(f"Failed to parse docstring for {function.name}: {e}")
 
-    def _parse_type_string(self, type_str: str) -> TypeInfo:
-        """Parse a type string from a docstring.
+    def _process_class_docstring(self, class_info: ClassInfo) -> None:
+        """Process a class docstring.
 
         Args:
-            type_str: Type string to parse
-
-        Returns:
-            Parsed type information
-
-        Raises:
-            TypeInferenceError: If type string parsing fails
+            class_info: The class info to process
         """
-        # TODO: Implement type string parsing
-        # This will be implemented in a separate commit
-        raise NotImplementedError
+        if not class_info.docstring:
+            return
+
+        logger.debug(f"Processing docstring for class {class_info.name}")
+
+        try:
+            parse(class_info.docstring, style=self.style)
+            # TODO: Extract class-level type information
+
+        except Exception as e:
+            logger.warning(f"Failed to parse docstring for {class_info.name}: {e}")

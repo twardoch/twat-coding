@@ -145,9 +145,19 @@
 - [x] Move docstring processor to `processors/docstring.py`
 - [x] Move importance processor to `processors/importance.py`
 - [x] Move type inference to `processors/type_inference.py`
-- [ ] Move stub generation to `processors/stub_generation.py`
-- [ ] Add integration tests for all components
-- [ ] Fix remaining linter errors
+- [x] Move stub generation to `processors/stub_generation.py`
+- [x] Fix build system issues:
+  - [x] Fix hatchling vcs build hook error in pyproject.toml
+  - [x] Ensure package installs correctly with all dependencies
+  - [x] Verify development environment setup
+- [ ] Fix remaining linter errors:
+  - [ ] Fix import resolution errors
+  - [ ] Clean up remaining code quality issues
+  - [ ] Address type issues in stub_generation.py
+- [ ] Set up basic test infrastructure:
+  - [ ] Configure pytest with basic settings
+  - [ ] Add unit tests for core components
+  - [ ] Set up test coverage reporting
 - [ ] Complete legacy code migration
 
 ### 2.2. AST Backend Implementation (In Progress)

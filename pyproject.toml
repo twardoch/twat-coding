@@ -3,7 +3,7 @@
 
 [project]
 name = "twat_coding"
-version = "0.1.0"
+dynamic = ["version"]
 description = "A Python package for generating type stubs"
 authors = [
     { name = "Adam Twardoch", email = "adam@twardoch.com" }
@@ -136,9 +136,6 @@ omit = [
     "src/twat_coding/__about__.py",
 ]
 
-[tool.hatch.build.hooks.vcs]
-version-file = "src/twat_coding/__version__.py"
-
 [tool.hatch.build.targets.wheel]
 packages = ["src/twat_coding"]
 artifacts = [
@@ -179,10 +176,7 @@ dependencies = [
 ]
 
 [tool.hatch.version]
-source = "vcs"
-
-[tool.hatch.version.raw-options]
-version_scheme = "post-release"
+path = "src/twat_coding/__version__.py"
 
 [tool.pytest-benchmark]
 warmup = true

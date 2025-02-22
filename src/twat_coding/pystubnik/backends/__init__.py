@@ -6,7 +6,7 @@ and a registry to manage different backend implementations.
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Protocol, Dict, Type
+from typing import Dict, Protocol, Type
 
 from pystubnik.core.types import StubResult
 

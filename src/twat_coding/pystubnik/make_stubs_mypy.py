@@ -9,9 +9,9 @@ This module provides a more sophisticated approach to stub generation by:
 """
 
 import sys
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from collections.abc import Sequence
 
 import fire
 from loguru import logger

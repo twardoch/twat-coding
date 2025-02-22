@@ -3,9 +3,7 @@
 
 import ast
 from dataclasses import dataclass
-from typing import Any, cast, Union
-
-from loguru import logger
+from typing import cast
 
 
 @dataclass(frozen=True)
@@ -92,11 +90,11 @@ def attach_parents(node: ast.AST) -> None:
     """
     for parent in ast.walk(node):
         for child in ast.iter_child_nodes(parent):
-            setattr(child, "parent", parent)
+            child.parent = parent
 
 
 def get_docstring(
-    node: Union[ast.AsyncFunctionDef, ast.FunctionDef, ast.ClassDef, ast.Module],
+    node: ast.AsyncFunctionDef | ast.FunctionDef | ast.ClassDef | ast.Module,
 ) -> str | None:
     """Get docstring from an AST node.
 

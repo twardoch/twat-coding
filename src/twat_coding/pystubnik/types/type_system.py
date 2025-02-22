@@ -2,23 +2,17 @@
 """Type system implementation with support for advanced type features."""
 
 import ast
-import inspect
-import sys
-import types
-import typing
 from dataclasses import dataclass
 from typing import (
-    Any,
     Annotated,
-    Generic,
+    Any,
     Protocol,
     TypeVar,
     get_args,
     get_origin,
     get_type_hints,
+    runtime_checkable,
 )
-
-from loguru import logger
 
 from ..errors import ErrorCode, StubGenerationError
 
@@ -57,6 +51,13 @@ class TypeInfo:
     metadata: dict[str, Any]  # Additional type metadata
 
 
+@runtime_checkable
+class TypeProtocol(Protocol):
+    """Protocol for types that can be used in type hints."""
+
+    __name__: str
+
+
 class TypeRegistry:
     """Registry for type information and aliases."""
 
@@ -64,7 +65,7 @@ class TypeRegistry:
         """Initialize the type registry."""
         self._type_aliases: dict[str, Any] = {}
         self._type_vars: dict[str, TypeVar] = {}
-        self._protocols: dict[str, type[Protocol]] = {}
+        self._protocols: dict[str, type[TypeProtocol]] = {}
         self._type_cache: dict[tuple[Any, str], TypeInfo] = {}
 
     def register_alias(self, name: str, target: Any) -> None:
@@ -85,7 +86,7 @@ class TypeRegistry:
         """
         self._type_vars[name] = type_var
 
-    def register_protocol(self, protocol_class: type[Protocol]) -> None:
+    def register_protocol(self, protocol_class: type[TypeProtocol]) -> None:
         """Register a Protocol class.
 
         Args:
