@@ -87,15 +87,19 @@ class SignatureExtractor(ast.NodeTransformer):
             Processed module node
         """
         # Keep imports and docstring
-        new_body = []
+        new_body: list[ast.stmt] = []
+        imports: list[ast.Import | ast.ImportFrom] = []
+
         for stmt in node.body:
             if isinstance(stmt, ast.Import | ast.ImportFrom):
-                new_body.append(stmt)
+                imports.append(stmt)
             elif isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Str):
                 new_body.append(stmt)
             else:
                 new_body.append(self.visit(stmt))
-        node.body = new_body
+
+        # Add imports at the beginning
+        node.body = imports + new_body
         return node
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> ast.FunctionDef:

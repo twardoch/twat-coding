@@ -303,11 +303,12 @@ class SmartStubGenerator:
         """
         # Convert StubGenConfig to StubConfig for the backend
         stub_config = _convert_to_stub_config(self.config)
+        stub_gen_config = _convert_to_stub_gen_config(stub_config)
 
         if self.config.runtime.backend == Backend.AST:
             return ASTBackend(stub_config)
         elif self.config.runtime.backend == Backend.MYPY:
-            return MypyBackend(stub_config)
+            return MypyBackend(stub_gen_config)
         else:
             raise ConfigError(
                 f"Unknown backend: {self.config.runtime.backend}",

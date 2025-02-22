@@ -36,7 +36,7 @@ globs:
 ├── [1.0K]  LICENSE
 ├── [ 173]  MANIFEST.in
 ├── [1.4K]  README.md
-├── [3.5K]  TODO.md
+├── [3.1K]  TODO.md
 ├── [ 12K]  cleanup.py
 ├── [  96]  cursor
 │   └── [  96]  rules
@@ -57,7 +57,7 @@ globs:
 │       │   │   ├── [1.2K]  __init__.py
 │       │   │   ├── [ 11K]  ast_backend.py
 │       │   │   ├── [2.4K]  base.py
-│       │   │   └── [ 997]  mypy_backend.py
+│       │   │   └── [ 982]  mypy_backend.py
 │       │   ├── [8.8K]  config.py
 │       │   ├── [ 256]  core
 │       │   │   ├── [6.1K]  config.py
@@ -76,7 +76,7 @@ globs:
 │       │   │   └── [7.4K]  type_inference.py
 │       │   ├── [1.6K]  read_imports.py
 │       │   ├── [ 160]  types
-│       │   │   ├── [9.2K]  docstring.py
+│       │   │   ├── [9.3K]  docstring.py
 │       │   │   └── [9.7K]  type_system.py
 │       │   └── [ 192]  utils
 │       │       ├── [5.6K]  ast_utils.py

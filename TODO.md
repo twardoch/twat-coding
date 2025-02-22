@@ -18,24 +18,11 @@ this_file: TODO.md
 
 - [!] **Fix Critical Type Errors**
   - *Tasks*:
-    1. Fix `StubGenConfig` initialization in `core/config.py` - it's missing proper parameter names (`paths`, `runtime`, `processing`, `truncation`).
-    2. Fix `StubConfig` attribute access in `core/conversion.py` - need to align attributes with actual class definition.
-    3. Fix circular import between `__init__.py` and `ast_backend.py` by moving conversion functions to `core/conversion.py`.
-    4. Fix type error in `docstring.py` for `key_info.annotation` and `value_info.annotation`.
+    1. Fix remaining type errors in `docstring.py` for `key_info.annotation` and `value_info.annotation`.
+    2. Fix type errors in `ast_backend.py` for imports and assignments.
+    3. Fix type error in `__init__.py` for `MypyBackend` argument type.
 
-- [!] **Simplify Configuration**
-  - *Tasks*:
-    1. Consolidate configuration in `core/config.py` to reduce duplication.
-    2. Ensure consistent parameter names across all config classes.
-    3. Update all config usages to match new structure.
-
-- [!] **Fix Backend Type Compatibility**
-  - *Tasks*:
-    1. Fix `MypyBackend` signature compatibility with `StubBackend`.
-    2. Ensure consistent return types across all backend implementations.
-    3. Fix type errors in `ast_backend.py` for imports and assignments.
-
-- [ ] **Improve Test Coverage**
+- [!] **Improve Test Coverage**
   - *Tasks*:
     1. Add tests for configuration conversion.
     2. Add tests for backend type compatibility.
@@ -77,11 +64,20 @@ this_file: TODO.md
   - Updated `test_package.py` to use `StubResult.stub_content`.
   - Fixed AST backend and docstring tests.
 
+- [x] **Fix Backend Type Compatibility**
+  - Fixed `MypyBackend` signature compatibility with `StubBackend`.
+  - Ensured consistent return types across all backend implementations.
+
+- [x] **Fix Configuration Structure**
+  - Fixed `StubGenConfig` initialization in `core/config.py`.
+  - Fixed `StubConfig` attribute access in `core/conversion.py`.
+  - Fixed circular import between `__init__.py` and `ast_backend.py`.
+
 ## 5. Next Actions
 
-1. Fix `StubGenConfig` initialization in `core/config.py`
-2. Fix `StubConfig` attribute access in `core/conversion.py`
-3. Fix circular import between `__init__.py` and `ast_backend.py`
+1. Fix remaining type errors in `docstring.py`
+2. Fix type errors in `ast_backend.py`
+3. Fix type error in `__init__.py` for `MypyBackend`
 
 ## 6. Notes
 
