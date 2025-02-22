@@ -1,372 +1,378 @@
-Before you do any changes or if I say "cleanup", run the `./cleanup.py install && source .venv/bin/activate && ./cleanup.py update | cat` script in the main folder. Analyze the results, describe recent changes @TODO.md to update priorities and plan next changes. PERFORM THE CHANGES, then run the `./cleanup.py update | cat` script and react to the results.
-
-When you edit @TODO.md, lead in lines with empty GFM checkboxes if things aren't done (`- [ ] `) vs. filled (`- [x] `) if done, and `- [!]` if they're NEXT TODO. 
-
-Don't use `pip`, use `uv pip`. Ignore minor problems like "line too long", FOCUS ON MAJOR PROBLEMS! 
-
 # TODO
 
-This TODO.md is a detailed development specification for making `pystubnik` functional ASAP, focusing on integrating the new file importance analysis and eliminating standalone scripts.
+Before you do any changes or if I say "cleanup", run the `./cleanup.py install && source .venv/bin/activate && ./cleanup.py update | cat` script in the main folder. Analyze the results, describe recent changes @TODO.md to update priorities and plan next changes. PERFORM THE CHANGES, then run the `./cleanup.py update | cat` script and react to the results.
 
-## 1. Dependencies and Environment (URGENT)
+When you edit @TODO.md, lead in lines with empty GFM checkboxes if things aren't done (`- [ ] `) vs. filled (`- [x] `) if done, and `- [!]` if they're NEXT TODO.
 
-- [x] **Add New Dependencies to `pyproject.toml`:**
-  ```toml
-  [project]
-  dependencies = [
-      # ... existing deps ...
-      "networkx>=3.2.1",     # For import graph analysis
-      "radon>=6.0.1",       # For code complexity metrics
-      "coverage>=7.4.1",    # For test coverage analysis
-      "pydocstyle>=6.3.0", # For docstring quality checks
-      "importlab>=0.8",    # For import graph building
-      "toml>=0.10.2",      # For pyproject.toml parsing
-  ]
-  ```
-
-- [x] **Fix Import Resolution:**
-  - Added missing type stubs: `types-toml`, replaced `types-pydocstyle` with `mypy-extensions`
-  - Simplified import graph building to not rely on importlab
-  - Added proper error handling for optional dependencies
-
-## 2. Code Quality Fixes
-
-- [x] **Fix Critical Linter Errors:**
-  - Fixed `Numbers.percentage` attribute error in `file_importance.py`
-  - Added proper type hints for importlab classes
-  - Fixed line length issues in `file_importance.py`
-  - Added error handling for missing dependencies
-  - Fixed type errors in centrality calculation
-
-- [x] **Fix Remaining Linter Errors:**
-  - Removed unused imports in `backends/__init__.py` and `processors/__init__.py`
-  - Replaced deprecated type hints with modern syntax:
-    - Replaced `typing.Dict` with `dict`
-    - Replaced `typing.Type` with `type`
-    - Used `X | Y` instead of `Union[X, Y]`
-  - Fixed line length issues in:
-    - `config.py`
-    - `core/utils.py`
-    - `types/docstring.py`
-  - Refactored complex functions:
-    - `truncate_literal` in `make_stubs_ast.py`
-    - `calculate_importance` in `importance.py`
-    - `extract_types` in `types/docstring.py`
-
-- [!] **Fix Type Checking Errors:**
-  The following type errors need to be fixed:
-  1. In `type_system.py`:
-     ```python
-     # Fix incompatible type in issubclass call by:
-     # 1. Import the correct type from typing._TypeAliasForm
-     # 2. Use isinstance() instead of issubclass() for type checking
-     # 3. Add proper type guards
-     ```
-  2. In `make_stubs_ast.py`:
-     ```python
-     # Fix bytes/str type mismatch by:
-     # 1. Add explicit encoding when converting between bytes and str
-     # 2. Use proper type annotations for binary data
-     # 3. Add error handling for encoding/decoding failures
-     ```
-  3. In `make_stubs_ast.py`:
-     ```python
-     # Fix AST parent attribute error by:
-     # 1. Create a custom AST node class that includes parent attribute
-     # 2. Use ast.fix_missing_locations after modifying AST
-     # 3. Add proper type hints for the parent attribute
-     ```
-  4. In `docstring.py`:
-     ```python
-     # Fix type annotation by:
-     # 1. Update type hints to use modern Python syntax
-     # 2. Add proper type guards for optional attributes
-     # 3. Use TypeVar for generic type parameters
-     ```
-
-- [!] **Improve Code Organization:**
-  Create a new `utils/` directory with the following structure and functionality:
-  ```
-  utils/
-  ├── graph_utils.py       # Import graph building and analysis
-  │   ├── build_import_graph()  # Build graph from Python files
-  │   ├── analyze_centrality()  # Calculate node importance
-  │   └── resolve_imports()     # Handle import resolution
-  │
-  ├── metrics.py          # Code complexity and quality metrics
-  │   ├── calculate_complexity()  # Using radon
-  │   ├── check_coverage()       # Using coverage.py
-  │   └── evaluate_docs()        # Using pydocstyle
-  │
-  ├── config.py          # Configuration handling
-  │   ├── load_config()   # Load from pyproject.toml
-  │   ├── validate()      # Validate settings
-  │   └── merge()         # Merge with defaults
-  │
-  └── logging.py         # Centralized logging
-      ├── setup_logging()  # Configure loguru
-      ├── log_error()     # Error handling
-      └── log_metrics()   # Metrics reporting
-  ```
-
-  Move the following functions from their current locations:
-  1. From `file_importance.py`:
-     - `calculate_file_scores()` → `metrics.py`
-     - `build_import_graph()` → `graph_utils.py`
-  2. From `importance.py`:
-     - `calculate_importance()` → `metrics.py`
-  3. From `core/utils.py`:
-     - `setup_logging()` → `logging.py`
-     - `normalize_path()` → `config.py`
-
-- [!] **Add Basic Tests:**
-  Create the following test files with specific test cases:
-  ```
-  tests/
-  ├── processors/
-  │   └── test_file_importance.py
-  │       ├── test_graph_building()  # Test import graph construction
-  │       ├── test_metrics()         # Test each metric calculation
-  │       ├── test_config()          # Test config validation
-  │       └── test_error_handling()  # Test dependency errors
-  │
-  ├── test_utils/
-  │   ├── test_files/               # Sample Python files for testing
-  │   │   ├── simple_module.py
-  │   │   ├── complex_module.py
-  │   │   └── error_module.py
-  │   └── fixtures.py               # Common test fixtures
-  │
-  └── conftest.py                   # pytest configuration
-  ```
-
-  Add performance benchmarks:
-  ```python
-  # benchmarks/test_performance.py
-  def test_large_codebase():
-      """Test processing speed on large codebase."""
-      # Process >1000 Python files
-      # Measure memory usage
-      # Track processing time
-  ```
-
-## 3. Feature Integration
-
-- [x] **Complete File Importance Integration:**
-  ```python
-  # In ImportanceProcessor.process():
-  def process(self, stub_result: StubResult) -> StubResult:
-      # Calculate file scores
-      package_dir = str(stub_result.source_path.parent)
-      self._file_scores = calculate_file_scores(package_dir, self.config.file_importance)
-      
-      # Process AST
-      tree = ast.parse(stub_result.stub_content)
-      for node in ast.walk(tree):
-          if isinstance(node, (ast.FunctionDef, ast.ClassDef)):
-              score = self.calculate_importance(
-                  name=node.name,
-                  docstring=ast.get_docstring(node),
-                  is_public=not node.name.startswith('_'),
-                  is_special=node.name.startswith('__'),
-                  extra_info={"file_path": stub_result.source_path}
-              )
-              # TODO: Store score in node.importance_score
-              
-      return stub_result
-  ```
-
-- [!] **Enhance Configuration System:**
-  Create a comprehensive configuration system with the following components:
-
-  1. `FileImportanceConfig` class:
-  ```python
-  @dataclass
-  class FileImportanceConfig:
-      exclude_dirs: list[str]
-      centrality_measure: Literal["pagerank", "betweenness", "eigenvector"]
-      coverage_data_path: Path | None
-      weights: dict[str, float]
-      min_coverage_threshold: float
-      max_complexity_threshold: float
-      doc_quality_checks: list[str]
-      cache_results: bool
-  ```
-
-  2. Configuration validation:
-  ```python
-  def validate_config(config: FileImportanceConfig) -> None:
-      """Validate configuration values."""
-      # Check thresholds are between 0 and 1
-      # Verify centrality measure is valid
-      # Ensure weights sum to 1.0
-      # Validate paths exist
-  ```
-
-  3. CLI integration:
-  ```python
-  @click.command()
-  @click.option("--config", type=click.Path(), help="Config file path")
-  @click.option("--exclude", multiple=True, help="Dirs to exclude")
-  @click.option("--measure", type=click.Choice(["pagerank", "betweenness"]))
-  def main(config: str, exclude: list[str], measure: str) -> None:
-      """Process files with importance analysis."""
-      # Load config from file
-      # Override with CLI options
-      # Run processing
-  ```
-
-  4. Documentation:
-  ```markdown
-  # Configuration Guide
-  
-  ## 4. File Importance Settings
-  - exclude_dirs: List of directories to exclude
-  - centrality_measure: Graph centrality algorithm
-  - weights: Metric importance weights
-  
-  ## 5. Examples
-  ```toml
-  [importance]
-  exclude_dirs = ["tests", "examples"]
-  centrality_measure = "pagerank"
-  weights = { complexity = 0.3, coverage = 0.3, docs = 0.4 }
-  ```
-  ```
-
-- [!] **Improve Processors:**
-  Enhance the processor system with the following improvements:
-
-  1. Update `DocstringProcessor`:
-  ```python
-  class DocstringProcessor:
-      """Process docstrings with quality metrics."""
-      
-      def process_file_docstring(self) -> float:
-          """Handle file-level docstrings."""
-          
-      def use_importance_score(self) -> None:
-          """Incorporate file importance."""
-          
-      def check_quality(self) -> float:
-          """Check docstring quality."""
-  ```
-
-  2. Update `ImportProcessor`:
-  ```python
-  class ImportProcessor:
-      """Handle imports with caching."""
-      
-      def process_imports(self) -> None:
-          """Process with cached graph."""
-          
-      def handle_circular(self) -> None:
-          """Handle circular imports."""
-          
-      def support_namespace(self) -> None:
-          """Support namespace packages."""
-  ```
-
-  3. Add progress reporting:
-  ```python
-  from rich.progress import Progress
-  
-  def process_files() -> None:
-      """Process files with progress bar."""
-      with Progress() as progress:
-          task = progress.add_task("Processing", total=len(files))
-          for file in files:
-              process_file(file)
-              progress.update(task, advance=1)
-  ```
-
-  4. Add caching system:
-  ```python
-  class ImportanceCache:
-      """Cache file importance scores."""
-      
-      def __init__(self, cache_dir: Path) -> None:
-          self.cache_dir = cache_dir
-          
-      def get_score(self, file_path: Path) -> float:
-          """Get cached score."""
-          
-      def set_score(self, file_path: Path, score: float) -> None:
-          """Cache new score."""
-  ```
-
-## 6. Documentation and Examples
-
-- [ ] **Update Documentation:**
-  Create comprehensive documentation covering:
-  1. Architecture overview
-  2. Metric explanations
-  3. Configuration guide
-  4. Troubleshooting guide
-  5. Performance tips
-  6. Migration guide
-
-- [ ] **Add Examples:**
-  Create example code for:
-  1. Basic usage
-  2. Custom metrics
-  3. Integration patterns
-  4. Configuration examples
-  5. Performance optimization
-
-## 7. Testing and Validation
-
-- [ ] **Add Comprehensive Tests:**
-  Add tests for:
-  1. Unit tests (current coverage is only 1%)
-  2. Integration tests
-  3. Performance tests
-  4. Edge case tests
-  5. Regression tests
-
-- [ ] **Add Benchmarks:**
-  Create benchmarks for:
-  1. Processing time
-  2. Memory usage
-  3. Baseline comparison
-  4. Bottleneck profiling
-  5. Optimization documentation
-
-## 8. Final Steps
-
-- [ ] **Clean Up Old Code:**
-  1. Remove standalone scripts
-  2. Update imports
-  3. Remove deprecated code
-  4. Update documentation
-
-- [ ] **Release Preparation:**
-  1. Update version numbers
-  2. Update changelog
-  3. Update README
-  4. Prepare release notes
-
-## 9. Next Actions
-
-1. [x] Add new dependencies to `pyproject.toml`
-2. [x] Fix import resolution issues
-3. [x] Fix critical linter errors
-4. [x] Fix remaining linter errors
-5. [!] Fix type checking errors
-6. [!] Improve code organization
-7. [!] Add basic tests
-8. [!] Enhance configuration system
-
-## 10. Notes
-
-- The file importance analysis is now integrated into the main package
-- The new system combines both file-level and symbol-level importance
-- All changes maintain backward compatibility
-- Performance impact should be monitored
-- Optional dependencies are now properly handled with graceful fallbacks
-- Current test coverage is only 1%, needs immediate attention
-- Several complex functions need refactoring
-- Type system needs modernization (using newer Python type hints)
+Don’t use `pip`, use `uv pip`. Ignore minor problems like "line too long", FOCUS ON MAJOR PROBLEMS!
 
 ---
+
+Hey, junior dev! This `TODO.md` is your step-by-step guide to get `pystubnik` ready for its 1.0 release—a rock-solid tool for generating smart stubs. We’re keeping it simple: one backend (AST), smart file importance, basic tests, and clear docs. Every task below is broken down so you can nail it. If you get stuck, run `./cleanup.py status`, check `CLEANUP.log`, and ask for help. Let’s make this awesome together!
+
+## 1. Core Functionality
+
+- [x] **Lock Down the AST Backend**
+  - *Status*: It’s in `src/twat_coding/pystubnik/backends/ast_backend.py` and works!
+  - *Why*: This is our stub-generating powerhouse for 1.0—no MyPy or hybrid yet (but keep them around)
+
+- [!] **Fully Integrate File Importance**
+  - *What*: Use importance scores to control stub detail (e.g., keep docstrings for important files).
+  - *Why*: This is the “smart” in smart stubs—more detail where it matters.
+  - *How*:
+    1. Open `src/twat_coding/pystubnik/core/types.py`.
+    2. Update `StubResult` to store metadata:
+       ```python
+       @dataclass
+       class StubResult:
+           source_path: Path
+           stub_content: str
+           imports: list[ImportInfo]
+           errors: list[str]
+           importance_score: float = 0.0
+           metadata: dict[str, Any] = field(default_factory=dict)  # Add this
+       ```
+    3. Open `src/twat_coding/pystubnik/backends/ast_backend.py`.
+    4. In `SignatureExtractor.__init__`, add importance:
+       ```python
+       def __init__(self, config: StubGenConfig, file_size: int = 0, importance_score: float = 1.0):
+           super().__init__()
+           self.config = config
+           self.file_size = file_size
+           self.importance_score = importance_score  # Add this
+       ```
+    5. Update `_preserve_docstring` to use importance:
+       ```python
+       def _preserve_docstring(self, body: list[ast.stmt]) -> list[ast.stmt]:
+           if not body:
+               return []
+           if self.file_size > self.config.truncation.max_file_size and self.importance_score < 0.7:
+               return []  # Skip docstrings for big, low-importance files
+           match body[0]:
+               case ast.Expr(value=ast.Constant(value=str() as docstring)):
+                   if len(docstring) > self.config.truncation.max_docstring_length and self.importance_score < 0.9:
+                       return []  # Skip long docstrings unless very important
+                   return [body[0]]
+               case _:
+                   return []
+       ```
+    6. In `ASTBackend.generate_stub`, pass the score:
+       ```python
+       async def generate_stub(self, source_path: Path) -> str:
+           # ... existing code ...
+           # After getting file_score elsewhere or calculating it:
+           file_score = 0.5  # Placeholder; we'll get this from ImportanceProcessor
+           tree = await self._run_in_executor(
+               functools.partial(ast.parse, source, filename=str(source_path))
+           )
+           attach_parents(tree)
+           transformer = SignatureExtractor(self.config.stub_gen_config, len(source), file_score)
+           transformed = transformer.visit(tree)
+           stub_content = ast.unparse(transformed)
+           # ... rest of the method ...
+       ```
+    7. Open `src/twat_coding/pystubnik/processors/importance.py`.
+    8. Update `process` to set the score:
+       ```python
+       def process(self, stub_result: StubResult) -> StubResult:
+           package_dir = str(stub_result.source_path.parent)
+           self._file_scores = prioritize_files(package_dir, self.config.file_importance)
+           file_score = self._file_scores.get(str(stub_result.source_path), 0.5)
+           stub_result.importance_score = file_score
+           stub_result.metadata["file_score"] = file_score
+           # Process individual symbols
+           tree = ast.parse(stub_result.stub_content)
+           for node in ast.walk(tree):
+               if isinstance(node, (ast.FunctionDef, ast.ClassDef)):
+                   docstring = ast.get_docstring(node)
+                   score = self.calculate_importance(
+                       name=node.name,
+                       docstring=docstring,
+                       is_public=not node.name.startswith('_'),
+                       is_special=node.name.startswith('__') and node.name.endswith('__'),
+                       extra_info={"file_path": stub_result.source_path}
+                   )
+                   stub_result.metadata[f"{node.name}_score"] = score
+                   if score < 0.7 and isinstance(node, ast.FunctionDef):
+                       node.body = [ast.Expr(value=ast.Constant(value=Ellipsis))]
+           stub_result.stub_content = ast.unparse(tree)
+           return stub_result
+       ```
+    9. Test it:
+       - Run `./cleanup.py install && source .venv/bin/activate`.
+       - Run `python -m twat_coding.pystubnik generate --files src/twat_coding/pystubnik/__init__.py`.
+       - Check `out/__init__.pyi`—important functions should keep docstrings, others should simplify.
+
+- [ ] **Simplify Configuration**
+  - *What*: Trim `StubGenConfig` to essentials for 1.0.
+  - *Why*: Less complexity for users and you!
+  - *How*:
+    1. Open `src/twat_coding/pystubnik/core/config.py`.
+    2. Replace `StubGenConfig` with:
+       ```python
+       @dataclass(frozen=True)
+       class StubGenConfig:
+           output_dir: Path = Path("out")
+           files: Sequence[Path] = field(default_factory=list)
+           include_docstrings: bool = True
+           max_docstring_length: int = 150
+           ignore_errors: bool = True
+       ```
+    3. Update `SmartStubGenerator.__init__` in `__init__.py`:
+       ```python
+       def __init__(
+           self,
+           output_dir: str | Path = "out",
+           files: Sequence[str | Path] = (),
+           include_docstrings: bool = True,
+           max_docstring_length: int = 150,
+           ignore_errors: bool = True,
+       ):
+           self.config = StubGenConfig(
+               output_dir=Path(output_dir),
+               files=[Path(f) for f in files],
+               include_docstrings=include_docstrings,
+               max_docstring_length=max_docstring_length,
+               ignore_errors=ignore_errors,
+           )
+           # ... rest of init ...
+       ```
+    4. Fix any import errors in other files (e.g., `ast_backend.py`).
+
+## 2. Testing
+
+- [!] **Add Core Tests**
+  - *What*: Test stub generation and importance logic.
+  - *Why*: We need 50% coverage for trust—start here.
+  - *How*:
+    1. Replace `tests/test_package.py` with:
+       ```python
+       import pytest
+       from twat_coding.pystubnik import SmartStubGenerator, StubResult
+       from twat_coding.pystubnik.backends.ast_backend import ASTBackend
+       from twat_coding.pystubnik.processors.importance import ImportanceProcessor
+       from pathlib import Path
+
+       def test_ast_backend(tmp_path):
+           """Test AST stub generation."""
+           test_file = tmp_path / "test.py"
+           test_file.write_text('''"""
+           Important file
+           """
+           def hello(name: str) -> str:
+               return "Hello"
+           ''')
+           config = StubGenConfig(output_dir=tmp_path, files=[test_file])
+           backend = ASTBackend(config)
+           result = backend.generate_stub(test_file).result()  # Async call
+           stub_file = tmp_path / "test.pyi"
+           assert stub_file.exists()
+           content = stub_file.read_text()
+           assert "def hello(name: str) -> str" in content
+           assert '"""Important file"""' in content  # Docstring preserved
+
+       def test_importance_processor(tmp_path):
+           """Test importance scoring affects stubs."""
+           test_file = tmp_path / "low.py"
+           test_file.write_text('''def minor():
+               """Minor function"""
+               pass
+           ''')
+           config = StubGenConfig(output_dir=tmp_path, files=[test_file])
+           generator = SmartStubGenerator(output_dir=tmp_path, files=[str(test_file)])
+           generator.generate()
+           stub_file = tmp_path / "low.pyi"
+           content = stub_file.read_text()
+           assert "def minor(): ..." in content  # Low importance, no docstring
+
+       def test_cli(tmp_path):
+           """Test CLI end-to-end."""
+           test_file = tmp_path / "cli.py"
+           test_file.write_text("def run(): pass")
+           import subprocess
+           subprocess.run([
+               "python", "-m", "twat_coding.pystubnik", "generate",
+               "--files", str(test_file), "--output-dir", str(tmp_path)
+           ], check=True)
+           assert (tmp_path / "cli.pyi").exists()
+       ```
+    2. Run `./cleanup.py install && source .venv/bin/activate && pytest tests/`.
+    3. Fix failures (e.g., add `asyncio.run()` around async calls if needed).
+
+- [ ] **Boost Coverage to 50%**
+  - *What*: Add tests for key modules.
+  - *Why*: Ensures stuff doesn’t break.
+  - *How*:
+    1. Run `pytest --cov=src/twat_coding tests/`.
+    2. Create `tests/test_processors.py`:
+       ```python
+       def test_import_processor(tmp_path):
+           from twat_coding.pystubnik.processors.imports import ImportProcessor
+           processor = ImportProcessor()
+           result = StubResult(tmp_path / "test.py", "import os\n", [], [])
+           processed = processor.process(result)
+           assert "import os" in processed.stub_content
+       ```
+    3. Add more tests for `docstring.py`, `ast_utils.py` based on coverage gaps.
+    4. Rerun until coverage hits 50%.
+
+## 3. Documentation
+
+- [!] **Revamp README.md**
+  - *What*: Make it user-ready with usage and example.
+  - *Why*: First impression for adopters.
+  - *How*:
+    1. Open `README.md`.
+    2. Replace “Usage” section with:
+       ```markdown
+       ## 4. Usage
+
+       Generate smart stubs with a simple command:
+
+       ```bash
+       python -m twat_coding.pystubnik generate --files my_script.py --output-dir stubs
+       ```
+
+       Or in Python:
+
+       ```python
+       from twat_coding.pystubnik import SmartStubGenerator
+
+       generator = SmartStubGenerator(
+           output_dir="stubs",
+           files=["my_script.py"],
+           include_docstrings=True
+       )
+       generator.generate()
+       ```
+
+       ### 4.1. Example
+
+       **Input** (`example.py`):
+       ```python
+       def greet(name: str) -> str:
+           """Say hello to someone important."""
+           return f"Hello, {name}"
+       ```
+
+       **Output** (`stubs/example.pyi`):
+       ```python
+       def greet(name: str) -> str:
+           """Say hello to someone important."""
+           ...
+       ```
+       ```
+    3. Save and check with `cat README.md`.
+
+- [ ] **Add Example File**
+  - *What*: A real file to demo.
+  - *Why*: Users can try it themselves.
+  - *How*:
+    1. Create `examples/greet.py`:
+       ```python
+       def greet(name: str) -> str:
+           """Say hello to someone important."""
+           return f"Hello, {name}"
+       ```
+    2. Test it: `python -m twat_coding.pystubnik generate --files examples/greet.py`.
+
+- [ ] **Update CLI Help**
+  - *What*: Add clear CLI options.
+  - *Why*: Makes it user-friendly.
+  - *How*:
+    1. Open `src/twat_coding/pystubnik/__init__.py`.
+    2. Add a CLI entry point:
+       ```python
+       import click
+
+       @click.command()
+       @click.option("--files", multiple=True, type=click.Path(exists=True), help="Files to process")
+       @click.option("--output-dir", default="out", type=click.Path(), help="Output directory")
+       @click.option("--include-docstrings", is_flag=True, default=True, help="Keep docstrings")
+       def generate(files, output_dir, include_docstrings):
+           """Generate smart stubs for Python files."""
+           generator = SmartStubGenerator(
+               output_dir=output_dir,
+               files=files,
+               include_docstrings=include_docstrings
+           )
+           generator.generate()
+
+       if __name__ == "__main__":
+           generate()
+       ```
+    3. Test: `python -m twat_coding.pystubnik --help`.
+
+## 5. Code Quality
+
+- [!] **Fix Type Errors**
+  - *What*: Clear all `mypy` issues.
+  - *Why*: Clean code = fewer bugs.
+  - *How*:
+    1. Run `./cleanup.py install && source .venv/bin/activate && mypy src/`.
+    2. Fix errors:
+       - `type_system.py`: Replace `issubclass` with:
+         ```python
+         if isinstance(resolved, type) and hasattr(resolved, "__mro__") and issubclass(resolved, Protocol):
+         ```
+       - Follow old `TODO.md` section 2 for others.
+    3. Rerun until no errors.
+
+- [ ] **Refactor Complex Functions**
+  - *What*: Simplify `truncate_literal` and `calculate_importance`.
+  - *Why*: Easier for you to maintain.
+  - *How*:
+    1. In `ast_backend.py`, split `truncate_literal`:
+       ```python
+       def truncate_string(self, s: str) -> str:
+           return s if len(s) <= self.config.truncation.max_string_length else f"{s[:self.config.truncation.max_string_length]}..."
+
+       def truncate_literal(self, node: ast.AST) -> ast.AST:
+           if isinstance(node, ast.Constant) and isinstance(node.value, str):
+               return ast.Constant(value=self.truncate_string(node.value))
+           # ... other cases ...
+       ```
+    2. In `importance.py`, break down `calculate_importance`:
+       ```python
+       def _score_by_name(self, name: str) -> float:
+           score = 1.0
+           for pattern, weight in self.config.patterns.items():
+               if re.search(pattern, name):
+                   score *= weight
+           return score
+
+       def calculate_importance(self, name: str, docstring: str | None = None, ...):
+           file_score = self._get_file_score(extra_info)
+           pattern_score = self._score_by_name(name)
+           # ... combine scores ...
+       ```
+
+- [x] **Remove Redundant Scripts**
+  - *What*: Delete old standalone files DONE
+  - *Why*: Keeps the codebase clean.
+
+## 6. Release Preparation
+
+- [ ] **Finalize 1.0**
+  - *What*: Version it, log it, ship it.
+  - *Why*: Makes it official!
+  - *How*:
+    1. In `src/twat_coding/__version__.py`, set:
+       ```python
+       version = "1.0.0"
+       ```
+    2. Run `./cleanup.py update && ./cleanup.py push`.
+
+## 7. Next Actions
+
+- [!] Integrate file importance fully (step 1.2).
+- [!] Add core tests (step 2.1).
+- [!] Revamp README.md (step 3.1).
+- [!] Fix type errors (step 4.1).
+
+## 8. Notes
+
+- Focus on AST only—MyPy’s for later.
+- Test every change with `./cleanup.py status`.
+- You’re doing great—let’s ship this!
 

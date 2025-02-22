@@ -17,7 +17,7 @@ globs:
 ├── [3.5K]  .gitignore
 ├── [ 532]  .pre-commit-config.yaml
 ├── [  96]  .specstory
-│   └── [ 448]  history
+│   └── [ 480]  history
 │       ├── [2.0K]  .what-is-this.md
 │       ├── [ 63K]  adjusting-todo-priorities-from-cleanup-status.md
 │       ├── [ 79K]  cleanup-script-execution-and-todo-management.md
@@ -29,11 +29,12 @@ globs:
 │       ├── [ 64K]  reviewing-and-tracking-todo-progress.md
 │       ├── [ 56K]  task-management-from-todo-md.md
 │       ├── [4.9K]  task-organization-and-cleanup-process.md
-│       └── [165K]  todo-list-cleanup-and-review.md
+│       ├── [165K]  todo-list-cleanup-and-review.md
+│       └── [ 632]  untitled.md
 ├── [1.0K]  LICENSE
 ├── [ 173]  MANIFEST.in
 ├── [1.4K]  README.md
-├── [ 12K]  TODO.md
+├── [ 15K]  TODO.md
 ├── [ 12K]  cleanup.py
 ├── [  96]  cursor
 │   └── [  96]  rules
@@ -47,7 +48,7 @@ globs:
 ├── [ 128]  src
 │   └── [ 256]  twat_coding
 │       ├── [ 144]  __init__.py
-│       ├── [ 480]  pystubnik
+│       ├── [ 384]  pystubnik
 │       │   ├── [5.3K]  README.md
 │       │   ├── [ 14K]  __init__.py
 │       │   ├── [ 192]  backends
@@ -61,8 +62,6 @@ globs:
 │       │   │   ├── [3.9K]  types.py
 │       │   │   └── [8.3K]  utils.py
 │       │   ├── [5.1K]  errors.py
-│       │   ├── [ 14K]  make_stubs_ast.py
-│       │   ├── [ 11K]  make_stubs_mypy.py
 │       │   ├── [ 288]  processors
 │       │   │   ├── [1.2K]  __init__.py
 │       │   │   ├── [5.0K]  docstring.py
@@ -71,7 +70,6 @@ globs:
 │       │   │   ├── [6.6K]  imports.py
 │       │   │   ├── [ 11K]  stub_generation.py
 │       │   │   └── [7.4K]  type_inference.py
-│       │   ├── [2.0K]  pypacky2.sh
 │       │   ├── [1.6K]  read_imports.py
 │       │   ├── [ 128]  types
 │       │   │   ├── [8.4K]  docstring.py
@@ -84,4 +82,4 @@ globs:
 └── [ 128]  tests
     └── [ 165]  test_package.py
 
-20 directories, 61 files
+20 directories, 59 files
