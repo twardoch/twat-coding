@@ -16,7 +16,7 @@ this_file: TODO.md
 
 ## 2. Immediate Priorities
 
-- [!] **Fix Syntax Error in `__init__.py`**
+- [x] **Fix Syntax Error in `__init__.py`**
   - *Task*: Correct the syntax error on line 428 to enable execution.
 
 - [!] **Fix Critical Type Errors**
@@ -26,9 +26,12 @@ this_file: TODO.md
     3. In `__init__.py`, align `StubConfig` and `StubGenConfig` types.
 
 - [!] **Clean Up Unused Imports**
-  - *Task*: Remove unused imports per Ruff reports.
+  - *Task*: Remove unused imports per Ruff reports:
+    1. Remove unused `collections.abc.Coroutine` from `backends/__init__.py`
+    2. Remove unused `typing.Any` from `backends/__init__.py`
+    3. Remove unused `..core.types.StubResult` from `backends/__init__.py`
 
-- [!] **Fix Failing Tests**
+- [x] **Fix Failing Tests**
   - *Tasks*:
     1. Update `test_package.py` to use `StubResult.stub_content`.
     2. Verify AST backend and docstring tests pass.
@@ -45,17 +48,17 @@ this_file: TODO.md
     3. Configure `ImportanceProcessor` to apply scores.
     4. Test importance functionality.
 
-- [!] **Implement Basic CLI** *(Optional if time-constrained)*
+- [ ] **Implement Basic CLI** *(Optional if time-constrained)*
   - *Tasks*:
     1. Add Click CLI in `__init__.py`.
     2. Test with a sample file.
 
-- [!] **Improve Test Coverage to 50%**
+- [ ] **Improve Test Coverage to 50%**
   - *Tasks*:
     1. Test key modules (e.g., `imports.py`).
     2. Confirm coverage target met.
 
-- [!] **Prepare for Release**
+- [ ] **Prepare for Release**
   - *Tasks*:
     1. Set version to `1.0.0`.
     2. Run cleanup scripts and push.
@@ -70,7 +73,7 @@ this_file: TODO.md
 
 - [ ] **Code Cleanup**
   - Refactor complex functions.
-  - Evaluate `stub_generation.py`’s role.
+  - Evaluate `stub_generation.py`'s role.
 
 - [ ] **Performance Optimization**
   - Optimize stub generation performance.
@@ -84,6 +87,6 @@ this_file: TODO.md
 
 ## 5. Next Actions
 
-- Fix syntax error in `__init__.py`.
-- Address type errors and test failures.
-- Integrate file importance.
+1. Fix remaining type errors in `docstring.py` and `__init__.py`
+2. Clean up unused imports in `backends/__init__.py`
+3. Simplify configuration in `core/config.py`

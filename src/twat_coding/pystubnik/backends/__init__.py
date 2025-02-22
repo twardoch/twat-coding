@@ -5,11 +5,8 @@ and a registry to manage different backend implementations.
 """
 
 from abc import abstractmethod
-from collections.abc import Coroutine
 from pathlib import Path
-from typing import Any, Protocol
-
-from ..core.types import StubResult
+from typing import Protocol
 
 
 class StubBackend(Protocol):
@@ -19,14 +16,14 @@ class StubBackend(Protocol):
     async def generate_stub(
         self, source_path: Path, output_path: Path | None = None
     ) -> str:
-        """Generate stub for the given source file.
+        """Generate a stub for a Python source file.
 
         Args:
             source_path: Path to the source file
             output_path: Optional path to write the stub file
 
         Returns:
-            Generated stub content as string
+            Generated stub content
         """
         ...
 
