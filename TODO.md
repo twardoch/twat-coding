@@ -25,7 +25,7 @@ this_file: TODO.md
     2. In `__init__.py`, complete `StubConfig` initialization.
     3. In `__init__.py`, align `StubConfig` and `StubGenConfig` types.
 
-- [!] **Clean Up Unused Imports**
+- [x] **Clean Up Unused Imports**
   - *Task*: Remove unused imports per Ruff reports:
     1. Remove unused `collections.abc.Coroutine` from `backends/__init__.py`
     2. Remove unused `typing.Any` from `backends/__init__.py`
@@ -87,6 +87,6 @@ this_file: TODO.md
 
 ## 5. Next Actions
 
-1. Fix remaining type errors in `docstring.py` and `__init__.py`
-2. Clean up unused imports in `backends/__init__.py`
-3. Simplify configuration in `core/config.py`
+1. Fix type errors in `docstring.py` for `key_info.annotation` and `value_info.annotation`
+2. Complete `StubConfig` initialization in `__init__.py`
+3. Align `StubConfig` and `StubGenConfig` types in `__init__.py`
