@@ -16,8 +16,8 @@ from pathlib import Path
 from typing import Any, ClassVar
 
 from loguru import logger
-from pystubnik.backends import StubBackend
-from pystubnik.core.config import StubGenConfig, TruncationConfig
+from . import StubBackend
+from ..core.config import StubGenConfig, TruncationConfig
 
 from ..config import StubConfig
 from ..errors import ASTError, ErrorCode
@@ -46,10 +46,11 @@ class SignatureExtractor(ast.NodeTransformer):
     But replaces function bodies with an ellipsis.
     """
 
-    def __init__(self, config: StubGenConfig, file_size: int = 0):
+    def __init__(self, config: StubGenConfig, file_size: int = 0, importance_score: float = 1.0):
         super().__init__()
         self.config = config
         self.file_size = file_size
+        self.importance_score = importance_score
 
     def _preserve_docstring(self, body: list[ast.stmt]) -> list[ast.stmt]:
         """If the first statement is a docstring, keep it if it meets size constraints.
@@ -64,14 +65,14 @@ class SignatureExtractor(ast.NodeTransformer):
         if not body:
             return []
 
-        # Skip all docstrings if file is too large
-        if self.file_size > self.config.truncation.max_file_size:
+        # Skip docstrings for large, low-importance files
+        if self.file_size > self.config.truncation.max_file_size and self.importance_score < 0.7:
             return []
 
         match body[0]:
             case ast.Expr(value=ast.Constant(value=str() as docstring)):
-                # Skip if docstring is too long
-                if len(docstring) > self.config.truncation.max_docstring_length:
+                # Skip long docstrings unless very important
+                if len(docstring) > self.config.truncation.max_docstring_length and self.importance_score < 0.9:
                     return []
                 return [body[0]]
             case _:
@@ -198,55 +199,47 @@ class ASTBackend(StubBackend):
             # Start memory monitoring
             self._memory_monitor.start()
 
-            # Read and parse source file
-            source = await self._run_in_executor(source_path.read_text)
-            source_hash = hashlib.sha256(source.encode()).hexdigest()
+            # Read source file
+            try:
+                source = locations.source_path.read_text()
+            except Exception as e:
+                raise ASTError(
+                    f"Failed to read source file {locations.source_path}: {e}",
+                    ErrorCode.IO_READ_ERROR,
+                ) from e
 
-            # Try to get from cache
-            async with self._ast_cache_lock:
-                if source_path in self._ast_cache:
-                    entry = self._ast_cache[source_path]
-                    if entry.source_hash == source_hash:
-                        logger.debug(f"AST cache hit for {source_path}")
-                        return await self._process_ast(entry.node, source_path)
+            # Calculate importance score
+            file_score = 0.5  # Default score
+            try:
+                from ..processors.importance import ImportanceProcessor, ImportanceConfig
+                processor = ImportanceProcessor()
+                file_score = processor._get_file_score({"file_path": source_path})
+            except Exception as e:
+                logger.warning(f"Failed to calculate importance score: {e}")
 
-            # Parse file
+            # Parse AST
             tree = await self._run_in_executor(
                 functools.partial(ast.parse, source, filename=str(source_path))
             )
-
-            # Attach parent references
             attach_parents(tree)
 
-            # Update cache
-            async with self._ast_cache_lock:
-                self._ast_cache[source_path] = ASTCacheEntry(
-                    node=tree,
-                    source_hash=source_hash,
-                    access_time=asyncio.get_event_loop().time(),
-                )
-                if len(self._ast_cache) > self._max_cache_size:
-                    # Remove oldest entry
-                    oldest = min(
-                        self._ast_cache.items(),
-                        key=lambda x: x[1].access_time,
-                    )
-                    del self._ast_cache[oldest[0]]
-
-            # Process AST
-            stub_content = await self._process_ast(tree, source_path)
-
-            # Write output
-            output_path = locations.output_path
-            await self._run_in_executor(output_path.write_text, stub_content)
+            # Transform AST
+            transformer = SignatureExtractor(
+                self.config.stub_gen_config,
+                len(source),
+                importance_score=file_score
+            )
+            transformed = transformer.visit(tree)
+            stub_content = ast.unparse(transformed)
 
             return stub_content
 
         except Exception as e:
+            if isinstance(e, ASTError):
+                raise
             raise ASTError(
                 f"Failed to generate stub for {source_path}: {e}",
-                ErrorCode.AST_PARSE_ERROR,
-                source=str(source_path),
+                ErrorCode.AST_TRANSFORM_ERROR,
             ) from e
         finally:
             # Stop memory monitoring and log stats

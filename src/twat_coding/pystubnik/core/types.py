@@ -146,6 +146,7 @@ class StubResult:
     imports: list[ImportInfo]
     errors: list[str]
     importance_score: float = 0.0
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 # Type aliases

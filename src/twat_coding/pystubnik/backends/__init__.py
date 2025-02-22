@@ -6,18 +6,18 @@ and a registry to manage different backend implementations.
 
 from abc import abstractmethod
 from pathlib import Path
-from typing import Protocol
+from typing import Protocol, Coroutine, Any
 
-from pystubnik.core.types import StubResult
+from ..core.types import StubResult
 
 
 class StubBackend(Protocol):
     """Protocol defining the interface for stub generation backends."""
 
     @abstractmethod
-    def generate_stub(
+    async def generate_stub(
         self, source_path: Path, output_path: Path | None = None
-    ) -> StubResult:
+    ) -> str:
         """Generate stub for the given source file.
 
         Args:
@@ -25,7 +25,7 @@ class StubBackend(Protocol):
             output_path: Optional path to write the stub file
 
         Returns:
-            StubResult containing the generated stub and metadata
+            Generated stub content as string
         """
         ...
 
