@@ -75,26 +75,42 @@ class StubVisitor(NodeVisitor):
         """Visit class definitions."""
         # Skip private classes unless they are special methods
         if not self._should_include_member(node.name):
+            print(f"\nDebug: Skipping private class {node.name}")
             return
+
         # Only add non-private classes
-        self.classes.append(node)
-        # Only visit class body if we're keeping the class
-        for item in node.body:
-            if isinstance(item, FunctionDef):
-                if self._should_include_member(item.name):
+        if not node.name.startswith("_") or (
+            node.name.startswith("__") and node.name.endswith("__")
+        ):
+            print(f"\nDebug: Adding public class {node.name}")
+            self.classes.append(node)
+            # Only visit class body if we're keeping the class
+            for item in node.body:
+                if isinstance(item, FunctionDef):
+                    if self._should_include_member(item.name):
+                        self.visit(item)
+                elif isinstance(item, (Assign, AnnAssign)):
                     self.visit(item)
-            elif isinstance(item, (Assign, AnnAssign)):
-                self.visit(item)
+        else:
+            print(f"\nDebug: Skipping private class {node.name} (second check)")
 
     def visit_FunctionDef(self, node: FunctionDef) -> None:
         """Visit function definitions."""
         # Skip private functions unless they are special methods
         if not self._should_include_member(node.name):
+            print(f"\nDebug: Skipping private function {node.name}")
             return
+
         # Only add non-private functions
-        self.functions.append(node)
-        # Only visit function body if we're keeping the function
-        self.generic_visit(node)
+        if not node.name.startswith("_") or (
+            node.name.startswith("__") and node.name.endswith("__")
+        ):
+            print(f"\nDebug: Adding public function {node.name}")
+            self.functions.append(node)
+            # Only visit function body if we're keeping the function
+            self.generic_visit(node)
+        else:
+            print(f"\nDebug: Skipping private function {node.name} (second check)")
 
     def visit_Assign(self, node: Assign) -> None:
         """Visit assignments."""
