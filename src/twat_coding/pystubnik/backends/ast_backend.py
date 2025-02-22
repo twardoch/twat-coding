@@ -16,13 +16,13 @@ from typing import Any, ClassVar
 
 from loguru import logger
 
-from .. import _convert_to_stub_gen_config
 from ..config import StubConfig
 from ..core.config import (
     PathConfig,
     RuntimeConfig,
     StubGenConfig,
 )
+from ..core.conversion import convert_to_stub_gen_config
 from ..core.types import StubResult
 from ..errors import ASTError, ErrorCode
 from ..processors import Processor
@@ -185,7 +185,7 @@ class ASTBackend(StubBackend):
 
         # Convert StubConfig to StubGenConfig if needed
         if isinstance(self._config, StubConfig):
-            return _convert_to_stub_gen_config(self._config)
+            return convert_to_stub_gen_config(self._config)
         elif isinstance(self._config, StubGenConfig):
             return self._config
         else:  # None

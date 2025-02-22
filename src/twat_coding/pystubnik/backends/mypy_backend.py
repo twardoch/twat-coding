@@ -7,6 +7,7 @@ based on the original make_stubs_mypy.py implementation.
 from pathlib import Path
 
 from ..core.config import StubGenConfig
+from ..core.types import StubResult
 from . import StubBackend
 
 
@@ -22,18 +23,14 @@ class MypyBackend(StubBackend):
         super().__init__()
         self.config = config
 
-    async def generate_stub(
-        self, source_path: Path, output_path: Path | None = None
-    ) -> str:
-        """Generate stub for the given source file using MyPy's stubgen.
+    async def generate_stub(self, source_path: Path) -> StubResult:
+        """Generate a stub for a Python source file.
 
         Args:
             source_path: Path to the source file
-            output_path: Optional path to write the stub file
 
         Returns:
-            Generated stub content as string
+            Generated stub result
         """
-        # TODO: Port functionality from make_stubs_mypy.py
-        msg = "MyPy backend not yet implemented"
-        raise NotImplementedError(msg)
+        # TODO: Implement MyPy stub generation
+        raise NotImplementedError("MyPy backend not yet implemented")
