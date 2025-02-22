@@ -3,23 +3,28 @@
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any
+from typing import Any, Union
 
 from ..config import StubConfig
 from ..core.config import StubGenConfig
 from ..core.types import StubResult
+from .._convert_to_stub_gen_config import _convert_to_stub_gen_config
 
 
 class StubBackend(ABC):
     """Base class for stub generation backends."""
 
-    def __init__(self, config: StubConfig | StubGenConfig | None = None) -> None:
+    def __init__(self, config: Union[StubConfig, StubGenConfig] | None = None) -> None:
         """Initialize the backend.
 
         Args:
             config: Configuration for stub generation
         """
-        self._config = config
+        # Convert StubConfig to StubGenConfig if needed
+        if isinstance(config, StubConfig):
+            self._config = _convert_to_stub_gen_config(config)
+        else:
+            self._config = config
 
     @abstractmethod
     async def generate_stub(self, source_path: Path) -> StubResult:
@@ -63,6 +68,7 @@ class StubBackend(ABC):
         """
         raise NotImplementedError
 
+    @abstractmethod
     def cleanup(self) -> None:
         """Clean up any resources used by the backend.
 
