@@ -12,11 +12,10 @@ import weakref
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, ClassVar
+from typing import Any, ClassVar, cast
 
 from loguru import logger
 
-from ..config import StubConfig
 from ..core.config import StubGenConfig, TruncationConfig
 from ..errors import ASTError, ErrorCode
 from ..utils.ast_utils import attach_parents, truncate_literal
@@ -35,143 +34,109 @@ class ASTCacheEntry:
 
 
 class SignatureExtractor(ast.NodeTransformer):
-    """Transform AST to preserve signatures while truncating implementation details.
-
-    This transformer preserves:
-    - imports
-    - docstrings (subject to length constraints)
-    - function & method signatures
-    - class-level assignments
-    But replaces function bodies with an ellipsis.
-    """
+    """Extract type signatures and docstrings from AST."""
 
     def __init__(
         self, config: StubGenConfig, file_size: int = 0, importance_score: float = 1.0
     ):
+        """Initialize the signature extractor.
+
+        Args:
+            config: Configuration for stub generation
+            file_size: Size of the source file
+            importance_score: Importance score for the file
+        """
         super().__init__()
         self.config = config
         self.file_size = file_size
         self.importance_score = importance_score
 
     def _preserve_docstring(self, body: list[ast.stmt]) -> list[ast.stmt]:
-        """If the first statement is a docstring, keep it if it meets size constraints.
+        """Preserve docstrings based on importance and configuration.
 
         Args:
-            body: List of statements to check for docstring
+            body: List of AST statements
 
         Returns:
-            List containing the docstring statement if it should be preserved,
-            otherwise an empty list
+            List of AST statements with docstrings preserved or removed
         """
         if not body:
             return []
-
-        # Skip docstrings for large, low-importance files
         if (
             self.file_size > self.config.truncation.max_file_size
             and self.importance_score < 0.7
         ):
-            return []
-
+            return []  # Skip docstrings for big, low-importance files
         match body[0]:
             case ast.Expr(value=ast.Constant(value=str() as docstring)):
-                # Skip long docstrings unless very important
                 if (
                     len(docstring) > self.config.truncation.max_docstring_length
                     and self.importance_score < 0.9
                 ):
-                    return []
+                    return []  # Skip long docstrings unless very important
                 return [body[0]]
             case _:
                 return []
 
-    def _make_ellipsis_expr(self, node: ast.AST, indent: int = 0) -> ast.Expr:
-        """Create an ellipsis node with the same location offsets.
+    def visit_Module(self, node: ast.Module) -> ast.Module:
+        """Process module node.
 
         Args:
-            node: Node to copy location from
-            indent: Additional indentation to add
+            node: Module AST node
 
         Returns:
-            Ellipsis expression node
+            Processed module node
         """
-        return ast.Expr(
-            value=ast.Constant(value=Ellipsis),
-            lineno=getattr(node, "lineno", 1),
-            col_offset=getattr(node, "col_offset", 0) + indent,
-        )
+        node.body = [
+            stmt
+            for stmt in node.body
+            if isinstance(
+                stmt, ast.FunctionDef | ast.ClassDef | ast.Import | ast.ImportFrom
+            )
+            or (isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Constant))
+        ]
+        return cast(ast.Module, self.generic_visit(node))
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> ast.FunctionDef:
-        """Keep function signature and docstring, replace body with ellipsis."""
-        preserved_doc = self._preserve_docstring(node.body)
-        ellipsis_body = [self._make_ellipsis_expr(node, indent=4)]
-        return ast.FunctionDef(
-            name=node.name,
-            args=node.args,
-            body=preserved_doc + ellipsis_body,
-            decorator_list=node.decorator_list,
-            returns=node.returns,
-            type_params=[],  # For Python 3.12+
-            lineno=node.lineno,
-            col_offset=node.col_offset,
-        )
+        """Process function definition.
+
+        Args:
+            node: Function definition AST node
+
+        Returns:
+            Processed function node
+        """
+        docstring = self._preserve_docstring(node.body)
+        node.body = docstring + [ast.Expr(value=ast.Constant(value=...))]
+        return node
 
     def visit_ClassDef(self, node: ast.ClassDef) -> ast.ClassDef:
-        """Preserve class structure but transform method bodies."""
-        preserved_doc = self._preserve_docstring(node.body)
-        remainder = node.body[len(preserved_doc) :]
-        new_body: list[ast.stmt] = []
+        """Process class definition.
 
-        for item in remainder:
-            match item:
-                case ast.FunctionDef():
-                    new_body.append(self.visit_FunctionDef(item))
-                case _:
-                    # Visit child nodes to truncate large literals
-                    new_body.append(self.visit(item))
+        Args:
+            node: Class definition AST node
 
-        return ast.ClassDef(
-            name=node.name,
-            bases=node.bases,
-            keywords=node.keywords,
-            body=preserved_doc + new_body,
-            decorator_list=node.decorator_list,
-            type_params=[],  # For Python 3.12+
-            lineno=node.lineno,
-            col_offset=node.col_offset,
-        )
-
-    def visit_Module(self, node: ast.Module) -> ast.Module:
-        """Process top-level statements."""
-        body: list[ast.stmt] = []
-        for item in node.body:
-            # Skip empty or purely whitespace expressions
-            is_empty_expr = (
-                isinstance(item, ast.Expr)
-                and isinstance(item.value, ast.Constant)
-                and (not item.value.value or str(item.value.value).isspace())
-            )
-            if is_empty_expr:
-                continue
-            body.append(self.visit(item))
-
-        return ast.Module(body=body, type_ignores=[])
-
-    def generic_visit(self, node: ast.AST) -> ast.AST:
-        """Recurse into all child nodes, then apply literal truncation."""
-        new_node = super().generic_visit(node)
-        return truncate_literal(new_node, self.config.truncation)
+        Returns:
+            Processed class node
+        """
+        docstring = self._preserve_docstring(node.body)
+        node.body = docstring + [
+            stmt
+            for stmt in node.body
+            if isinstance(stmt, ast.FunctionDef | ast.ClassDef)
+        ]
+        return cast(ast.ClassDef, self.generic_visit(node))
 
 
 class ASTBackend(StubBackend):
     """AST-based stub generation backend with advanced concurrency."""
 
     # Class-level LRU cache for parsed AST nodes
-    _ast_cache: ClassVar[dict[Path, ASTCacheEntry]] = {}
+    _ast_cache: ClassVar[dict[Path, Any]] = {}
     _ast_cache_lock: ClassVar[asyncio.Lock] = asyncio.Lock()
     _max_cache_size: ClassVar[int] = 100
 
-    def __init__(self, config: StubConfig) -> None:
+    def __init__(self, config: StubGenConfig) -> None:
         """Initialize the AST backend.
 
         Args:
@@ -179,18 +144,23 @@ class ASTBackend(StubBackend):
         """
         self.config = config
         self._executor = ThreadPoolExecutor(
-            max_workers=config.max_workers if config.max_workers else None
+            max_workers=config.runtime.max_workers
+            if config.runtime.max_workers
+            else None
         )
         self._node_registry: weakref.WeakValueDictionary[int, ast.AST] = (
             weakref.WeakValueDictionary()
         )
         self._memory_monitor = MemoryMonitor()
 
-    async def generate_stub(self, source_path: Path) -> str:
+    async def generate_stub(
+        self, source_path: Path, output_path: Path | None = None
+    ) -> str:
         """Generate a stub for a Python source file using AST parsing.
 
         Args:
             source_path: Path to the source file
+            output_path: Optional output path for the stub file
 
         Returns:
             Generated stub content
@@ -200,27 +170,25 @@ class ASTBackend(StubBackend):
         """
         try:
             # Get file locations
-            locations = self.config.get_file_locations(source_path)
-            locations.check_paths()
+            input_path, stub_path = self.config.get_file_locations(source_path)
+            output_path = output_path or stub_path
 
             # Start memory monitoring
             self._memory_monitor.start()
 
             # Read source file
             try:
-                source = locations.source_path.read_text()
+                source = input_path.read_text()
             except Exception as e:
                 raise ASTError(
-                    f"Failed to read source file {locations.source_path}: {e}",
+                    f"Failed to read source file {input_path}: {e}",
                     ErrorCode.IO_READ_ERROR,
                 ) from e
 
             # Calculate importance score
             file_score = 0.5  # Default score
             try:
-                from ..processors.importance import (
-                    ImportanceProcessor,
-                )
+                from ..processors.importance import ImportanceProcessor
 
                 processor = ImportanceProcessor()
                 file_score = processor._get_file_score({"file_path": source_path})
@@ -234,9 +202,7 @@ class ASTBackend(StubBackend):
             attach_parents(tree)
 
             # Transform AST
-            transformer = SignatureExtractor(
-                self.config.stub_gen_config, len(source), importance_score=file_score
-            )
+            transformer = SignatureExtractor(self.config, len(source), file_score)
             transformed = transformer.visit(tree)
             stub_content = ast.unparse(transformed)
 
@@ -358,7 +324,7 @@ class ASTBackend(StubBackend):
             *args: Arguments to pass to the function
 
         Returns:
-            Function result
+            Result of the function
         """
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         return await loop.run_in_executor(self._executor, func, *args)

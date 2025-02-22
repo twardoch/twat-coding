@@ -8,6 +8,8 @@ from enum import Enum, auto
 from pathlib import Path
 from typing import Any
 
+from .types import TruncationConfig
+
 
 class Backend(Enum):
     """Available stub generation backends."""
@@ -25,17 +27,6 @@ class ImportanceLevel(Enum):
     NORMAL = 1.0  # Standard preservation
     LOW = 0.8  # Minimal preservation
     IGNORE = 0.0  # Can be omitted
-
-
-@dataclass(frozen=True)
-class TruncationConfig:
-    """Configuration for code truncation."""
-
-    max_sequence_length: int = 4  # For lists, dicts, sets, tuples
-    max_string_length: int = 17  # For strings except docstrings
-    max_docstring_length: int = 150  # Default max length for docstrings
-    max_file_size: int = 3_000  # Default max file size before removing all docstrings
-    truncation_marker: str = "..."
 
 
 def _default_importance_keywords() -> set[str]:
@@ -60,6 +51,24 @@ class ProcessingConfig:
     importance_keywords: set[str] = field(default_factory=_default_importance_keywords)
 
 
+def _default_include_patterns() -> list[str]:
+    """Get default include patterns.
+
+    Returns:
+        List of default include patterns
+    """
+    return ["*.py"]
+
+
+def _default_exclude_patterns() -> list[str]:
+    """Get default exclude patterns.
+
+    Returns:
+        List of default exclude patterns
+    """
+    return ["test_*.py", "*_test.py"]
+
+
 @dataclass(frozen=True)
 class PathConfig:
     """Configuration for file paths and search."""
@@ -70,6 +79,8 @@ class PathConfig:
     modules: Sequence[str] = field(default_factory=list)
     packages: Sequence[str] = field(default_factory=list)
     files: Sequence[Path] = field(default_factory=list)
+    include_patterns: list[str] = field(default_factory=_default_include_patterns)
+    exclude_patterns: list[str] = field(default_factory=_default_exclude_patterns)
 
 
 @dataclass(frozen=True)
@@ -131,6 +142,40 @@ class StubGenConfig:
     runtime: RuntimeConfig = field(default_factory=RuntimeConfig)
     processing: ProcessingConfig = field(default_factory=ProcessingConfig)
     truncation: TruncationConfig = field(default_factory=TruncationConfig)
+
+    # Convenience properties to access common settings
+    @property
+    def include_patterns(self) -> list[str]:
+        """Get include patterns."""
+        return self.paths.include_patterns
+
+    @property
+    def exclude_patterns(self) -> list[str]:
+        """Get exclude patterns."""
+        return self.paths.exclude_patterns
+
+    @property
+    def ignore_errors(self) -> bool:
+        """Get ignore errors setting."""
+        return self.runtime.ignore_errors
+
+    def get_file_locations(self, source_path: Path) -> tuple[Path, Path]:
+        """Get input and output paths for a source file.
+
+        Args:
+            source_path: Path to source file
+
+        Returns:
+            Tuple of (input_path, output_path)
+        """
+        try:
+            rel_path = source_path.relative_to(self.paths.output_dir)
+            output_path = self.paths.output_dir / rel_path
+            return source_path, output_path
+        except ValueError as e:
+            raise ValueError(
+                f"Source file {source_path} is not within output directory {self.paths.output_dir}"
+            ) from e
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "StubGenConfig":

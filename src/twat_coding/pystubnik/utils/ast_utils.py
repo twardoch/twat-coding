@@ -2,23 +2,21 @@
 """AST manipulation utilities."""
 
 import ast
-from dataclasses import dataclass
-from typing import cast
+from typing import Protocol, cast
 from weakref import WeakKeyDictionary
 
 # Global dict to store parent references
 _parent_refs: WeakKeyDictionary[ast.AST, ast.AST] = WeakKeyDictionary()
 
 
-@dataclass(frozen=True)
-class TruncationConfig:
-    """Configuration for AST literal truncation."""
+class TruncationConfig(Protocol):
+    """Protocol for truncation configuration."""
 
-    max_sequence_length: int = 4  # For lists, dicts, sets, tuples
-    max_string_length: int = 17  # For strings except docstrings
-    max_docstring_length: int = 150  # Default max length for docstrings
-    max_file_size: int = 3_000  # Default max file size before removing all docstrings
-    truncation_marker: str = "..."
+    max_sequence_length: int
+    max_string_length: int
+    max_docstring_length: int
+    max_file_size: int
+    truncation_marker: str
 
 
 def _get_parent(node: ast.AST) -> ast.AST | None:
@@ -115,66 +113,80 @@ def _truncate_dict(node: ast.Dict, config: TruncationConfig) -> ast.Dict:
 
 
 def truncate_literal(node: ast.AST, config: TruncationConfig) -> ast.AST:
-    """Truncate literal values to keep them small in the generated shadow file.
+    """Truncate literal values in AST nodes.
 
     Args:
-        node: AST node to truncate
+        node: AST node to process
         config: Truncation configuration
 
     Returns:
-        Truncated AST node
+        Processed AST node
     """
+    result = node  # Default to returning the original node
     match node:
         case ast.Constant(value=str() as s):
-            # Skip docstrings (handled separately in _preserve_docstring)
-            parent = _get_parent(node)
-            parent_parent = _get_parent(parent) if parent else None
-            if isinstance(parent, ast.Expr) and isinstance(
-                parent_parent,
-                ast.Module | ast.ClassDef | ast.FunctionDef,
-            ):
-                return node
-            return ast.Constant(value=_truncate_string(s, config))
-
+            if len(s) > config.max_string_length:
+                result = ast.Constant(
+                    value=f"{s[: config.max_string_length]}{config.truncation_marker}"
+                )
         case ast.Constant(value=bytes() as b):
             return ast.Constant(value=_truncate_bytes(b, config))
 
         case ast.List() | ast.Set() | ast.Tuple():
-            node_cast = cast(ast.List | ast.Set | ast.Tuple, node)
-            return _truncate_sequence(node_cast, config)
-
+            if len(node.elts) > config.max_sequence_length:
+                node.elts = node.elts[: config.max_sequence_length] + [
+                    ast.Constant(value=config.truncation_marker)
+                ]
+                result = node
         case ast.Dict():
-            return _truncate_dict(cast(ast.Dict, node), config)
-
+            if len(node.keys) > config.max_sequence_length:
+                node.keys = node.keys[: config.max_sequence_length] + [
+                    ast.Constant(value=config.truncation_marker)
+                ]
+                node.values = node.values[: config.max_sequence_length] + [
+                    ast.Constant(value=config.truncation_marker)
+                ]
+                result = node
         case _:
             return node
 
+    return result
+
 
 def attach_parents(node: ast.AST) -> None:
-    """Attach parent references to all nodes in an AST.
+    """Attach parent references to AST nodes.
 
     Args:
-        node: Root AST node
+        node: AST node to process
     """
-    for parent in ast.walk(node):
-        for child in ast.iter_child_nodes(parent):
-            _parent_refs[child] = parent
+    for child in ast.walk(node):
+        for _field, value in ast.iter_fields(child):
+            if isinstance(value, list):
+                for item in value:
+                    if isinstance(item, ast.AST):
+                        item.parent = child  # type: ignore
+            elif isinstance(value, ast.AST):
+                value.parent = child  # type: ignore
 
 
-def get_docstring(
-    node: ast.AsyncFunctionDef | ast.FunctionDef | ast.ClassDef | ast.Module,
-) -> str | None:
+def get_docstring(node: ast.AST) -> str | None:
     """Get docstring from an AST node.
 
     Args:
-        node: AST node to extract docstring from (must be a module, class, or function)
+        node: AST node to process
 
     Returns:
         Docstring if found, None otherwise
     """
-    docstring = ast.get_docstring(node)
-    if docstring:
-        return docstring.strip()
+    match node:
+        case ast.Module() | ast.ClassDef() | ast.FunctionDef():
+            if (
+                node.body
+                and isinstance(node.body[0], ast.Expr)
+                and isinstance(node.body[0].value, ast.Constant)
+                and isinstance(node.body[0].value.value, str)
+            ):
+                return node.body[0].value.value
     return None
 
 

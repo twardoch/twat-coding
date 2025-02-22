@@ -128,10 +128,10 @@ class ImportType(Enum):
 
 @dataclass
 class ImportInfo:
-    """Information about an imported module or name."""
+    """Information about an import statement."""
 
     module_name: str
-    import_type: ImportType
+    import_type: "ImportType"
     imported_names: list[str]
     is_from_import: bool = False
     relative_level: int = 0
@@ -139,7 +139,7 @@ class ImportInfo:
 
 @dataclass
 class StubResult:
-    """Result of stub generation for a single file."""
+    """Result of stub generation."""
 
     source_path: Path
     stub_content: str
