@@ -1,0 +1,63 @@
+---
+description: About this project
+globs: 
+---
+---
+name: About this project
+key: 0project
+---
+
+`twat-coding` is a Python toolkit focused on code analysis and transformation. Its main package `pystubnik` generates "smart stubs" - a hybrid between full source code and type stubs that helps LLMs understand large codebases efficiently. Smart stubs preserve essential code structure (signatures, types, imports) while intelligently reducing verbosity based on code importance.
+
+## 1. Overview
+
+Pystubnik creates a "shadow" directory structure that mirrors your Python package, containing smart stubs for all Python files. These smart stubs are designed to be more informative than traditional `.pyi` stub files while being more concise than full source code.
+
+### 1.1. What are Smart Stubs?
+
+Smart stubs are an intermediate representation that includes:
+- All function and class signatures with type hints
+- All imports (organized and optimized)
+- Docstrings (with configurable length limits)
+- Important/relevant code sections
+- Truncated versions of large data structures and strings
+- Simplified function bodies for non-critical code
+
+The verbosity level is automatically adjusted based on the code's importance and complexity.
+
+## 2. Architecture
+
+### 2.1. Backends
+
+#### 2.1.1. AST Backend
+- Uses Python's built-in AST module for precise control
+- Preserves code structure while reducing verbosity
+- Configurable truncation of large literals and sequences
+- Maintains type information and docstrings
+- Supports Python 3.12+ features (type parameters, etc.)
+
+#### 2.1.2. MyPy Backend
+- Leverages mypy's stubgen for type information
+- Better type inference capabilities
+- Handles special cases (dataclasses, properties)
+- Supports type comment extraction
+
+### 2.2. Processors
+
+#### 2.2.1. Import Processor
+- Analyzes and organizes imports
+- Groups by type (stdlib, third-party, local)
+- Handles relative imports
+- Detects and removes duplicates
+
+#### 2.2.2. Docstring Processor
+- Configurable docstring preservation
+- Format detection and conversion
+- Type information extraction
+- Length-based truncation
+
+#### 2.2.3. Importance Processor
+- Scores code elements by importance
+- Pattern-based importance detection
+- Inheritance-aware scoring
+- Configurable filtering
