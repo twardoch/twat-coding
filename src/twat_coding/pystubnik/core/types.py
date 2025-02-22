@@ -5,7 +5,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Protocol, Union
+from typing import Any, Protocol
 
 
 @dataclass(frozen=True)
@@ -150,6 +150,6 @@ class StubResult:
 
 
 # Type aliases
-PathLike = Union[str, Path]
+PathLike = str | Path
 ImportMap = dict[str, ImportInfo]
 StubMap = dict[PathLike, StubResult]

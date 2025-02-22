@@ -161,7 +161,9 @@ def test_docstring_type_extraction() -> None:
 
     # Test basic type parsing
     type_info = extractor._parse_type_string("str")
-    assert type_info.annotation == str
+    assert isinstance(type_info.annotation, type) and issubclass(
+        type_info.annotation, str
+    )
     assert type_info.confidence == 0.8
 
     # Test union type parsing

@@ -7,7 +7,6 @@ docstrings, and code importance.
 """
 
 import asyncio
-import sys
 from collections.abc import Mapping, Sequence
 from importlib.metadata import version
 from pathlib import Path

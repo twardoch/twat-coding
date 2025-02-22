@@ -164,6 +164,95 @@ class DocstringTypeExtractor:
             raises=self._extract_raises(doc),
         )
 
+    def _parse_simple_type(self, type_str: str) -> TypeInfo | None:
+        """Parse a simple type string that maps directly to a Python type.
+
+        Args:
+            type_str: Type string to parse
+
+        Returns:
+            TypeInfo if the type is found in TYPE_MAPPINGS, None otherwise
+        """
+        if type_str in self.TYPE_MAPPINGS:
+            return TypeInfo(
+                annotation=self.TYPE_MAPPINGS[type_str],
+                source="docstring",
+                confidence=0.8,
+                metadata={"original": type_str},
+            )
+        return None
+
+    def _parse_union_type(self, type_str: str) -> TypeInfo | None:
+        """Parse a union type string (e.g., "str or None").
+
+        Args:
+            type_str: Type string to parse
+
+        Returns:
+            TypeInfo for the union type if valid, None otherwise
+
+        Raises:
+            TypeInferenceError: If union type parsing fails
+        """
+        if " or " not in type_str:
+            return None
+
+        types = [self._parse_type_string(t.strip()) for t in type_str.split(" or ")]
+        if not types:
+            raise TypeInferenceError("Empty union type")
+        if len(types) == 1:
+            return types[0]
+
+        # Create a union of all types
+        union_type = types[0].annotation
+        for t in types[1:]:
+            union_type = union_type | t.annotation
+        return TypeInfo(
+            annotation=union_type,
+            source="docstring",
+            confidence=0.7,
+            metadata={"original": type_str, "union_types": types},
+        )
+
+    def _parse_container_type(self, container: str, content: str) -> TypeInfo | None:
+        """Parse a container type like List[str] or Dict[str, int].
+
+        Args:
+            container: Container type name
+            content: Content type string
+
+        Returns:
+            TypeInfo for the container type if valid, None otherwise
+        """
+        if container.lower() in ("list", "set", "tuple"):
+            elem_type = self._parse_type_string(content)
+            container_type = self.TYPE_MAPPINGS.get(container.lower(), list)
+            return TypeInfo(
+                annotation=container_type[elem_type.annotation],  # type: ignore
+                source="docstring",
+                confidence=0.7,
+                metadata={
+                    "original": f"{container}[{content}]",
+                    "container": container,
+                    "element_type": elem_type,
+                },
+            )
+        elif container.lower() == "dict":
+            key_type, value_type = map(str.strip, content.split(","))
+            key_info = self._parse_type_string(key_type)
+            value_info = self._parse_type_string(value_type)
+            return TypeInfo(
+                annotation=dict[Any, Any],  # Using Any as a fallback
+                source="docstring",
+                confidence=0.7,
+                metadata={
+                    "original": f"{container}[{content}]",
+                    "key_type": key_info,
+                    "value_type": value_info,
+                },
+            )
+        return None
+
     def _parse_type_string(self, type_str: str) -> TypeInfo:
         """Parse a type string from a docstring.
 
@@ -177,73 +266,23 @@ class DocstringTypeExtractor:
             TypeInferenceError: If type string parsing fails
         """
         try:
-            # Clean up type string
             type_str = type_str.strip()
 
-            # Handle simple types
-            if type_str in self.TYPE_MAPPINGS:
-                return TypeInfo(
-                    annotation=self.TYPE_MAPPINGS[type_str],
-                    source="docstring",
-                    confidence=0.8,
-                    metadata={"original": type_str},
-                )
+            # Try simple type first
+            if result := self._parse_simple_type(type_str):
+                return result
 
-            # Handle union types (e.g., "str or None")
-            if " or " in type_str:
-                types = [
-                    self._parse_type_string(t.strip()) for t in type_str.split(" or ")
-                ]
-                if not types:
-                    raise TypeInferenceError("Empty union type")
-                if len(types) == 1:
-                    return types[0]
-                # Create a union of all types
-                union_type = types[0].annotation
-                for t in types[1:]:
-                    union_type = union_type | t.annotation
-                return TypeInfo(
-                    annotation=union_type,
-                    source="docstring",
-                    confidence=0.7,
-                    metadata={"original": type_str, "union_types": types},
-                )
+            # Try union type
+            if result := self._parse_union_type(type_str):
+                return result
 
-            # Handle generic types (e.g., "List[str]")
-            match = re.match(r"(\w+)\[(.*)\]", type_str)
-            if match:
+            # Try generic container type
+            if match := re.match(r"(\w+)\[(.*)\]", type_str):
                 container, content = match.groups()
-                if container.lower() in ("list", "set", "tuple"):
-                    elem_type = self._parse_type_string(content)
-                    container_type = self.TYPE_MAPPINGS.get(container.lower(), list)
-                    return TypeInfo(
-                        annotation=container_type[elem_type.annotation],  # type: ignore
-                        source="docstring",
-                        confidence=0.7,
-                        metadata={
-                            "original": type_str,
-                            "container": container,
-                            "element_type": elem_type,
-                        },
-                    )
-                elif container.lower() == "dict":
-                    key_type, value_type = map(str.strip, content.split(","))
-                    key_info = self._parse_type_string(key_type)
-                    value_info = self._parse_type_string(value_type)
-                    return TypeInfo(
-                        annotation=dict[
-                            Any, Any
-                        ],  # Using Any as a fallback since we can't use variables as types
-                        source="docstring",
-                        confidence=0.7,
-                        metadata={
-                            "original": type_str,
-                            "key_type": key_info,
-                            "value_type": value_info,
-                        },
-                    )
+                if result := self._parse_container_type(container, content):
+                    return result
 
-            # Try to resolve as a type alias or fall back to Any
+            # Try type alias
             if type_str in self.type_registry._type_aliases:
                 return TypeInfo(
                     annotation=self.type_registry._type_aliases[type_str],
@@ -252,7 +291,7 @@ class DocstringTypeExtractor:
                     metadata={"original": type_str, "is_alias": True},
                 )
 
-            # If all else fails, return Any with low confidence
+            # Fall back to Any
             return TypeInfo(
                 annotation=Any,
                 source="docstring",
