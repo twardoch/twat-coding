@@ -229,8 +229,8 @@ class DocstringTypeExtractor:
                     value_info = self._parse_type_string(value_type)
                     return TypeInfo(
                         annotation=dict[
-                            type(key_info.annotation), type(value_info.annotation)
-                        ],
+                            Any, Any
+                        ],  # Using Any as a fallback since we can't use variables as types
                         source="docstring",
                         confidence=0.7,
                         metadata={
