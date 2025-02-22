@@ -101,7 +101,7 @@ class StubConfig(BaseModel):
     """Configuration for stub generation."""
 
     model_config = SettingsConfigDict(
-        extra="forbid",
+        extra="allow",  # Allow extra fields to handle all parameters
         frozen=True,
         validate_assignment=True,
     )
@@ -218,6 +218,38 @@ class StubConfig(BaseModel):
     modules: Sequence[str] = Field(
         default_factory=list,
         description="List of module names to process",
+    )
+    packages: Sequence[str] = Field(
+        default_factory=list,
+        description="List of package names to process",
+    )
+    verbose: bool = Field(
+        False,
+        description="Enable verbose output",
+    )
+    quiet: bool = Field(
+        True,
+        description="Enable quiet mode",
+    )
+    export_less: bool = Field(
+        False,
+        description="Export fewer symbols",
+    )
+    importance_patterns: dict[str, float] = Field(
+        default_factory=dict,
+        description="Patterns for importance scoring",
+    )
+    max_docstring_length: int = Field(
+        150,
+        description="Maximum docstring length",
+    )
+    include_type_comments: bool = Field(
+        True,
+        description="Include type comments",
+    )
+    infer_property_types: bool = Field(
+        True,
+        description="Infer property types",
     )
 
     def get_file_locations(self, source_path: Path) -> FileLocations:
