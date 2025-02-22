@@ -11,6 +11,7 @@ from typing import Any, Optional, Union
 from collections.abc import Mapping, Sequence
 
 from loguru import logger
+from importlib.metadata import version
 
 from .backends import StubBackend
 from .backends.ast_backend import AstBackend
@@ -36,6 +37,8 @@ from .core.utils import setup_logging
 from .processors.docstring import DocstringProcessor
 from .processors.imports import ImportProcessor
 from .processors.importance import ImportanceProcessor
+from .config import StubConfig
+from .errors import ASTError, ConfigError, ErrorCode, MyPyError, StubGenerationError
 
 
 class SmartStubGenerator:
@@ -162,7 +165,7 @@ class SmartStubGenerator:
             lambda msg: print(msg, end=""),
             format="<blue>{time:HH:mm:ss}</blue> | {message}",
             level="DEBUG" if verbose else "INFO",
-            enabled=not quiet,
+            catch=True,
         )
 
     def generate(self) -> None:
@@ -234,8 +237,7 @@ def generate_stub(
         ValueError: If the specified backend is not supported
     """
     source_path = Path(source_path)
-    if output_path:
-        output_path = Path(output_path)
+    output_path_obj = Path(output_path) if output_path else None
 
     config = config or StubGenConfig(paths=PathConfig())
 
@@ -249,18 +251,18 @@ def generate_stub(
         raise ValueError(msg)
 
     # Generate initial stub
-    result = backend_impl.generate_stub(source_path, output_path)
+    result = backend_impl.generate_stub(source_path, output_path_obj)
 
     # Apply processors
     processors = [
         ImportProcessor(),
         DocstringProcessor(
-            include_docstrings=config.include_docstrings,
-            doc_format=config.doc_format,
+            include_docstrings=config.processing.include_docstrings,
+            doc_format="plain",  # TODO: Add to config
         ),
         ImportanceProcessor(
-            min_importance=config.min_importance,
-            importance_patterns=config.importance_patterns,
+            min_importance=0.5,  # TODO: Add to config
+            importance_patterns=dict(config.processing.importance_patterns),
         ),
     ]
 
@@ -268,9 +270,9 @@ def generate_stub(
         result = processor.process(result)
 
     # Write output if path specified
-    if output_path:
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(result.stub_content)
+    if output_path_obj:
+        output_path_obj.parent.mkdir(parents=True, exist_ok=True)
+        output_path_obj.write_text(result.stub_content)
 
     return result
 
@@ -279,7 +281,7 @@ def generate_stub(
 setup_logging()
 
 # Version information
-__version__ = "0.1.0"
+__version__ = version("twat_coding")
 __author__ = "Adam Twardoch"
 __license__ = "MIT"
 
@@ -297,4 +299,11 @@ __all__ = [
     "StubGenConfig",
     "StubResult",
     "generate_stub",
+    "RuntimeConfig",
+    "StubConfig",
+    "ASTError",
+    "ConfigError",
+    "ErrorCode",
+    "MyPyError",
+    "StubGenerationError",
 ]

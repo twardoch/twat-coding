@@ -2,13 +2,13 @@
 description: File tree of the project
 globs: 
 ---
-[ 896]  .
+[ 928]  .
 ├── [  64]  .benchmarks
 ├── [  96]  .cursor
 │   └── [ 224]  rules
 │       ├── [2.2K]  0project.mdc
 │       ├── [ 516]  cleanup.mdc
-│       ├── [2.5K]  filetree.mdc
+│       ├── [2.7K]  filetree.mdc
 │       └── [2.0K]  quality.mdc
 ├── [  96]  .github
 │   └── [ 128]  workflows
@@ -19,7 +19,7 @@ globs:
 ├── [  96]  .specstory
 │   └── [ 256]  history
 │       ├── [2.0K]  .what-is-this.md
-│       ├── [4.8K]  adjusting-todo-priorities-from-cleanup-status.md
+│       ├── [ 63K]  adjusting-todo-priorities-from-cleanup-status.md
 │       ├── [ 248]  detailed-overview-of-python-stubbing-tools.md
 │       ├── [3.0K]  overview-of-python-tools-and-their-functions.md
 │       ├── [ 58K]  project-directory-structure-for-python-package.md
@@ -27,8 +27,8 @@ globs:
 ├── [1.0K]  LICENSE
 ├── [ 173]  MANIFEST.in
 ├── [1.4K]  README.md
-├── [5.4K]  TODO.md
-├── [ 11K]  cleanup.py
+├── [7.4K]  TODO.md
+├── [ 12K]  cleanup.py
 ├── [  96]  cursor
 │   └── [  96]  rules
 │       └── [  31]  0project.mdc
@@ -37,8 +37,9 @@ globs:
 ├── [ 305]  mypy.ini
 ├── [ 426]  package.toml
 ├── [5.8K]  pyproject.toml
+├── [288K]  repomix-output.txt
 ├── [ 128]  src
-│   └── [ 224]  twat_coding
+│   └── [ 256]  twat_coding
 │       ├── [ 144]  __init__.py
 │       ├── [ 352]  pystubnik
 │       │   ├── [5.3K]  README.md
@@ -46,9 +47,9 @@ globs:
 │       │   ├── [ 160]  backends
 │       │   │   ├── [1.4K]  __init__.py
 │       │   │   ├── [9.8K]  ast_backend.py
-│       │   │   └── [ 991]  mypy_backend.py
+│       │   │   └── [1.1K]  mypy_backend.py
 │       │   ├── [ 160]  core
-│       │   │   ├── [3.8K]  config.py
+│       │   │   ├── [4.9K]  config.py
 │       │   │   ├── [3.9K]  types.py
 │       │   │   └── [8.2K]  utils.py
 │       │   ├── [ 14K]  make_stubs_ast.py
@@ -59,9 +60,9 @@ globs:
 │       │   │   ├── [4.4K]  importance.py
 │       │   │   └── [6.6K]  imports.py
 │       │   ├── [2.0K]  pypacky2.sh
-│       │   └── [1.3K]  read_imports.py
+│       │   └── [1.6K]  read_imports.py
 │       └── [1.6K]  twat_coding.py
 └── [ 128]  tests
-    └── [ 157]  test_package.py
+    └── [ 165]  test_package.py
 
-18 directories, 43 files
+18 directories, 44 files

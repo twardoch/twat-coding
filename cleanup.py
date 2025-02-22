@@ -107,6 +107,14 @@ def log_message(message: str) -> None:
         f.write(log_line)
 
 
+def print_log() -> None:
+    """Print the contents of the CLEANUP.log file."""
+    if LOG_FILE.exists():
+        print(LOG_FILE.read_text())
+    else:
+        print("Log file does not exist")
+
+
 def run_command(cmd: list[str], check: bool = True) -> subprocess.CompletedProcess:
     """Run a shell command and return the result."""
     try:
@@ -358,6 +366,7 @@ def main() -> NoReturn:
         log_message(f"Error: {e}")
         sys.exit(1)
 
+    print_log()  # Print the log contents at the end
     sys.exit(0)
 
 

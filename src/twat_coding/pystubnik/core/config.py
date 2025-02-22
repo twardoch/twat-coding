@@ -38,6 +38,15 @@ class TruncationConfig:
     truncation_marker: str = "..."
 
 
+def _default_importance_keywords() -> set[str]:
+    """Get default importance keywords.
+
+    Returns:
+        Set of default importance keywords
+    """
+    return {"important", "critical", "essential", "main", "key"}
+
+
 @dataclass(frozen=True)
 class ProcessingConfig:
     """Configuration for stub processing."""
@@ -48,9 +57,7 @@ class ProcessingConfig:
     infer_property_types: bool = True
     export_less: bool = False
     importance_patterns: Mapping[str, float] = field(default_factory=dict)
-    importance_keywords: set[str] = field(
-        default_factory=lambda: {"important", "critical", "essential", "main", "key"}
-    )
+    importance_keywords: set[str] = field(default_factory=_default_importance_keywords)
 
 
 @dataclass(frozen=True)
@@ -89,7 +96,7 @@ class RuntimeConfig:
         *,
         python_version: tuple[int, int] | None = None,
         interpreter: Path | str | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> "RuntimeConfig":
         """Create a RuntimeConfig with optional version and interpreter.
 

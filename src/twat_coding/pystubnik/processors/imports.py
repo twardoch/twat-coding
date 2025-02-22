@@ -1,4 +1,4 @@
-"""Import analysis for stub generation."""
+"""Import processor for stub generation."""
 
 import ast
 from pathlib import Path
@@ -10,7 +10,7 @@ from pystubnik.processors import Processor
 class ImportProcessor(Processor):
     """Processor for analyzing and organizing imports in stub generation."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.stdlib_modules: set[str] = self._get_stdlib_modules()
 
     def process(self, stub_result: StubResult) -> StubResult:

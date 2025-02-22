@@ -1,0 +1,242 @@
+#!/usr/bin/env -S uv run
+"""Configuration system for stub generation."""
+
+import os
+from pathlib import Path
+from typing import Any, Literal
+
+from pydantic import BaseModel, Field, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from .errors import ConfigError, ErrorCode
+
+
+class FileLocations(BaseModel):
+    """File locations for stub generation."""
+
+    source_path: Path = Field(..., description="Path to Python source file")
+    input_dir: Path = Field(..., description="Base input directory")
+    output_dir: Path = Field(..., description="Base output directory")
+
+    model_config = SettingsConfigDict(
+        arbitrary_types_allowed=True,
+        validate_assignment=True,
+    )
+
+    @field_validator("source_path")
+    @classmethod
+    def validate_source_path(cls, v: Path) -> Path:
+        """Validate source file exists."""
+        if not v.exists():
+            raise ConfigError(
+                "Source file does not exist",
+                ErrorCode.CONFIG_VALIDATION_ERROR,
+                source=str(v),
+            )
+        return v
+
+    @field_validator("input_dir")
+    @classmethod
+    def validate_input_dir(cls, v: Path) -> Path:
+        """Validate input directory exists."""
+        if not v.exists():
+            raise ConfigError(
+                "Input directory does not exist",
+                ErrorCode.CONFIG_VALIDATION_ERROR,
+                source=str(v),
+            )
+        return v
+
+    @field_validator("output_dir")
+    @classmethod
+    def validate_output_dir(cls, v: Path) -> Path:
+        """Validate and create output directory."""
+        try:
+            v.mkdir(parents=True, exist_ok=True)
+            return v
+        except Exception as e:
+            raise ConfigError(
+                f"Failed to create output directory: {e}",
+                ErrorCode.CONFIG_IO_ERROR,
+                source=str(v),
+            ) from e
+
+    @property
+    def output_path(self) -> Path:
+        """Calculate output path based on input path and bases."""
+        try:
+            rel_path = self.source_path.relative_to(self.input_dir)
+            return self.output_dir / rel_path
+        except ValueError as e:
+            raise ConfigError(
+                f"Source file {self.source_path} is not within input directory {self.input_dir}",
+                ErrorCode.CONFIG_VALIDATION_ERROR,
+            ) from e
+
+    def check_paths(self) -> None:
+        """Validate file locations and create output directories."""
+        # Create output directory and verify permissions
+        self.output_path.parent.mkdir(parents=True, exist_ok=True)
+        if not os.access(self.output_path.parent, os.W_OK):
+            raise ConfigError(
+                f"No write permission: {self.output_path.parent}",
+                ErrorCode.CONFIG_IO_ERROR,
+                source=str(self.output_path.parent),
+            )
+
+
+class StubConfig(BaseModel):
+    """Configuration for stub generation."""
+
+    model_config = SettingsConfigDict(
+        extra="forbid",
+        frozen=True,
+        validate_assignment=True,
+    )
+
+    # Input/Output settings
+    input_path: Path = Field(
+        ...,
+        description="Path to Python source files or directory",
+    )
+    output_path: Path | None = Field(
+        None,
+        description="Path to output directory for stubs",
+    )
+    include_patterns: list[str] = Field(
+        default_factory=lambda: ["*.py"],
+        description="Glob patterns for files to include",
+    )
+    exclude_patterns: list[str] = Field(
+        default_factory=lambda: ["test_*.py", "*_test.py"],
+        description="Glob patterns for files to exclude",
+    )
+
+    # Processing settings
+    backend: Literal["ast", "mypy"] = Field(
+        "ast",
+        description="Backend to use for stub generation",
+    )
+    parallel: bool = Field(
+        True,
+        description="Enable parallel processing",
+    )
+    max_workers: int | None = Field(
+        None,
+        description="Maximum number of worker threads",
+        ge=1,
+    )
+
+    # Type inference settings
+    infer_types: bool = Field(
+        True,
+        description="Enable type inference",
+    )
+    preserve_literals: bool = Field(
+        False,
+        description="Preserve literal values in stubs",
+    )
+    docstring_type_hints: bool = Field(
+        True,
+        description="Extract type hints from docstrings",
+    )
+
+    # Output settings
+    line_length: int = Field(
+        88,
+        description="Maximum line length for output",
+        ge=1,
+    )
+    sort_imports: bool = Field(
+        True,
+        description="Sort imports in output",
+    )
+    add_header: bool = Field(
+        True,
+        description="Add header to generated files",
+    )
+
+    @field_validator("output_path", mode="before")
+    @classmethod
+    def validate_output_path(cls, v: Any) -> Path | None:
+        """Validate and create output directory if it doesn't exist."""
+        if v is None:
+            return None
+        try:
+            path = Path(v)
+            path.mkdir(parents=True, exist_ok=True)
+            return path
+        except Exception as e:
+            raise ConfigError(
+                f"Failed to create output directory: {e}",
+                ErrorCode.CONFIG_IO_ERROR,
+                source=str(v),
+            ) from e
+
+    @field_validator("input_path")
+    @classmethod
+    def validate_input_path(cls, v: Path) -> Path:
+        """Validate input path exists."""
+        if not v.exists():
+            raise ConfigError(
+                "Input path does not exist",
+                ErrorCode.CONFIG_VALIDATION_ERROR,
+                source=str(v),
+            )
+        return v
+
+    def get_file_locations(self, source_path: Path) -> FileLocations:
+        """Create FileLocations for a source file.
+
+        Args:
+            source_path: Path to source file
+
+        Returns:
+            FileLocations instance
+
+        Raises:
+            ConfigError: If paths are invalid
+        """
+        return FileLocations(
+            source_path=source_path,
+            input_dir=self.input_path,
+            output_dir=self.output_path or self.input_path.parent / "stubs",
+        )
+
+
+class RuntimeConfig(BaseSettings):
+    """Runtime configuration for the application."""
+
+    model_config = SettingsConfigDict(
+        env_prefix="PYSTUBNIK_",
+        env_file=".env",
+        extra="ignore",
+    )
+
+    # Logging settings
+    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
+    log_file: Path | None = None
+
+    # Performance settings
+    cache_dir: Path = Field(default_factory=lambda: Path(".cache"))
+    memory_limit: int | None = None  # In megabytes
+    timeout: int | None = None  # In seconds
+
+    # Development settings
+    debug: bool = False
+    profile: bool = False
+
+    @field_validator("cache_dir", mode="before")
+    @classmethod
+    def validate_cache_dir(cls, v: Any) -> Path:
+        """Validate and create cache directory."""
+        try:
+            path = Path(v)
+            path.mkdir(parents=True, exist_ok=True)
+            return path
+        except Exception as e:
+            raise ConfigError(
+                f"Failed to create cache directory: {e}",
+                ErrorCode.CONFIG_IO_ERROR,
+                source=str(v),
+            ) from e
