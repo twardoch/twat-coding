@@ -353,14 +353,14 @@ class StubGenerator:
             List of lines for the stub
         """
         # Skip private classes unless they are special methods
-        if not self._should_include_member(node.name):
+        if not self.config.include_private and node.name.startswith("_"):
             return []
 
         lines: list[str] = []
 
-        # Add docstring if present and class is not private
+        # Add docstring if present
         docstring = get_docstring(node)
-        if docstring and not node.name.startswith("_"):
+        if docstring:
             lines.append(f'"""{docstring}"""')
 
         # Build class definition line
