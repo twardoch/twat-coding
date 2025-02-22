@@ -3,13 +3,46 @@
 
 import ast
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from enum import Enum, auto
 from typing import Any, ClassVar, cast
 
 from docstring_parser import parse as parse_docstring
 from loguru import logger
 
+from ..core.types import ArgInfo
 from ..types.type_system import TypeInferenceError, TypeInfo, TypeRegistry
+
+
+class DocstringStyle(Enum):
+    """Docstring style."""
+
+    GOOGLE = auto()
+    NUMPY = auto()
+    SPHINX = auto()
+    EPYTEXT = auto()
+    UNKNOWN = auto()
+
+
+@dataclass
+class DocstringInfo:
+    """Information extracted from a docstring."""
+
+    style: DocstringStyle
+    description: str = ""
+    args: list[ArgInfo] = field(default_factory=list)
+    returns: str = ""
+    raises: list[str] = field(default_factory=list)
+    examples: list[str] = field(default_factory=list)
+    notes: list[str] = field(default_factory=list)
+    see_also: list[str] = field(default_factory=list)
+    references: list[str] = field(default_factory=list)
+    todo: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    version: str = ""
+    deprecated: bool = False
+    since: str = ""
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass

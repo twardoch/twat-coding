@@ -8,6 +8,7 @@ from typing import (
     Any,
     Protocol,
     TypeVar,
+    Union,
     get_args,
     get_origin,
     get_type_hints,
@@ -273,3 +274,68 @@ def infer_type_from_usage(node: ast.AST) -> TypeInfo | None:
     # TODO: Implement type inference from usage
     # This will be implemented in a separate commit
     return None
+
+
+def _is_protocol(resolved: Any) -> bool:
+    """Check if a type is a Protocol.
+
+    Args:
+        resolved: Type to check
+
+    Returns:
+        True if the type is a Protocol
+    """
+    try:
+        return (
+            isinstance(resolved, type)
+            and hasattr(resolved, "__mro__")
+            and Protocol in resolved.__mro__
+        )
+    except (AttributeError, TypeError):
+        return False
+
+
+def _resolve_type(type_hint: Any) -> Any:
+    """Resolve a type hint to its concrete type.
+
+    Args:
+        type_hint: Type hint to resolve
+
+    Returns:
+        Resolved type
+    """
+    try:
+        if isinstance(type_hint, str):
+            # Handle forward references
+            return eval(type_hint, globals(), locals())
+        return type_hint
+    except (NameError, SyntaxError):
+        return type_hint
+
+
+def _is_subtype(type_hint: Any, expected_type: Any) -> bool:
+    """Check if a type hint is a subtype of an expected type.
+
+    Args:
+        type_hint: Type hint to check
+        expected_type: Expected type
+
+    Returns:
+        True if type_hint is a subtype of expected_type
+    """
+    resolved = _resolve_type(type_hint)
+    expected = _resolve_type(expected_type)
+
+    # Handle Protocol types
+    if _is_protocol(expected):
+        return True  # Assume Protocol compatibility for now
+
+    # Handle Union types
+    if hasattr(expected, "__origin__") and expected.__origin__ is Union:
+        return any(_is_subtype(resolved, t) for t in expected.__args__)
+
+    # Handle normal types
+    try:
+        return isinstance(resolved, type) and issubclass(resolved, expected)
+    except TypeError:
+        return False

@@ -73,8 +73,8 @@ globs:
 │       │   │   └── [7.4K]  type_inference.py
 │       │   ├── [1.6K]  read_imports.py
 │       │   ├── [ 160]  types
-│       │   │   ├── [8.4K]  docstring.py
-│       │   │   └── [8.2K]  type_system.py
+│       │   │   ├── [9.3K]  docstring.py
+│       │   │   └── [9.7K]  type_system.py
 │       │   └── [ 192]  utils
 │       │       ├── [5.6K]  ast_utils.py
 │       │       ├── [1.8K]  display.py
