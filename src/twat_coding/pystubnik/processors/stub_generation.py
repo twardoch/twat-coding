@@ -284,7 +284,7 @@ class StubGenerator:
             node: AST node to process
 
         Returns:
-            Processed node or None if it should be excluded
+            Processed node or None if node should be skipped
         """
         match node:
             case ast.ClassDef():
@@ -297,20 +297,20 @@ class StubGenerator:
                 return None
 
     def _process_class(self, node: ast.ClassDef) -> ast.ClassDef | None:
-        """Process a class definition for stub generation.
+        """Process a class definition.
 
         Args:
-            node: Class definition to process
+            node: Class definition node
 
         Returns:
-            Processed class definition or None if it should be excluded
+            Processed class definition or None if class should be skipped
         """
-        # Check if class should be excluded
+        # Skip private classes if configured
         if not self.config.include_private and node.name.startswith("_"):
             return None
 
         # Create new class with same name and bases
-        stub_class = ast.ClassDef(
+        new_class = ast.ClassDef(
             name=node.name,
             bases=node.bases,
             keywords=node.keywords,
@@ -319,65 +319,60 @@ class StubGenerator:
             type_params=getattr(node, "type_params", []),  # For Python 3.12+
         )
 
-        # Copy over source location attributes
-        for attr in ["lineno", "col_offset", "end_lineno", "end_col_offset"]:
-            if hasattr(node, attr):
-                setattr(stub_class, attr, getattr(node, attr))
-
-        # Preserve docstring if configured
-        if self.config.docstring_type_hints:
-            docstring = ast.get_docstring(node)
-            if docstring:
-                stub_class.body.append(ast.Expr(value=ast.Constant(value=docstring)))
-
         # Process class body
         for child in node.body:
             if processed := self._process_node(child):
-                stub_class.body.append(processed)
+                new_class.body.append(processed)
 
-        # Add pass statement if body is empty
-        if not stub_class.body:
-            stub_class.body.append(ast.Pass())
+        # Preserve docstring if present
+        if (
+            isinstance(node.body[0], ast.Expr)
+            and isinstance(node.body[0].value, ast.Str)
+        ):
+            new_class.body.insert(0, node.body[0])
 
-        return stub_class
+        # Copy location info
+        self._ensure_node_attributes(new_class)
+        return new_class
 
     def _process_function(
         self, node: ast.FunctionDef | ast.AsyncFunctionDef
     ) -> ast.FunctionDef | ast.AsyncFunctionDef | None:
-        """Process a function definition for stub generation.
+        """Process a function definition.
 
         Args:
-            node: Function definition to process
+            node: Function definition node
 
         Returns:
-            Processed function definition or None if it should be excluded
+            Processed function definition or None if function should be skipped
         """
+        # Skip private functions if configured
         if not self.config.include_private and node.name.startswith("_"):
-            return None
+            if node.name != "__init__":  # Always include __init__
+                return None
 
         # Create new function with same signature
-        stub_func = type(node)(
+        new_func = type(node)(
             name=node.name,
             args=node.args,
             returns=node.returns,
             type_comment=node.type_comment if hasattr(node, "type_comment") else None,
-            type_params=getattr(node, "type_params", []),  # For Python 3.12+
-            body=[ast.Pass()],  # Use pass instead of ellipsis
+            body=[ast.Pass()],  # Replace body with pass statement
             decorator_list=node.decorator_list,
+            type_params=getattr(node, "type_params", []),  # For Python 3.12+
         )
 
-        # Copy over source location attributes
-        for attr in ["lineno", "col_offset", "end_lineno", "end_col_offset"]:
-            if hasattr(node, attr):
-                setattr(stub_func, attr, getattr(node, attr))
+        # Preserve docstring if present
+        if (
+            len(node.body) > 0
+            and isinstance(node.body[0], ast.Expr)
+            and isinstance(node.body[0].value, ast.Str)
+        ):
+            new_func.body.insert(0, node.body[0])
 
-        # Preserve docstring if configured
-        if self.config.docstring_type_hints:
-            docstring = ast.get_docstring(node)
-            if docstring:
-                stub_func.body.insert(0, ast.Expr(value=ast.Constant(value=docstring)))
-
-        return stub_func
+        # Copy location info
+        self._ensure_node_attributes(new_func)
+        return new_func
 
     def _process_assignment(self, node: ast.AnnAssign | ast.Assign) -> ast.stmt | None:
         """Process an assignment for stub generation.
