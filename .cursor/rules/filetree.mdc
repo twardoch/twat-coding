@@ -7,8 +7,8 @@ globs:
 ├── [  96]  .cursor
 │   └── [ 224]  rules
 │       ├── [2.2K]  0project.mdc
-│       ├── [ 618]  cleanup.mdc
-│       ├── [3.7K]  filetree.mdc
+│       ├── [ 632]  cleanup.mdc
+│       ├── [3.8K]  filetree.mdc
 │       └── [2.0K]  quality.mdc
 ├── [  96]  .github
 │   └── [ 128]  workflows
@@ -27,13 +27,13 @@ globs:
 │       ├── [3.0K]  overview-of-python-tools-and-their-functions.md
 │       ├── [ 58K]  project-directory-structure-for-python-package.md
 │       ├── [ 64K]  reviewing-and-tracking-todo-progress.md
+│       ├── [ 56K]  task-management-from-todo-md.md
 │       ├── [4.9K]  task-organization-and-cleanup-process.md
-│       ├── [165K]  todo-list-cleanup-and-review.md
-│       └── [ 33K]  untitled.md
+│       └── [165K]  todo-list-cleanup-and-review.md
 ├── [1.0K]  LICENSE
 ├── [ 173]  MANIFEST.in
 ├── [1.4K]  README.md
-├── [7.3K]  TODO.md
+├── [ 12K]  TODO.md
 ├── [ 12K]  cleanup.py
 ├── [  96]  cursor
 │   └── [  96]  rules
@@ -59,7 +59,7 @@ globs:
 │       │   ├── [ 160]  core
 │       │   │   ├── [4.9K]  config.py
 │       │   │   ├── [3.9K]  types.py
-│       │   │   └── [8.2K]  utils.py
+│       │   │   └── [8.3K]  utils.py
 │       │   ├── [5.1K]  errors.py
 │       │   ├── [ 14K]  make_stubs_ast.py
 │       │   ├── [ 11K]  make_stubs_mypy.py
@@ -67,14 +67,14 @@ globs:
 │       │   │   ├── [1.2K]  __init__.py
 │       │   │   ├── [5.0K]  docstring.py
 │       │   │   ├── [ 16K]  file_importance.py
-│       │   │   ├── [6.3K]  importance.py
+│       │   │   ├── [6.4K]  importance.py
 │       │   │   ├── [6.6K]  imports.py
 │       │   │   ├── [ 11K]  stub_generation.py
 │       │   │   └── [7.4K]  type_inference.py
 │       │   ├── [2.0K]  pypacky2.sh
 │       │   ├── [1.6K]  read_imports.py
 │       │   ├── [ 128]  types
-│       │   │   ├── [8.5K]  docstring.py
+│       │   │   ├── [8.4K]  docstring.py
 │       │   │   └── [8.2K]  type_system.py
 │       │   └── [ 160]  utils
 │       │       ├── [5.3K]  ast_utils.py

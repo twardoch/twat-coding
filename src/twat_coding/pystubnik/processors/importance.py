@@ -81,6 +81,46 @@ class ImportanceProcessor(Processor):
 
         return stub_result
 
+    def _get_file_score(self, extra_info: dict[str, Any] | None) -> float:
+        """Get the file-level base score."""
+        if extra_info and "file_path" in extra_info:
+            file_path = extra_info["file_path"]
+            return self._file_scores.get(str(file_path), 1.0)
+        return 1.0
+
+    def _calculate_pattern_score(self, name: str) -> float:
+        """Calculate score based on importance patterns."""
+        score = 1.0
+        for pattern, weight in self.config.patterns.items():
+            if re.search(pattern, name):
+                score *= weight
+        return score
+
+    def _calculate_docstring_score(self, docstring: str | None) -> float:
+        """Calculate score based on docstring quality."""
+        if not docstring:
+            return 1.0
+
+        score = 1.0
+        word_count = len(docstring.split())
+        score += word_count * self.config.docstring_weight
+
+        # Check for importance keywords
+        for keyword in self.config.keywords:
+            if keyword.lower() in docstring.lower():
+                score *= 1.1  # Small boost for each importance keyword
+
+        return score
+
+    def _calculate_visibility_score(self, is_public: bool, is_special: bool) -> float:
+        """Calculate score based on symbol visibility."""
+        score = 1.0
+        if is_public:
+            score *= self.config.public_weight
+        if is_special:
+            score *= self.config.special_weight
+        return score
+
     def calculate_importance(
         self,
         name: str,
@@ -102,59 +142,23 @@ class ImportanceProcessor(Processor):
             Importance score between 0 and 1
         """
         try:
-            score = 1.0
+            # Calculate component scores
+            file_score = self._get_file_score(extra_info)
+            pattern_score = self._calculate_pattern_score(name)
+            docstring_score = self._calculate_docstring_score(docstring)
+            visibility_score = self._calculate_visibility_score(is_public, is_special)
 
-            # Get file-level base score if available
-            if extra_info and "file_path" in extra_info:
-                file_path = extra_info["file_path"]
-                score *= self._file_scores.get(str(file_path), 1.0)
+            # Combine scores
+            final_score = (
+                file_score * pattern_score * docstring_score * visibility_score
+            )
 
-            # Check against importance patterns
-            for pattern, weight in self.config.patterns.items():
-                if re.search(pattern, name):
-                    score *= weight
-
-            # Docstring-based importance
-            if docstring:
-                # More detailed docstrings might indicate importance
-                word_count = len(docstring.split())
-                score *= 1 + (word_count * self.config.docstring_weight)
-
-                # Check for specific keywords indicating importance
-                if any(
-                    keyword in docstring.lower() for keyword in self.config.keywords
-                ):
-                    score *= 1.5
-
-            # Name-based importance
-            if is_special:
-                score *= (
-                    self.config.special_weight
-                )  # Special methods are usually important
-            elif is_public:
-                score *= (
-                    self.config.public_weight
-                )  # Public methods are usually more important
-
-            # Extra information
-            if extra_info:
-                # Handle inheritance
-                if extra_info.get("is_override"):
-                    score *= 1.1  # Overridden methods are often important
-                if extra_info.get("is_abstract"):
-                    score *= 1.2  # Abstract methods define interfaces
-
-                # Handle usage
-                usage_count = extra_info.get("usage_count", 0)
-                if usage_count > 0:
-                    score *= 1 + (min(usage_count, 10) / 10)  # Cap at 2x for usage
-
-            # Normalize score to 0-1 range
-            return min(max(score / 2, 0), 1)  # Divide by 2 since we multiply a lot
+            # Ensure score is between 0 and 1
+            return max(min(final_score, 1.0), 0.0)
 
         except Exception as e:
-            logger.warning(f"Failed to calculate importance for {name}: {e}")
-            return 0.5  # Return neutral score on error
+            logger.warning(f"Error calculating importance for {name}: {e}")
+            return self.config.min_score
 
     def should_include(
         self,

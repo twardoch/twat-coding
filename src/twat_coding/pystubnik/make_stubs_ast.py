@@ -70,57 +70,84 @@ class FileLocations(BaseModel):
             raise PermissionError(msg)
 
 
+def _is_docstring(node: ast.AST) -> bool:
+    """Check if the node is a docstring."""
+    parent = getattr(node, "parent", None)
+    parent_parent = getattr(parent, "parent", None)
+    return isinstance(parent, ast.Expr) and isinstance(
+        parent_parent, ast.Module | ast.ClassDef | ast.FunctionDef
+    )
+
+
+def _truncate_string(s: str, max_length: int, marker: str) -> str:
+    """Truncate a string to the specified length."""
+    if len(s) <= max_length:
+        return s
+    return f"{s[:max_length]}{marker}"
+
+
+def _truncate_bytes(b: bytes, max_length: int) -> bytes:
+    """Truncate bytes to the specified length."""
+    if len(b) <= max_length:
+        return b
+    return bytes(b[:max_length]) + b"..."
+
+
+def _truncate_sequence(
+    elts: list[ast.expr], max_length: int, config: Config
+) -> list[ast.expr]:
+    """Truncate a sequence of AST elements."""
+    truncated_elts = []
+    for i, e in enumerate(elts):
+        if i < max_length:
+            truncated_elts.append(cast(ast.expr, truncate_literal(e, config)))
+        else:
+            truncated_elts.append(ast.Constant(value=config.truncation_marker))
+            break
+    return truncated_elts
+
+
 def truncate_literal(node: ast.AST, config: Config) -> ast.AST:
     """Truncate literal values to keep them small in the generated shadow file."""
     match node:
         case ast.Constant(value=str() as s):
-            # Skip docstrings (handled separately in _preserve_docstring)
-            parent = getattr(node, "parent", None)
-            parent_parent = getattr(parent, "parent", None)
-            if isinstance(parent, ast.Expr) and isinstance(
-                parent_parent,
-                ast.Module | ast.ClassDef | ast.FunctionDef,
-            ):
+            if _is_docstring(node):
                 return node
-            if len(s) <= config.max_string_length:
-                return node
-            trunc = f"{s[: config.max_string_length]}{config.truncation_marker}"
+            trunc = _truncate_string(
+                s, config.max_string_length, config.truncation_marker
+            )
             return ast.Constant(value=trunc)
 
         case ast.Constant(value=bytes() as b):
-            if len(b) <= config.max_string_length:
-                return node
-            # For bytes, show partial bytes plus b"..."
-            trunc = bytes(b[: config.max_string_length]) + b"..."
+            trunc = _truncate_bytes(b, config.max_string_length)
             return ast.Constant(value=trunc)
 
-        case ast.List(elts=elts) | ast.Set(elts=elts) | ast.Tuple(elts=elts):
-            truncated_elts = []
-            for i, e in enumerate(elts):
-                if i < config.max_sequence_length:
-                    truncated_elts.append(cast(ast.expr, truncate_literal(e, config)))
-                else:
-                    truncated_elts.append(ast.Constant(value=config.truncation_marker))
-                    break
-            return type(node)(elts=truncated_elts)
+        case ast.List(elts=elts):
+            truncated = _truncate_sequence(elts, config.max_sequence_length, config)
+            return ast.List(elts=truncated, ctx=ast.Load())
+
+        case ast.Set(elts=elts):
+            truncated = _truncate_sequence(elts, config.max_sequence_length, config)
+            return ast.Set(elts=truncated)
+
+        case ast.Tuple(elts=elts):
+            truncated = _truncate_sequence(elts, config.max_sequence_length, config)
+            return ast.Tuple(elts=truncated, ctx=ast.Load())
 
         case ast.Dict(keys=keys, values=values):
-            pairs = []
+            truncated_pairs = []
             for i, (k, v) in enumerate(zip(keys, values, strict=False)):
                 if i < config.max_sequence_length:
                     new_v = cast(ast.expr, truncate_literal(v, config))
-                    pairs.append((k, new_v))
+                    truncated_pairs.append((k, new_v))
                 else:
-                    pairs.append(
-                        (
-                            ast.Constant(value="..."),
-                            ast.Constant(value="..."),
-                        )
+                    truncated_pairs.append(
+                        (ast.Constant(value="..."), ast.Constant(value="..."))
                     )
                     break
             return ast.Dict(
-                keys=[k for k, _ in pairs],
-                values=[cast(ast.expr, v) for _, v in pairs],
+                keys=[k for k, _ in truncated_pairs],
+                values=[v for _, v in truncated_pairs],
             )
 
         case _:

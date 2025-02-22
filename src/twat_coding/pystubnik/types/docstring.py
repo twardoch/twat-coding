@@ -4,7 +4,7 @@
 import ast
 import re
 from dataclasses import dataclass
-from typing import Any, ClassVar, Union, cast
+from typing import Any, ClassVar, cast
 
 from docstring_parser import parse as parse_docstring
 from loguru import logger
@@ -56,6 +56,52 @@ class DocstringTypeExtractor:
         self._yields_pattern = re.compile(r":yields?:\s*([^\n]+)")
         self._raises_pattern = re.compile(r":raises?\s+([^:]+):\s*([^\n]+)")
 
+    def _extract_param_types(self, doc: Any) -> dict[str, TypeInfo]:
+        """Extract parameter types from docstring."""
+        param_types = {}
+        for param in doc.params:
+            if param.type_name:
+                try:
+                    type_info = self._parse_type_string(param.type_name)
+                    param_types[param.arg_name] = type_info
+                except TypeInferenceError as e:
+                    logger.warning(
+                        f"Failed to parse type for parameter {param.arg_name}: {e}"
+                    )
+        return param_types
+
+    def _extract_return_type(self, doc: Any) -> TypeInfo | None:
+        """Extract return type from docstring."""
+        if doc.returns and doc.returns.type_name:
+            try:
+                return self._parse_type_string(doc.returns.type_name)
+            except TypeInferenceError as e:
+                logger.warning(f"Failed to parse return type: {e}")
+        return None
+
+    def _extract_yield_type(self, doc: Any) -> TypeInfo | None:
+        """Extract yield type from docstring."""
+        if hasattr(doc, "yields") and doc.yields and doc.yields.type_name:
+            try:
+                return self._parse_type_string(doc.yields.type_name)
+            except TypeInferenceError as e:
+                logger.warning(f"Failed to parse yield type: {e}")
+        return None
+
+    def _extract_raises(self, doc: Any) -> list[tuple[TypeInfo, str]]:
+        """Extract raises information from docstring."""
+        raises = []
+        for raises_section in doc.raises:
+            if raises_section.type_name:
+                try:
+                    exc_type = self._parse_type_string(raises_section.type_name)
+                    raises.append((exc_type, raises_section.description or ""))
+                except TypeInferenceError as e:
+                    logger.warning(
+                        f"Failed to parse exception type {raises_section.type_name}: {e}"
+                    )
+        return raises
+
     def extract_types(
         self,
         node: ast.AsyncFunctionDef | ast.FunctionDef | ast.ClassDef | ast.Module,
@@ -71,69 +117,19 @@ class DocstringTypeExtractor:
         Raises:
             TypeInferenceError: If docstring parsing fails
         """
-        docstring: str | None = None
-        try:
-            # Get docstring from node
-            docstring = ast.get_docstring(node)
-            if not docstring:
-                return None
+        docstring = ast.get_docstring(node)
+        if not docstring:
+            return None
 
-            # Parse docstring
-            doc = parse_docstring(docstring)
+        # Parse docstring
+        doc = parse_docstring(docstring)
 
-            # Extract parameter types
-            param_types = {}
-            for param in doc.params:
-                if param.type_name:
-                    try:
-                        type_info = self._parse_type_string(param.type_name)
-                        param_types[param.arg_name] = type_info
-                    except TypeInferenceError as e:
-                        # Log but don't fail for individual parameter errors
-                        logger.warning(
-                            f"Failed to parse type for parameter {param.arg_name}: {e}"
-                        )
-
-            # Extract return type
-            return_type = None
-            if doc.returns and doc.returns.type_name:
-                try:
-                    return_type = self._parse_type_string(doc.returns.type_name)
-                except TypeInferenceError as e:
-                    logger.warning(f"Failed to parse return type: {e}")
-
-            # Extract yield type
-            yield_type = None
-            if hasattr(doc, "yields") and doc.yields and doc.yields.type_name:
-                try:
-                    yield_type = self._parse_type_string(doc.yields.type_name)
-                except TypeInferenceError as e:
-                    logger.warning(f"Failed to parse yield type: {e}")
-
-            # Extract raises information
-            raises = []
-            for raises_section in doc.raises:
-                if raises_section.type_name:
-                    try:
-                        exc_type = self._parse_type_string(raises_section.type_name)
-                        raises.append((exc_type, raises_section.description or ""))
-                    except TypeInferenceError as e:
-                        logger.warning(
-                            f"Failed to parse exception type {raises_section.type_name}: {e}"
-                        )
-
-            return DocstringTypeInfo(
-                param_types=param_types,
-                return_type=return_type,
-                yield_type=yield_type,
-                raises=raises,
-            )
-
-        except Exception as e:
-            raise TypeInferenceError(
-                f"Failed to extract types from docstring: {e}",
-                details={"docstring": docstring or ""},
-            ) from e
+        return DocstringTypeInfo(
+            param_types=self._extract_param_types(doc),
+            return_type=self._extract_return_type(doc),
+            yield_type=self._extract_yield_type(doc),
+            raises=self._extract_raises(doc),
+        )
 
     def _parse_type_string(self, type_str: str) -> TypeInfo:
         """Parse a type string from a docstring.
@@ -170,7 +166,8 @@ class DocstringTypeExtractor:
                 if len(types) == 1:
                     return types[0]
                 return TypeInfo(
-                    annotation=Union[tuple(t.annotation for t in types)],  # type: ignore
+                    annotation=tuple(t.annotation for t in types)[0]
+                    | tuple(t.annotation for t in types)[1:],
                     source="docstring",
                     confidence=0.7,
                     metadata={"original": type_str, "union_types": types},

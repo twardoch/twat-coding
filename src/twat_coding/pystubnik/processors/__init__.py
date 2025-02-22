@@ -4,8 +4,8 @@ This module provides the base classes and interfaces for different
 processors that can be used during stub generation.
 """
 
-from abc import ABC, abstractmethod
-from typing import Any, Dict, Protocol, Type
+from abc import abstractmethod
+from typing import Protocol
 
 from pystubnik.core.types import StubResult
 
