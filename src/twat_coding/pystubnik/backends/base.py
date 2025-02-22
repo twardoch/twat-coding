@@ -7,31 +7,29 @@ from typing import Any
 
 from ..config import StubConfig
 from ..core.config import StubGenConfig
+from ..core.types import StubResult
 
 
 class StubBackend(ABC):
-    """Abstract base class for stub generation backends."""
+    """Base class for stub generation backends."""
 
-    def __init__(self, config: StubConfig | StubGenConfig) -> None:
+    def __init__(self, config: StubConfig | StubGenConfig | None = None) -> None:
         """Initialize the backend.
 
         Args:
             config: Configuration for stub generation
         """
-        self.config = config
+        self._config = config
 
     @abstractmethod
-    async def generate_stub(self, source_path: Path) -> str:
+    async def generate_stub(self, source_path: Path) -> StubResult:
         """Generate a stub for a Python source file.
 
         Args:
             source_path: Path to the source file
 
         Returns:
-            Generated stub content as a string
-
-        Raises:
-            StubGenerationError: If stub generation fails
+            Generated stub result
         """
         raise NotImplementedError
 

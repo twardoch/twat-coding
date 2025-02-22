@@ -7,10 +7,11 @@ docstrings, and code importance.
 """
 
 import asyncio
+import sys
 from collections.abc import Mapping, Sequence
 from importlib.metadata import version
 from pathlib import Path
-from typing import Protocol
+from typing import Literal, Protocol
 
 from loguru import logger
 
@@ -425,12 +426,6 @@ async def generate_stub(
             input_path=source_path,
             output_path=output_path_obj or Path("out"),
             backend=backend,
-            parallel=True,
-            max_workers=None,
-            files=[source_path],
-            include_patterns=["*.py"],
-            exclude_patterns=["test_*.py", "*_test.py"],
-            stub_gen_config=_convert_to_stub_gen_config(config),
         )
 
     # Initialize backend

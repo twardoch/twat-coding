@@ -27,6 +27,7 @@ from ..core.config import (
 )
 from ..core.types import StubResult
 from ..errors import ASTError, ErrorCode
+from ..processors import Processor
 from ..utils.ast_utils import attach_parents, truncate_literal
 from ..utils.display import print_progress
 from ..utils.memory import MemoryMonitor, stream_process_ast
@@ -197,7 +198,10 @@ class ASTBackend(StubBackend):
             config: Configuration for stub generation
         """
         self._config = config  # Store config as protected attribute
-        self.processors = []  # List of processors to apply to stubs
+        self.processors: list[Processor] = []  # List of processors to apply to stubs
+        self._node_registry: weakref.WeakValueDictionary[int, ast.AST] = (
+            weakref.WeakValueDictionary()
+        )
 
         # Handle different config types
         if isinstance(config, StubConfig):
@@ -216,7 +220,6 @@ class ASTBackend(StubBackend):
             self._stub_gen_config = config
 
         self._memory_monitor = MemoryMonitor()
-        self._node_registry = weakref.WeakValueDictionary()
 
     @property
     def config(self) -> StubConfig | StubGenConfig:
