@@ -228,7 +228,9 @@ class DocstringTypeExtractor:
                     key_info = self._parse_type_string(key_type)
                     value_info = self._parse_type_string(value_type)
                     return TypeInfo(
-                        annotation=dict[key_info.annotation, value_info.annotation],
+                        annotation=dict[
+                            type(key_info.annotation), type(value_info.annotation)
+                        ],
                         source="docstring",
                         confidence=0.7,
                         metadata={

@@ -6,6 +6,7 @@ with support for multiple backends and intelligent processing of imports,
 docstrings, and code importance.
 """
 
+import asyncio
 from collections.abc import Mapping, Sequence
 from importlib.metadata import version
 from pathlib import Path
@@ -310,15 +311,10 @@ class SmartStubGenerator:
             )
 
     def _process_file(self, backend: StubBackend, file_path: Path) -> None:
-        """Process a single file.
-
-        Args:
-            backend: Backend to use for stub generation
-            file_path: Path to the file to process
-        """
+        """Process a single file."""
         try:
             # Generate stub
-            result = backend.generate_stub(file_path)
+            result = asyncio.run(backend.generate_stub(file_path))
             if isinstance(result, StubResult):
                 # Apply processors
                 for processor in self.processors:
