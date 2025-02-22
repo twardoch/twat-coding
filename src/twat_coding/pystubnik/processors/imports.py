@@ -3,8 +3,8 @@
 import ast
 from pathlib import Path
 
-from pystubnik.core.types import ImportInfo, ImportType, StubResult
-from pystubnik.processors import Processor
+from ..core.types import ImportInfo, ImportType, StubResult
+from . import Processor
 
 
 class ImportProcessor(Processor):
