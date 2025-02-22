@@ -16,11 +16,11 @@ this_file: TODO.md
 
 ## 2. Immediate Priorities
 
-- [!] **Fix Critical Type Errors**
+- [x] **Fix Critical Type Errors**
   - *Tasks*:
-    1. Fix remaining type errors in `docstring.py` for `key_info.annotation` and `value_info.annotation`.
-    2. Fix type errors in `ast_backend.py` for imports and assignments.
-    3. Fix type error in `__init__.py` for `MypyBackend` argument type.
+    1. Fixed type errors in `docstring.py` for `key_info.annotation` and `value_info.annotation`.
+    2. Fixed type errors in `ast_backend.py` for imports and assignments.
+    3. Fixed type error in `__init__.py` for `MypyBackend` argument type.
 
 - [!] **Improve Test Coverage**
   - *Tasks*:
@@ -75,9 +75,9 @@ this_file: TODO.md
 
 ## 5. Next Actions
 
-1. Fix remaining type errors in `docstring.py`
-2. Fix type errors in `ast_backend.py`
-3. Fix type error in `__init__.py` for `MypyBackend`
+1. Add tests for configuration conversion
+2. Add tests for backend type compatibility
+3. Add tests for docstring type extraction
 
 ## 6. Notes
 
