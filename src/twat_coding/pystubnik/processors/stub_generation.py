@@ -139,60 +139,7 @@ class StubGenerator:
                 )
 
             # Process imports
-            imports = []
-            for child in tree.body:
-                if isinstance(
-                    child, ast.Import | ast.ImportFrom
-                ) and self._should_keep_import(child):
-                    if isinstance(child, ast.ImportFrom):
-                        module = child.module or ""
-                        names = sorted(n.name for n in child.names)
-                        if module == "typing":
-                            imports.append(
-                                ("typing", f"from typing import {', '.join(names)}")
-                            )
-                        elif module == "pathlib":
-                            imports.append(
-                                ("pathlib", f"from pathlib import {', '.join(names)}")
-                            )
-                        elif module.startswith("."):
-                            imports.append(
-                                ("local", f"from {module} import {', '.join(names)}")
-                            )
-                        elif module in self.ESSENTIAL_IMPORTS:
-                            imports.append(
-                                ("stdlib", f"from {module} import {', '.join(names)}")
-                            )
-                        else:
-                            imports.append(
-                                (
-                                    "third_party",
-                                    f"from {module} import {', '.join(names)}",
-                                )
-                            )
-                    else:
-                        names = sorted(n.name for n in child.names)
-                        name = names[0].split(".")[0]
-                        if name in self.ESSENTIAL_IMPORTS:
-                            imports.append(("stdlib", f"import {', '.join(names)}"))
-                        else:
-                            imports.append(
-                                ("third_party", f"import {', '.join(names)}")
-                            )
-
-            # Sort imports by type and then alphabetically
-            imports.sort(
-                key=lambda x: (
-                    {
-                        "stdlib": 0,
-                        "typing": 1,
-                        "pathlib": 2,
-                        "third_party": 3,
-                        "local": 4,
-                    }[x[0]],
-                    x[1],
-                )
-            )
+            imports = self._collect_imports(tree)
 
             # Group imports by type and add blank lines between groups
             current_type = None
@@ -209,14 +156,13 @@ class StubGenerator:
             # Process definitions
             for child in tree.body:
                 if isinstance(child, ast.ClassDef):
-                    # Skip private classes if configured
-                    if not self.config.include_private and child.name.startswith("_"):
-                        continue
                     lines.extend(self._process_class_to_lines(child))
                 elif isinstance(child, ast.FunctionDef):
                     # Skip private functions (but keep __init__ and special methods)
                     if not self.config.include_private and child.name.startswith("_"):
-                        if not (child.name.startswith("__") and child.name.endswith("__")):
+                        if not (
+                            child.name.startswith("__") and child.name.endswith("__")
+                        ):
                             if child.name != "__init__":
                                 continue
                     lines.extend(self._process_function_to_lines(child))
@@ -229,7 +175,7 @@ class StubGenerator:
 
             # Fix spacing in function arguments and assignments
             stub = re.sub(r"([^=])=([^=])", r"\1 = \2", stub)
-            stub = stub.replace("  = ", " = ")
+            stub = re.sub(r"\s+=\s+", " = ", stub)
 
             return stub
 
@@ -249,27 +195,26 @@ class StubGenerator:
         Returns:
             List of lines for the stub
         """
-        lines = []
-
-        # Skip private classes
+        # Skip private classes if configured
         if not self.config.include_private and node.name.startswith("_"):
-            if not (node.name.startswith("__") and node.name.endswith("__")):
-                return []
+            return []
+
+        lines = []
 
         # Extract docstring if present
         if (
             node.body
             and isinstance(node.body[0], ast.Expr)
-            and isinstance(node.body[0].value, (ast.Str, ast.Constant))
+            and isinstance(node.body[0].value, ast.Str | ast.Constant)
             and isinstance(node.body[0].value.value, str)
         ):
             docstring = node.body[0].value.value
             lines.append(f'"""{docstring}"""')
 
         # Add class definition
-        bases = ", ".join(ast.unparse(base) for base in node.bases)
+        bases = [ast.unparse(base) for base in node.bases]
         if bases:
-            lines.append(f"class {node.name}({bases}):")
+            lines.append(f"class {node.name}({', '.join(bases)}):")
         else:
             lines.append(f"class {node.name}:")
 
@@ -287,7 +232,7 @@ class StubGenerator:
                 if line := self._process_assignment_to_line(child):
                     body_lines.append(line)
 
-        # Add body lines with indentation
+        # Add indented body or pass statement
         if body_lines:
             lines.extend("    " + line for line in body_lines)
         else:
@@ -299,28 +244,50 @@ class StubGenerator:
         """Process a function definition to lines.
 
         Args:
-            node: Function definition node
+            node: Function definition AST node
 
         Returns:
-            List of lines for the function definition
+            List of lines for the stub
         """
         lines = []
 
         # Add docstring if present
         if (
-            len(node.body) > 0
+            node.body
             and isinstance(node.body[0], ast.Expr)
-            and isinstance(
-                node.body[0].value, ast.Constant | ast.Str
-            )  # Support both old and new AST
+            and isinstance(node.body[0].value, ast.Str | ast.Constant)
+            and isinstance(node.body[0].value.value, str)
         ):
             docstring = node.body[0].value.value
             lines.append(f'"""{docstring}"""')
 
-        # Add function definition
-        args = ast.unparse(node.args)
-        returns = f" -> {ast.unparse(node.returns)}" if node.returns else ""
-        lines.append(f"def {node.name}({args}){returns}:")
+        # Build function signature
+        args = []
+        for arg in node.args.args:
+            if arg.annotation:
+                args.append(f"{arg.arg}: {ast.unparse(arg.annotation)}")
+            else:
+                args.append(arg.arg)
+
+        # Add default values
+        defaults = node.args.defaults
+        if defaults:
+            offset = len(node.args.args) - len(defaults)
+            for i, default in enumerate(defaults):
+                args[offset + i] += f" = {ast.unparse(default)}"
+
+        # Add return type annotation
+        returns = (
+            " -> None" if node.returns is None else f" -> {ast.unparse(node.returns)}"
+        )
+
+        # Build function definition
+        if args:
+            lines.append(f"def {node.name}({', '.join(args)}){returns}:")
+        else:
+            lines.append(f"def {node.name}(){returns}:")
+
+        # Add pass statement for stub
         lines.append("    pass")
 
         return lines
@@ -350,10 +317,13 @@ class StubGenerator:
             if len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
                 target = node.targets[0]
                 value = node.value
-                if isinstance(value, (ast.Constant, ast.List, ast.Dict, ast.Set)):
+                if isinstance(value, ast.Constant):
                     value_str = ast.unparse(value)
-                    # Infer type from value
-                    type_str = self._infer_type_from_value(value)
+                    type_str = type(value.value).__name__
+                    return f"{target.id}: {type_str} = {value_str}"
+                elif isinstance(value, ast.List | ast.Dict | ast.Set):
+                    value_str = ast.unparse(value)
+                    type_str = type(value).__name__.lower()
                     return f"{target.id}: {type_str} = {value_str}"
         return None
 
@@ -460,82 +430,54 @@ class StubGenerator:
         # Add header and return
         return header + source
 
-    def _collect_imports(self, node: ast.Module) -> list[ast.stmt]:
-        """Collect and process import statements.
+    def _collect_imports(self, node: ast.Module) -> list[tuple[str, str]]:
+        """Collect and sort imports from a module.
 
         Args:
-            node: Module AST to process
+            node: Module AST node
 
         Returns:
-            List of processed import statements
+            List of tuples (import_type, import_string)
         """
-        imports = [
-            child
-            for child in node.body
-            if isinstance(child, ast.Import | ast.ImportFrom)
-            and self._should_keep_import(child)
-        ]
+        imports = []
+        stdlib_imports = []
+        typing_imports = []
+        pathlib_imports = []
+        local_imports = []
 
-        if self.config.sort_imports and imports:
-            # Convert imports to strings for easier sorting
-            import_lines = []
-            for imp in imports:
-                if isinstance(imp, ast.ImportFrom):
-                    module = imp.module or ""
-                    names = sorted(n.name for n in imp.names)
+        for child in node.body:
+            if isinstance(
+                child, ast.Import | ast.ImportFrom
+            ) and self._should_keep_import(child):
+                if isinstance(child, ast.ImportFrom):
+                    module = child.module or ""
+                    names = sorted(n.name for n in child.names)
                     if module == "typing":
-                        import_lines.append(
-                            ("typing", f"from typing import {', '.join(names)}")
-                        )
+                        typing_imports.append(f"from typing import {', '.join(names)}")
                     elif module == "pathlib":
-                        import_lines.append(
-                            ("pathlib", f"from pathlib import {', '.join(names)}")
+                        pathlib_imports.append(
+                            f"from pathlib import {', '.join(names)}"
                         )
                     elif module.startswith("."):
-                        import_lines.append(
-                            ("local", f"from {module} import {', '.join(names)}")
-                        )
-                    elif module in self.ESSENTIAL_IMPORTS:
-                        import_lines.append(
-                            ("stdlib", f"from {module} import {', '.join(names)}")
-                        )
+                        local_imports.append(f"from {module} import {', '.join(names)}")
                     else:
-                        import_lines.append(
-                            ("third_party", f"from {module} import {', '.join(names)}")
+                        stdlib_imports.append(
+                            f"from {module} import {', '.join(names)}"
                         )
                 else:
-                    names = sorted(n.name for n in imp.names)
-                    name = names[0].split(".")[0]
-                    if name in self.ESSENTIAL_IMPORTS:
-                        import_lines.append(("stdlib", f"import {', '.join(names)}"))
-                    else:
-                        import_lines.append(
-                            ("third_party", f"import {', '.join(names)}")
-                        )
+                    names = sorted(n.name for n in child.names)
+                    stdlib_imports.append(f"import {', '.join(names)}")
 
-            # Sort imports by type and then alphabetically
-            import_lines.sort(
-                key=lambda x: (
-                    {
-                        "stdlib": 0,
-                        "typing": 1,
-                        "pathlib": 2,
-                        "third_party": 3,
-                        "local": 4,
-                    }[x[0]],
-                    x[1],
-                )
-            )
+        # Sort each group alphabetically
+        stdlib_imports.sort()
+        typing_imports.sort()
+        pathlib_imports.sort()
+        local_imports.sort()
 
-            # Convert back to AST nodes
-            result: list[ast.stmt] = []
-            current_type = None
-            for imp_type, imp_str in import_lines:
-                if current_type is not None and current_type != imp_type:
-                    result.append(ast.Expr(value=ast.Constant(value="\n")))
-                current_type = imp_type
-                result.extend(ast.parse(imp_str).body)
+        # Combine all imports in the correct order
+        imports.extend(("stdlib", imp) for imp in stdlib_imports)
+        imports.extend(("pathlib", imp) for imp in pathlib_imports)
+        imports.extend(("typing", imp) for imp in typing_imports)
+        imports.extend(("local", imp) for imp in local_imports)
 
-            return result
-
-        return list(imports)  # Convert to list[ast.stmt]
+        return imports
