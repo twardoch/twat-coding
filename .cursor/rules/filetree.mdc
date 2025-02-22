@@ -70,7 +70,7 @@ globs:
 │       │   │   ├── [1.2K]  __init__.py
 │       │   │   ├── [5.0K]  docstring.py
 │       │   │   ├── [ 16K]  file_importance.py
-│       │   │   ├── [8.5K]  importance.py
+│       │   │   ├── [8.6K]  importance.py
 │       │   │   ├── [6.6K]  imports.py
 │       │   │   ├── [ 11K]  stub_generation.py
 │       │   │   └── [7.4K]  type_inference.py
