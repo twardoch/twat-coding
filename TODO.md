@@ -6,26 +6,34 @@ this_file: TODO.md
 
 ## 1. Immediate Priorities
 
-- [!] **Fix Type Errors**
-  - *Problem*: Multiple type errors in core files
+- [!] **Fix Critical Type Errors**
+  - *Problem*: Multiple type errors in core files affecting functionality
+  - *Details*:
+    1. In `docstring.py`: Name-defined errors for `key_info.annotation` and `value_info.annotation`
+    2. In `__init__.py`: StubConfig initialization missing required arguments
+    3. In `__init__.py`: Type mismatch between StubConfig and StubGenConfig in backend initialization
   - *Solution*:
-    1. Fix `type_system.py` issubclass error with Protocol
-    2. Fix type hints in `docstring.py`
-    3. Fix `StubConfig` vs `StubGenConfig` compatibility in `__init__.py`
-    4. Fix Coroutine type mismatch in async functions
+    1. Fix dictionary type handling in `docstring.py`
+    2. Update StubConfig initialization with all required parameters
+    3. Implement proper type conversion between StubConfig and StubGenConfig
 
 - [!] **Improve Test Coverage**
-  - *Current*: 39% (target: 50%)
-  - *Focus Areas*:
-    1. Add tests for `stub_generation.py` (0% coverage)
-    2. Add tests for `type_inference.py` (0% coverage)
-    3. Add tests for `read_imports.py` (0% coverage)
-    4. Improve coverage in `importance.py` and `docstring.py`
+  - *Current*: 37% (target: 50%)
+  - *Zero Coverage Modules*:
+    1. `stub_generation.py` (0%)
+    2. `type_inference.py` (0%)
+    3. `read_imports.py` (0%)
+    4. `twat_coding.py` (0%)
+  - *Low Coverage Modules*:
+    1. `imports.py` (15%)
+    2. `core/utils.py` (19%)
+    3. `file_importance.py` (21%)
+    4. `type_system.py` (28%)
 
 - [!] **Integrate File Importance**
   - *Status*: Core functionality ready, needs integration
   - *Next Steps*:
-    1. Update `StubResult` in `core/types.py` to store importance metadata
+    1. Update `StubResult` to store importance metadata
     2. Modify `SignatureExtractor` to use importance scores
     3. Implement importance-based docstring preservation
     4. Add tests for importance-based stub generation

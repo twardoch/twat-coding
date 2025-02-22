@@ -400,7 +400,7 @@ class SmartStubGenerator:
 async def generate_stub(
     source_path: PathLike,
     output_path: PathLike | None = None,
-    backend: str = "ast",
+    backend: Literal["ast", "mypy"] = "ast",
     config: StubConfig | None = None,
 ) -> StubResult:
     """Generate a type stub for a Python source file.
@@ -420,20 +420,51 @@ async def generate_stub(
     source_path = Path(source_path)
     output_path_obj = Path(output_path) if output_path else None
 
-    # Use default config if none provided
+    # Create default config if none provided
     if config is None:
         config = StubConfig(
             input_path=source_path,
-            output_path=output_path_obj or Path("out"),
-            backend=backend,
+            output_path=output_path_obj,
+            backend=backend,  # type: Literal["ast", "mypy"]
+            parallel=True,
+            max_workers=None,
+            infer_types=True,
+            preserve_literals=True,
+            docstring_type_hints=True,
+            line_length=88,
+            sort_imports=True,
+            add_header=True,
+            no_import=False,
+            inspect=False,
+            doc_dir="",
+            ignore_errors=True,
+            parse_only=False,
+            include_private=False,
+            verbose=False,
+            quiet=True,
+            export_less=False,
+            max_docstring_length=150,
+            include_type_comments=True,
+            infer_property_types=True,
+            files=[source_path],
+            include_patterns=["*.py"],
+            exclude_patterns=["test_*.py", "*_test.py"],
+            modules=[],
+            packages=[],
+            search_paths=[],
+            python_version=(sys.version_info.major, sys.version_info.minor),
+            interpreter=Path(sys.executable),
         )
+
+    # Convert StubConfig to StubGenConfig for backend
+    stub_gen_config = _convert_to_stub_gen_config(config)
 
     # Initialize backend
     backend_obj: StubBackend
     if backend == "ast":
-        backend_obj = ASTBackend(config)
+        backend_obj = ASTBackend(stub_gen_config)
     elif backend == "mypy":
-        backend_obj = MypyBackend(config)
+        backend_obj = MypyBackend(stub_gen_config)
     else:
         raise ValueError(f"Unsupported backend: {backend}")
 
@@ -444,6 +475,7 @@ async def generate_stub(
 
     # Write stub if output path is specified
     if output_path_obj:
+        output_path_obj.parent.mkdir(parents=True, exist_ok=True)
         output_path_obj.write_text(result.stub_content)
 
     return result
