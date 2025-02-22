@@ -314,21 +314,19 @@ class StubGenerator:
             if sorted_imports:
                 lines.append("")
 
-        # Process public classes only
+        # Process classes
         for class_def in visitor.classes:
-            if self._should_include_member(class_def.name):
-                class_lines = self._process_class_to_lines(class_def)
-                if class_lines:  # Only add if we got lines back
-                    lines.extend(class_lines)
-                    lines.append("")
+            class_lines = self._process_class_to_lines(class_def)
+            if class_lines:  # Only add if we got lines back
+                lines.extend(class_lines)
+                lines.append("")
 
-        # Process public functions only
+        # Process functions
         for func_def in visitor.functions:
-            if self._should_include_member(func_def.name):
-                func_lines = self._process_function_to_lines(func_def)
-                if func_lines:  # Only add if we got lines back
-                    lines.extend(func_lines)
-                    lines.append("")
+            func_lines = self._process_function_to_lines(func_def)
+            if func_lines:  # Only add if we got lines back
+                lines.extend(func_lines)
+                lines.append("")
 
         # Process assignments
         for assignment in visitor.assignments:
