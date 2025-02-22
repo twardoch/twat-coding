@@ -350,10 +350,6 @@ class StubGenerator:
         Returns:
             List of lines for the stub
         """
-        # Skip private classes unless they are special methods
-        if not self.config.include_private and node.name.startswith("_"):
-            return []
-
         lines: list[str] = []
 
         # Add docstring if present

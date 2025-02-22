@@ -6,26 +6,22 @@ this_file: TODO.md
 
 ## 1. Immediate Priorities
 
-- [!] **Fix Critical Linter Errors**
-  - *High Priority Fixes*:
-    - [x] Replace deprecated `ast.Str` usage with `ast.Constant`
-    - [x] Implement StubVisitor for AST traversal
-    - [x] Refactor import sorting logic
-    - [x] Improve private class exclusion logic
-    - [!] Fix remaining linter errors
-      - [!] Fix `iter_child_nodes` and `unparse` attribute errors in `StubGenerator`
-      - [!] Add missing `_should_keep_import` method
-      - [ ] Clean up remaining type hints
+- [!] **Add CLI Interface**
+  - *Using Fire for Command Line*:
+    - [!] Create basic CLI with Fire
+      - [!] Add command to generate stubs for a file
+      - [!] Add command to generate stubs for a directory
+      - [!] Add command to configure stub generation options
+    - [ ] Add progress bar using rich
+    - [ ] Add colorful output for errors and warnings
 
-- [!] **Refactor Stub Generation**
-  - *Code Quality Improvements*:
-    - [!] Split `generate_stub` into smaller functions
-      - [x] Create `_process_function_args` for handling function arguments and defaults
-      - [x] Create `_process_class_to_lines` for class handling
-      - [x] Create `_process_function_to_lines` for function handling
-      - [x] Create `_process_assignment_to_lines` for assignment handling
-      - [!] Create `_should_keep_import` for import filtering
-      - [ ] Create `_process_header` for header generation
+- [!] **Fix Critical Issues**
+  - *High Priority Fixes*:
+    - [!] Fix remaining type hints in stub_generation.py
+    - [!] Fix complexity issues in stub_generation.py
+      - [!] Refactor `generate_stub` method (complexity: 13 > 10)
+      - [!] Refactor `_process_class_to_lines` method (complexity: 11 > 10)
+      - [!] Refactor `_sort_imports` method (complexity: 11 > 10)
 
 ## 2. Near-term Tasks
 

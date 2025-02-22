@@ -23,6 +23,7 @@ globs:
 │       ├── [ 97K]  cleanup-script-execution-and-todo-management-1.md
 │       ├── [ 85K]  cleanup-script-execution-and-todo-management-2.md
 │       ├── [322K]  cleanup-script-execution-and-todo-management.md
+│       ├── [209K]  code-cleanup-and-todo-update-process.md
 │       ├── [333K]  command-execution-and-todo-update.md
 │       ├── [ 248]  detailed-overview-of-python-stubbing-tools.md
 │       ├── [ 25K]  integrating-importance-analysis-modules.md
@@ -35,12 +36,11 @@ globs:
 │       ├── [ 64K]  reviewing-and-tracking-todo-progress.md
 │       ├── [ 56K]  task-management-from-todo-md.md
 │       ├── [4.9K]  task-organization-and-cleanup-process.md
-│       ├── [165K]  todo-list-cleanup-and-review.md
-│       └── [3.3K]  untitled.md
+│       └── [165K]  todo-list-cleanup-and-review.md
 ├── [1.0K]  LICENSE
 ├── [ 173]  MANIFEST.in
 ├── [1.4K]  README.md
-├── [4.1K]  TODO.md
+├── [3.8K]  TODO.md
 ├── [ 12K]  cleanup.py
 ├── [  96]  cursor
 │   └── [  96]  rules
@@ -76,7 +76,7 @@ globs:
 │       │   │   ├── [ 16K]  file_importance.py
 │       │   │   ├── [8.6K]  importance.py
 │       │   │   ├── [6.6K]  imports.py
-│       │   │   ├── [ 24K]  stub_generation.py
+│       │   │   ├── [ 23K]  stub_generation.py
 │       │   │   └── [7.4K]  type_inference.py
 │       │   ├── [1.6K]  read_imports.py
 │       │   ├── [ 160]  types
