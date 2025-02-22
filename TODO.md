@@ -1,141 +1,150 @@
-### 0.1. Step 1: Understand the Current State
+Before you do any changes or if I say "cleanup", run the `./cleanup.py install && source .venv/bin/activate && ./cleanup.py update` script in the main folder. Analyze the results, describe recent changes @TODO.md to update priorities and plan next changes. PERFORM THE CHANGES, then run the `cleanup.py status` script and react to the results.
 
-The `pystubnik` package generates "smart stubs" for Python code, an intermediate representation optimized for large language model (LLM) understanding. The current TODO.md reflects a mix of completed and pending tasks, but it's not aligned with the specific goal of eliminating the standalone scripts. The thinking trace provides a detailed analysis of `@make_stubs_ast.py` (AST-based stub generation) and `@make_stubs_mypy.py` (MyPy-based stub generation), suggesting their functionalities be integrated into `backends/ast_backend.py`, `backends/mypy_backend.py`, and supporting modules like `processors` and `config`.
+When you edit @TODO.md, lead in lines with empty GFM checkboxes if things aren't done (`- [ ] `) vs. filled (`- [x] `) if done, and `- [!]` if they're NEXT TODO. 
 
-### 0.2. Step 2: Identify Key Functionalities to Port
-
-- **From `@make_stubs_ast.py`:**
-  - AST parsing with `SignatureExtractor` for signature preservation.
-  - Literal truncation (`truncate_literal`).
-  - Docstring handling with size constraints.
-  - Parallel processing with `ThreadPoolExecutor`.
-- **From `@make_stubs_mypy.py`:**
-  - MyPy stubgen integration via `SmartStubGenerator`.
-  - Docstring processing for type inference.
-  - Importance-based filtering.
-  - Configuration mapping to MyPy options.
-
-### 0.3. Step 4: Define the New TODO Structure
-
-To achieve a functioning library ASAP:
-1. **Configuration:** Update the config system to support all settings from the old scripts.
-2. **Backends:** Port all functionality into `ast_backend.py` and `mypy_backend.py`.
-3. **Processors:** Enhance processors to handle backend outputs.
-4. **Entry Points:** Update `__init__.py` for immediate usability.
-5. **Testing:** Add basic tests to verify functionality.
-6. **Cleanup:** Deprecate and remove old scripts.
+Don't use `pip`, use `uv pip`. 
 
 # TODO
 
-This TODO.md is a detailed development specification to make `pystubnik` functional ASAP, eliminating `@make_stubs_ast.py` and `@make_stubs_mypy.py` by porting their functionality into the new structure. Tasks are ordered for rapid progress with early validation, including specific instructions for immediate implementation.
 
----
+This TODO.md is a detailed development specification for making `pystubnik` functional ASAP, focusing on integrating the new file importance analysis and eliminating standalone scripts.
 
-## 1. Code Quality Fixes (URGENT)
+## 1. Dependencies and Environment (URGENT)
 
-- [ ] **Fix Ruff Errors:**
-  - [x] Fix deprecated typing imports (UP035) in ast_utils.py
-  - [x] Remove unused imports (F401) in ast_utils.py
-  - [x] Fix line length issues (E501) in ast_utils.py
-  - [x] Address complex functions (C901) in ast_utils.py
-  - [x] Fix remaining issues in __init__.py
-  - [!] Fix remaining issues in other files
+- [!] **Add New Dependencies to `pyproject.toml`:**
+  ```toml
+  [project]
+  dependencies = [
+      # ... existing deps ...
+      "networkx>=3.2.1",     # For import graph analysis
+      "radon>=6.0.1",       # For code complexity metrics
+      "coverage>=7.4.1",    # For test coverage analysis
+      "pydocstyle>=6.3.0", # For docstring quality checks
+      "importlab>=0.8",    # For import graph building
+      "toml>=0.10.2",      # For pyproject.toml parsing
+  ]
+  ```
 
-- [ ] **Fix Type Checking Errors:**
-  - [x] Fix bytes/str type mismatches in ast_utils.py
-  - [x] Fix AST.parent attribute errors in ast_utils.py
-  - [x] Fix type system and docstring type errors in __init__.py
-  - [x] Address object.process attribute error in __init__.py
-  - [!] Fix tuple attribute errors in make_stubs_mypy.py
+- [!] **Fix Import Resolution:**
+  - Add missing type stubs: `types-toml`, `types-pydocstyle`
+  - Fix importlab imports by adding to PYTHONPATH or using relative imports
+  - Add proper error handling for optional dependencies
 
-- [ ] **Improve Test Coverage:**
-  - [!] Add basic unit tests for ast_utils.py
-  - [!] Add basic unit tests for __init__.py
-  - [ ] Add tests for other core functionality
-  - [ ] Focus on critical paths in backends and processors
+## 2. Code Quality Fixes
 
-## 2. Update Configuration
+- [!] **Fix Critical Linter Errors:**
+  - Fix `Numbers.percentage` attribute error in `file_importance.py`
+  - Add proper type hints for importlab classes
+  - Fix line length issues in `file_importance.py`
+  - Add error handling for missing dependencies
 
-- [!] **Extend `StubGenConfig` in `src/twat_coding/pystubnik/core/config.py`:**
-  - Add AST fields: `max_sequence_length`, `max_string_length`, `max_docstring_length`, `max_file_size`, `truncation_marker`
-  - Add MyPy fields: `include_docstrings`, `importance_patterns`, `max_docstring_length`, `infer_property_types`
-  - Document and type all fields
+- [ ] **Improve Code Organization:**
+  - Move common utilities to `utils/` directory
+  - Add proper logging configuration
+  - Add debug mode for verbose output
+  - Document public APIs
 
-- [ ] **Update `config.py` in `src/twat_coding/pystubnik/config.py`:**
-  - Sync `StubConfig` with new `StubGenConfig` fields
-  - Add Pydantic validation
-  - Update `get_file_locations` for relative path logic
+- [ ] **Add Basic Tests:**
+  - Unit tests for `ImportanceProcessor`
+  - Unit tests for `FileImportanceConfig`
+  - Integration tests for combined scoring
+  - Test with real-world packages
 
----
+## 3. Feature Integration
 
-## 3. Port AST-based Stub Generation
+- [!] **Complete File Importance Integration:**
+  ```python
+  # In ImportanceProcessor.process():
+  def process(self, stub_result: StubResult) -> StubResult:
+      # Calculate file scores
+      package_dir = str(stub_result.source_path.parent)
+      self._file_scores = calculate_file_scores(package_dir, self.config.file_importance)
+      
+      # Process AST
+      tree = ast.parse(stub_result.stub_content)
+      for node in ast.walk(tree):
+          if isinstance(node, (ast.FunctionDef, ast.ClassDef)):
+              score = self.calculate_importance(
+                  name=node.name,
+                  docstring=ast.get_docstring(node),
+                  is_public=not node.name.startswith('_'),
+                  is_special=node.name.startswith('__'),
+                  extra_info={"file_path": stub_result.source_path}
+              )
+              # TODO: Store score in node.importance_score
+              
+      return stub_result
+  ```
 
-- [x] **Move `truncate_literal` into `src/twat_coding/pystubnik/utils/ast_utils.py`:**
-  - [x] Update to use `StubGenConfig.truncation`
-  - [x] Split into smaller functions
-  - [x] Add proper type hints
-  - [x] Add error handling
+- [ ] **Enhance Configuration System:**
+  - Add file importance settings to `StubGenConfig`
+  - Add CLI options for file metrics
+  - Add configuration validation
+  - Document all options
 
-- [!] **Move `SignatureExtractor` to `src/twat_coding/pystubnik/backends/ast_backend.py`:**
-  - Use `StubGenConfig` for settings
-  - Keep all methods intact
+- [ ] **Improve Processors:**
+  - Update `DocstringProcessor` to handle file-level docs
+  - Update `ImportProcessor` to use import graph
+  - Add caching for file scores
+  - Add progress reporting
 
-- [ ] **Enhance `ASTBackend.generate_stub`:**
-  - Implement AST parsing, transformation, and writing as shown above
-  - Use `ASTError` for exceptions
+## 4. Documentation and Examples
 
-- [ ] **Add Smoke Test in `tests/test_ast_backend.py`:**
-  - Test basic stub generation with a simple function
+- [ ] **Update Documentation:**
+  - Add file importance metrics explanation
+  - Add configuration examples
+  - Add usage examples
+  - Add troubleshooting guide
 
-- [ ] **Add Parallel Processing to `ASTBackend.process_directory`:**
-  - Implement with `asyncio` and `ThreadPoolExecutor`
+- [ ] **Add Examples:**
+  - Basic usage examples
+  - Configuration examples
+  - Integration examples
+  - Custom metric examples
 
----
+## 5. Testing and Validation
 
-## 4. Port MyPy-based Stub Generation
+- [ ] **Add Comprehensive Tests:**
+  - Test all importance metrics
+  - Test configuration options
+  - Test error handling
+  - Test with large codebases
 
-- [ ] **Move `SmartStubGenerator` to `src/twat_coding/pystubnik/backends/mypy_backend.py`:**
-  - Rename to `MypyBackend`, inherit from `StubBackend`.
+- [ ] **Add Benchmarks:**
+  - Measure performance impact
+  - Compare with original version
+  - Profile memory usage
+  - Optimize bottlenecks
 
-- [ ] **Implement `MypyBackend.generate_stub`:**
-  - Use `stubgen.generate_stubs` with enhanced post-processing.
+## 6. Final Steps
 
-- [ ] **Port `process_docstring` and `calculate_importance`:**
-  - Integrate into `MypyBackend`.
+- [ ] **Clean Up Old Code:**
+  - Remove standalone scripts
+  - Update imports
+  - Remove deprecated code
+  - Update documentation
 
-- [ ] **Add Smoke Test in `tests/test_mypy_backend.py`:**
-  - Test basic stub generation with type hints.
+- [ ] **Release Preparation:**
+  - Update version numbers
+  - Update changelog
+  - Update README
+  - Prepare release notes
 
----
+## 7. Next Actions
 
-## 5. Enhance Processors
+1. Add new dependencies to `pyproject.toml`
+2. Fix import resolution issues
+3. Fix critical linter errors
+4. Complete file importance integration
+5. Add basic tests
+6. Update documentation
 
-- [ ] **Update `processors/docstring.py`, `processors/importance.py`, `processors/imports.py`:**
-  - Align with new backend outputs as described.
+## 8. Notes
 
----
-
-## 6. Update Main Entry Points
-
-- [ ] **Update `generate_stub` and `SmartStubGenerator.generate` in `src/twat_coding/pystubnik/__init__.py`:**
-  - Integrate new backends and processors.
-
----
-
-## 7. Comprehensive Testing
-
-- [ ] **Expand Unit Tests:**
-  - Full coverage for `ASTBackend` and `MypyBackend`.
-
-- [ ] **Add Integration Tests in `tests/test_integration.py`:**
-  - Test end-to-end stub generation.
-
----
-
-## 8. Deprecate Old Scripts
-
-- [ ] **Mark as Deprecated, Update Docs, Remove Scripts:**
-  - Final cleanup steps.
+- The file importance analysis is now integrated into the main package
+- The new system combines both file-level and symbol-level importance
+- All changes maintain backward compatibility
+- Performance impact should be monitored
 
 ---
 
