@@ -24,7 +24,7 @@ globs:
 │       ├── [333K]  command-execution-and-todo-update.md
 │       ├── [ 248]  detailed-overview-of-python-stubbing-tools.md
 │       ├── [ 25K]  integrating-importance-analysis-modules.md
-│       ├── [ 77K]  managing-todo-list-tasks.md
+│       ├── [111K]  managing-todo-list-tasks.md
 │       ├── [3.0K]  overview-of-python-tools-and-their-functions.md
 │       ├── [ 58K]  project-directory-structure-for-python-package.md
 │       ├── [ 64K]  reviewing-and-tracking-todo-progress.md
@@ -34,7 +34,7 @@ globs:
 ├── [1.0K]  LICENSE
 ├── [ 173]  MANIFEST.in
 ├── [1.4K]  README.md
-├── [ 15K]  TODO.md
+├── [ 17K]  TODO.md
 ├── [ 12K]  cleanup.py
 ├── [  96]  cursor
 │   └── [  96]  rules
@@ -52,11 +52,11 @@ globs:
 │       │   ├── [5.3K]  README.md
 │       │   ├── [ 14K]  __init__.py
 │       │   ├── [ 224]  backends
-│       │   │   ├── [1.3K]  __init__.py
+│       │   │   ├── [1.4K]  __init__.py
 │       │   │   ├── [ 12K]  ast_backend.py
 │       │   │   ├── [2.1K]  base.py
-│       │   │   └── [1.0K]  mypy_backend.py
-│       │   ├── [7.7K]  config.py
+│       │   │   └── [1019]  mypy_backend.py
+│       │   ├── [8.0K]  config.py
 │       │   ├── [ 192]  core
 │       │   │   ├── [4.9K]  config.py
 │       │   │   ├── [3.9K]  types.py

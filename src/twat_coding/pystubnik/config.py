@@ -10,6 +10,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from .core.config import PathConfig, StubGenConfig
 from .errors import ConfigError, ErrorCode
 
 
@@ -87,6 +88,15 @@ class FileLocations(BaseModel):
             )
 
 
+def _default_stub_gen_config() -> StubGenConfig:
+    """Create default StubGenConfig instance.
+
+    Returns:
+        Default StubGenConfig instance
+    """
+    return StubGenConfig(paths=PathConfig())
+
+
 class StubConfig(BaseModel):
     """Configuration for stub generation."""
 
@@ -134,8 +144,8 @@ class StubConfig(BaseModel):
     )
 
     # Stub generation settings
-    stub_gen_config: "StubGenConfig" = Field(
-        default_factory=lambda: StubGenConfig(),
+    stub_gen_config: StubGenConfig = Field(
+        default_factory=_default_stub_gen_config,
         description="Configuration for stub generation",
     )
 

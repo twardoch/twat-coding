@@ -1,24 +1,89 @@
+---
+this_file: TODO.md
+---
+
 # TODO
+
+## 1. Immediate Priorities
+
+- [!] **Fix StubConfig Definition**
+  - *Problem*: `StubConfig` is not fully defined, causing test failures
+  - *Solution*: 
+    1. Move `StubGenConfig` definition before `StubConfig`
+    2. Fix circular imports between config files
+    3. Update test files to use correct configuration
+
+- [!] **Fix Type Errors**
+  - *Critical Issues*:
+    - `src/twat_coding/pystubnik/config.py`: Undefined `StubGenConfig`
+    - `src/twat_coding/pystubnik/backends/ast_backend.py`: Incompatible type for `truncate_literal`
+    - `src/twat_coding/pystubnik/types/type_system.py`: Invalid `issubclass` usage
+  - *Solution*:
+    1. Fix type hints in `config.py`
+    2. Update type definitions in backend classes
+    3. Correct `issubclass` usage with proper type checking
+
+- [!] **Improve Test Coverage**
+  - *Current*: 42% (target: 50%)
+  - *Focus Areas*:
+    1. `src/twat_coding/pystubnik/backends/ast_backend.py` (27% coverage)
+    2. `src/twat_coding/pystubnik/processors/stub_generation.py` (0% coverage)
+    3. `src/twat_coding/pystubnik/processors/type_inference.py` (0% coverage)
+
+## 2. Future Tasks
+
+- [ ] **Enhance Documentation**
+  - Update README.md with clear usage examples
+  - Add docstrings to key classes and functions
+  - Create example files demonstrating features
+
+- [ ] **Code Cleanup**
+  - Refactor complex functions in `ast_backend.py`
+  - Simplify configuration system
+  - Remove redundant code
+
+- [ ] **Performance Optimization**
+  - Profile stub generation performance
+  - Optimize memory usage in AST processing
+  - Improve concurrent processing
+
+## 3. Completed Tasks
+
+- [x] **Core AST Backend Implementation**
+  - Basic stub generation functionality
+  - AST transformation logic
+  - Error handling
+
+- [x] **Project Structure**
+  - Basic project layout
+  - Module organization
+  - Package configuration
+
+## 4. Notes
+
+- Focus on fixing the `StubConfig` issue first as it's blocking tests
+- Prioritize type error fixes to ensure code reliability
+- Improve test coverage incrementally, focusing on core functionality first
 
 Before you do any changes or if I say "cleanup", run the `./cleanup.py install && source .venv/bin/activate && ./cleanup.py update | cat` script in the main folder. Analyze the results, describe recent changes @TODO.md to update priorities and plan next changes. PERFORM THE CHANGES, then run the `./cleanup.py update | cat` script and react to the results.
 
 When you edit @TODO.md, lead in lines with empty GFM checkboxes if things aren't done (`- [ ] `) vs. filled (`- [x] `) if done, and `- [!]` if they're NEXT TODO.
 
-Don’t use `pip`, use `uv pip`. Ignore minor problems like "line too long", FOCUS ON MAJOR PROBLEMS!
+Don't use `pip`, use `uv pip`. Ignore minor problems like "line too long", FOCUS ON MAJOR PROBLEMS!
 
 ---
 
-Hey, junior dev! This `TODO.md` is your step-by-step guide to get `pystubnik` ready for its 1.0 release—a rock-solid tool for generating smart stubs. We’re keeping it simple: one backend (AST), smart file importance, basic tests, and clear docs. Every task below is broken down so you can nail it. If you get stuck, run `./cleanup.py status`, check `CLEANUP.log`, and ask for help. Let’s make this awesome together!
+Hey, junior dev! This `TODO.md` is your step-by-step guide to get `pystubnik` ready for its 1.0 release—a rock-solid tool for generating smart stubs. We're keeping it simple: one backend (AST), smart file importance, basic tests, and clear docs. Every task below is broken down so you can nail it. If you get stuck, run `./cleanup.py status`, check `CLEANUP.log`, and ask for help. Let's make this awesome together!
 
-## 1. Core Functionality
+## 5. Core Functionality
 
 - [x] **Lock Down the AST Backend**
-  - *Status*: It’s in `src/twat_coding/pystubnik/backends/ast_backend.py` and works!
+  - *Status*: It's in `src/twat_coding/pystubnik/backends/ast_backend.py` and works!
   - *Why*: This is our stub-generating powerhouse for 1.0—no MyPy or hybrid yet (but keep them around)
 
 - [!] **Fully Integrate File Importance**
   - *What*: Use importance scores to control stub detail (e.g., keep docstrings for important files).
-  - *Why*: This is the “smart” in smart stubs—more detail where it matters.
+  - *Why*: This is the "smart" in smart stubs—more detail where it matters.
   - *How*:
     1. Open `src/twat_coding/pystubnik/core/types.py`.
     2. Update `StubResult` to store metadata:
@@ -139,7 +204,7 @@ Hey, junior dev! This `TODO.md` is your step-by-step guide to get `pystubnik` re
        ```
     4. Fix any import errors in other files (e.g., `ast_backend.py`).
 
-## 2. Testing
+## 6. Testing
 
 - [!] **Add Core Tests**
   - *What*: Test stub generation and importance logic.
@@ -201,7 +266,7 @@ Hey, junior dev! This `TODO.md` is your step-by-step guide to get `pystubnik` re
 
 - [ ] **Boost Coverage to 50%**
   - *What*: Add tests for key modules.
-  - *Why*: Ensures stuff doesn’t break.
+  - *Why*: Ensures stuff doesn't break.
   - *How*:
     1. Run `pytest --cov=src/twat_coding tests/`.
     2. Create `tests/test_processors.py`:
@@ -216,16 +281,16 @@ Hey, junior dev! This `TODO.md` is your step-by-step guide to get `pystubnik` re
     3. Add more tests for `docstring.py`, `ast_utils.py` based on coverage gaps.
     4. Rerun until coverage hits 50%.
 
-## 3. Documentation
+## 7. Documentation
 
 - [!] **Revamp README.md**
   - *What*: Make it user-ready with usage and example.
   - *Why*: First impression for adopters.
   - *How*:
     1. Open `README.md`.
-    2. Replace “Usage” section with:
+    2. Replace "Usage" section with:
        ```markdown
-       ## 4. Usage
+       ## 8. Usage
 
        Generate smart stubs with a simple command:
 
@@ -246,7 +311,7 @@ Hey, junior dev! This `TODO.md` is your step-by-step guide to get `pystubnik` re
        generator.generate()
        ```
 
-       ### 4.1. Example
+       ### 8.1. Example
 
        **Input** (`example.py`):
        ```python
@@ -303,7 +368,7 @@ Hey, junior dev! This `TODO.md` is your step-by-step guide to get `pystubnik` re
        ```
     3. Test: `python -m twat_coding.pystubnik --help`.
 
-## 5. Code Quality
+## 9. Code Quality
 
 - [!] **Fix Type Errors**
   - *What*: Clear all `mypy` issues.
@@ -351,7 +416,7 @@ Hey, junior dev! This `TODO.md` is your step-by-step guide to get `pystubnik` re
   - *What*: Delete old standalone files DONE
   - *Why*: Keeps the codebase clean.
 
-## 6. Release Preparation
+## 10. Release Preparation
 
 - [ ] **Finalize 1.0**
   - *What*: Version it, log it, ship it.
@@ -363,16 +428,16 @@ Hey, junior dev! This `TODO.md` is your step-by-step guide to get `pystubnik` re
        ```
     2. Run `./cleanup.py update && ./cleanup.py push`.
 
-## 7. Next Actions
+## 11. Next Actions
 
 - [!] Integrate file importance fully (step 1.2).
 - [!] Add core tests (step 2.1).
 - [!] Revamp README.md (step 3.1).
 - [!] Fix type errors (step 4.1).
 
-## 8. Notes
+## 12. Notes
 
-- Focus on AST only—MyPy’s for later.
+- Focus on AST only—MyPy's for later.
 - Test every change with `./cleanup.py status`.
-- You’re doing great—let’s ship this!
+- You're doing great—let's ship this!
 
