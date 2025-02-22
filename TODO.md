@@ -6,21 +6,38 @@ this_file: TODO.md
 
 ## 1. Immediate Priorities
 
-- [!] **Fix Stub Generation Issues**
+- [!] **Fix Critical Code Quality Issues**
+  - *Stub Generation Refactoring*:
+    - [ ] Refactor `generate_stub` to reduce complexity (26 > 10)
+    - [ ] Refactor `_process_class_to_lines` to reduce complexity (13 > 10)
+    - [ ] Refactor `_collect_imports` to reduce complexity (11 > 10)
+    - [ ] Fix line length violations in `stub_generation.py`
+    - [ ] Replace deprecated `ast.Str` usage with `ast.Constant`
+
+- [!] **Fix Test Failures**
   - *Critical Fixes*:
     - [ ] Fix private class exclusion in `stub_generation.py`
     - [ ] Fix import sorting order to match test expectations
     - [ ] Fix assignment formatting to match test expectations
-    - [ ] Fix deprecation warning for `ast.Str` in `stub_generation.py`
+    - [ ] Fix constant handling in stub generation
 
-- [!] **Improve Test Coverage (Current: 44%)**
+## 2. Near-term Tasks
+
+- [ ] **Improve Test Coverage (Current: 44%)**
   - *Critical Modules with 0% Coverage*:
     - [ ] Write tests for `type_inference.py`
     - [ ] Write tests for `read_imports.py`
     - [ ] Write tests for `backends/base.py`
     - [ ] Write tests for `twat_coding.py`
 
-## 2. Future Tasks
+- [ ] **Code Quality Improvements**
+  - Fix remaining line length issues in:
+    - [ ] `config.py`
+    - [ ] `core/config.py`
+    - [ ] `processors/file_importance.py`
+    - [ ] `types/docstring.py`
+
+## 3. Future Tasks
 
 - [ ] **Enhance Type Inference**
   - *Tasks*:
@@ -39,7 +56,7 @@ this_file: TODO.md
   - Improve caching in AST backend
   - Profile and optimize file importance calculations
 
-## 3. Development Guidelines
+## 4. Development Guidelines
 
 1. Before making changes:
    - Run: `./cleanup.py install && source .venv/bin/activate && ./cleanup.py update | cat`

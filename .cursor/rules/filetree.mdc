@@ -8,7 +8,7 @@ globs:
 │   └── [ 224]  rules
 │       ├── [2.2K]  0project.mdc
 │       ├── [ 632]  cleanup.mdc
-│       ├── [4.0K]  filetree.mdc
+│       ├── [4.1K]  filetree.mdc
 │       └── [2.0K]  quality.mdc
 ├── [  96]  .github
 │   └── [ 128]  workflows
@@ -74,7 +74,7 @@ globs:
 │       │   │   ├── [ 16K]  file_importance.py
 │       │   │   ├── [8.6K]  importance.py
 │       │   │   ├── [6.6K]  imports.py
-│       │   │   ├── [ 17K]  stub_generation.py
+│       │   │   ├── [ 18K]  stub_generation.py
 │       │   │   └── [7.4K]  type_inference.py
 │       │   ├── [1.6K]  read_imports.py
 │       │   ├── [ 160]  types
@@ -86,6 +86,6 @@ globs:
 │       │       └── [5.2K]  memory.py
 │       └── [1.6K]  twat_coding.py
 └── [ 128]  tests
-    └── [ 12K]  test_package.py
+    └── [ 11K]  test_package.py
 
 20 directories, 65 files
