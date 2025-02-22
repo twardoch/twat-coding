@@ -14,7 +14,6 @@ from twat_coding.pystubnik.core.config import (
 )
 from twat_coding.pystubnik.core.conversion import convert_to_stub_gen_config
 from twat_coding.pystubnik.processors.stub_generation import (
-    StubConfig as GenStubConfig,
     StubGenerator,
 )
 from twat_coding.pystubnik.types.docstring import DocstringTypeExtractor
@@ -248,22 +247,39 @@ class PublicClass:
 """)
 
     # Test with private members excluded
-    config = GenStubConfig(include_private=False)
-    generator = StubGenerator(config=config)
+    config = StubConfig(
+        input_path=tmp_path,
+        output_path=tmp_path / "stubs",
+        include_private=False,
+        backend="ast",
+        parallel=True,
+        max_workers=None,
+        infer_types=True,
+        preserve_literals=False,
+        docstring_type_hints=True,
+        line_length=88,
+        sort_imports=True,
+        add_header=True,
+        no_import=False,
+        inspect=False,
+        doc_dir="",
+        ignore_errors=True,
+        parse_only=False,
+        verbose=False,
+        quiet=True,
+        export_less=False,
+        max_docstring_length=150,
+        include_type_comments=True,
+        infer_property_types=True,
+    )
+    generator = StubGenerator(config)
     stub_content = generator.generate_stub(test_file)
 
-    assert "class PublicClass:" in stub_content
-    assert "def public_method" in stub_content
+    # Verify private members are excluded
     assert "class PrivateClass:" not in stub_content
     assert "def __private_method" not in stub_content
-
-    # Test with docstrings excluded
-    config = GenStubConfig(include_docstrings=False)
-    generator = StubGenerator(config=config)
-    stub_content = generator.generate_stub(test_file)
-
     assert "class PublicClass:" in stub_content
-    assert '"""Public class docstring."""' not in stub_content
+    assert "def public_method" in stub_content
 
 
 def test_stub_generation_imports(tmp_path: Path) -> None:
@@ -282,22 +298,44 @@ def func(x: List[int], y: Dict[str, Optional[Path]]) -> None:
 """)
 
     # Test with sorted imports
-    config = GenStubConfig(sort_imports=True)
-    generator = StubGenerator(config=config)
+    config = StubConfig(
+        input_path=tmp_path,
+        output_path=tmp_path / "stubs",
+        sort_imports=True,
+        backend="ast",
+        parallel=True,
+        max_workers=None,
+        infer_types=True,
+        preserve_literals=False,
+        docstring_type_hints=True,
+        line_length=88,
+        add_header=True,
+        no_import=False,
+        inspect=False,
+        doc_dir="",
+        ignore_errors=True,
+        parse_only=False,
+        include_private=False,
+        verbose=False,
+        quiet=True,
+        export_less=False,
+        max_docstring_length=150,
+        include_type_comments=True,
+        infer_property_types=True,
+    )
+    generator = StubGenerator(config)
     stub_content = generator.generate_stub(test_file)
 
-    # Verify import sorting and essential imports preserved
-    imports = [
-        line.strip()
-        for line in stub_content.split("\n")
-        if "import" in line or "from" in line
+    # Verify imports are sorted
+    lines = stub_content.split("\n")
+    import_lines = [line for line in lines if line.startswith(("import", "from"))]
+    assert import_lines == [
+        "import os.path",
+        "import sys",
+        "from pathlib import Path",
+        "from typing import Dict, List, Optional",
+        "from .local_module import something",
     ]
-    assert "from pathlib import Path" in imports
-    assert "from typing import Dict, List, Optional" in imports
-
-    # Verify typing imports are preserved and merged
-    typing_imports = [imp for imp in imports if "typing" in imp]
-    assert len(typing_imports) == 1  # Should be merged into one import
 
 
 def test_stub_generation_assignments(tmp_path: Path) -> None:

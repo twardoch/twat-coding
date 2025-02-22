@@ -17,7 +17,7 @@ globs:
 ├── [3.5K]  .gitignore
 ├── [ 532]  .pre-commit-config.yaml
 ├── [  96]  .specstory
-│   └── [ 576]  history
+│   └── [ 608]  history
 │       ├── [2.0K]  .what-is-this.md
 │       ├── [ 63K]  adjusting-todo-priorities-from-cleanup-status.md
 │       ├── [ 97K]  cleanup-script-execution-and-todo-management-1.md
@@ -26,7 +26,8 @@ globs:
 │       ├── [333K]  command-execution-and-todo-update.md
 │       ├── [ 248]  detailed-overview-of-python-stubbing-tools.md
 │       ├── [ 25K]  integrating-importance-analysis-modules.md
-│       ├── [267K]  managing-todo-list-tasks.md
+│       ├── [431K]  managing-todo-list-tasks-1.md
+│       ├── [356K]  managing-todo-list-tasks.md
 │       ├── [380K]  managing-todo-md-tasks.md
 │       ├── [3.0K]  overview-of-python-tools-and-their-functions.md
 │       ├── [ 58K]  project-directory-structure-for-python-package.md
@@ -37,7 +38,7 @@ globs:
 ├── [1.0K]  LICENSE
 ├── [ 173]  MANIFEST.in
 ├── [1.4K]  README.md
-├── [3.6K]  TODO.md
+├── [3.3K]  TODO.md
 ├── [ 12K]  cleanup.py
 ├── [  96]  cursor
 │   └── [  96]  rules
@@ -73,7 +74,7 @@ globs:
 │       │   │   ├── [ 16K]  file_importance.py
 │       │   │   ├── [8.6K]  importance.py
 │       │   │   ├── [6.6K]  imports.py
-│       │   │   ├── [ 15K]  stub_generation.py
+│       │   │   ├── [ 17K]  stub_generation.py
 │       │   │   └── [7.4K]  type_inference.py
 │       │   ├── [1.6K]  read_imports.py
 │       │   ├── [ 160]  types
@@ -85,6 +86,6 @@ globs:
 │       │       └── [5.2K]  memory.py
 │       └── [1.6K]  twat_coding.py
 └── [ 128]  tests
-    └── [ 11K]  test_package.py
+    └── [ 12K]  test_package.py
 
-20 directories, 64 files
+20 directories, 65 files
