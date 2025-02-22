@@ -425,7 +425,7 @@ async def generate_stub(
         config = StubConfig(
             input_path=source_path,
             output_path=output_path_obj,
-            backend=backend,  # type: Literal["ast", "mypy"]
+            backend=backend,  # Backend type is already defined in the function signature
             parallel=True,
             max_workers=None,
             infer_types=True,
