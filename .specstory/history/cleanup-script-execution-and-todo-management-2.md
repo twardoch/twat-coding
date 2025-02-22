@@ -1370,11 +1370,930 @@ I see the unused `sys` import. Let's remove it:
 
 _****_
 
-
+```diff
+  
+  import asyncio
+- import sys
+  from collections.abc import Mapping, Sequence
+  from importlib.metadata import version
+```
 
 ---
 
 _****_
+
+
+
+Next, let's fix the type comparison in `test_package.py`:
+
+---
+
+_****_
+
+Read file: tests/test_package.py
+
+---
+
+_****_
+
+```diff
+      # Test basic type parsing
+      type_info = extractor._parse_type_string("str")
+-     assert type_info.annotation == str
++     assert isinstance(type_info.annotation, type) and issubclass(type_info.annotation, str)
+      assert type_info.confidence == 0.8
+  
+```
+
+---
+
+_****_
+
+
+
+
+
+Now, let's fix the UP007 type annotation in `core/types.py`:
+
+---
+
+_****_
+
+Read file: src/twat_coding/pystubnik/core/types.py
+
+---
+
+_****_
+
+```diff
+  
+  # Type aliases
+- PathLike = Union[str, Path]
++ PathLike = str | Path
+  ImportMap = dict[str, ImportInfo]
+  StubMap = dict[PathLike, StubResult]
+```
+
+---
+
+_****_
+
+
+
+
+
+Now let's look at the complex `_parse_type_string` function in `docstring.py`:
+
+---
+
+_****_
+
+Read file: src/twat_coding/pystubnik/types/docstring.py
+
+---
+
+_****_
+
+
+
+The `_parse_type_string` function is complex because it handles multiple type formats. Let's break it down into smaller, focused functions:
+
+---
+
+_****_
+
+```diff
+          )
+  
+-     def _parse_type_string(self, type_str: str) -> TypeInfo:
+-         """Parse a type string from a docstring.
++     def _parse_simple_type(self, type_str: str) -> TypeInfo | None:
++         """Parse a simple type string that maps directly to a Python type.
+  
+          Args:
+              type_str: Type string to parse
+  
+          Returns:
+-             Parsed type information
+- 
+-         Raises:
+-             TypeInferenceError: If type string parsing fails
++             TypeInfo if the type is found in TYPE_MAPPINGS, None otherwise
+          """
+-         try:
+-             # Clean up type string
+-             type_str = type_str.strip()
+- 
+-             # Handle simple types
+-             if type_str in self.TYPE_MAPPINGS:
+-                 return TypeInfo(
+-                     annotation=self.TYPE_MAPPINGS[type_str],
+-                     source="docstring",
+-                     confidence=0.8,
+-                     metadata={"original": type_str},
+-                 )
+- 
+-             # Handle union types (e.g., "str or None")
+-             if " or " in type_str:
+-                 types = [
+-                     self._parse_type_string(t.strip()) for t in type_str.split(" or ")
+-                 ]
+-                 if not types:
+-                     raise TypeInferenceError("Empty union type")
+-                 if len(types) == 1:
+-                     return types[0]
+-                 # Create a union of all types
+-                 union_type = types[0].annotation
+-                 for t in types[1:]:
+-                     union_type = union_type | t.annotation
+-                 return TypeInfo(
+-                     annotation=union_type,
+-                     source="docstring",
+-                     confidence=0.7,
+-                     metadata={"original": type_str, "union_types": types},
+-                 )
++         if type_str in self.TYPE_MAPPINGS:
++             return TypeInfo(
++                 annotation=self.TYPE_MAPPINGS[type_str],
++                 source="docstring",
++                 confidence=0.8,
++                 metadata={"original": type_str},
++             )
++         return None
++ 
++     def _parse_union_type(self, type_str: str) -> TypeInfo | None:
++         """Parse a union type string (e.g., "str or None").
++ 
++         Args:
++             type_str: Type string to parse
++ 
++         Returns:
++             TypeInfo for the union type if valid, None otherwise
++ 
++         Raises:
++             TypeInferenceError: If union type parsing fails
++         """
++         if " or " not in type_str:
++             return None
++ 
++         types = [self._parse_type_string(t.strip()) for t in type_str.split(" or ")]
++         if not types:
++             raise TypeInferenceError("Empty union type")
++         if len(types) == 1:
++             return types[0]
++ 
++         # Create a union of all types
++         union_type = types[0].annotation
++         for t in types[1:]:
++             union_type = union_type | t.annotation
++         return TypeInfo(
++             annotation=union_type,
++             source="docstring",
++             confidence=0.7,
++             metadata={"original": type_str, "union_types": types},
++         )
+  
+-             # Handle generic types (e.g., "List[str]")
+-             match = re.match(r"(\w+)\[(.*)\]", type_str)
+-             if match:
+-                 container, content = match.groups()
+-                 if container.lower() in ("list", "set", "tuple"):
+-                     elem_type = self._parse_type_string(content)
+-                     container_type = self.TYPE_MAPPINGS.get(container.lower(), list)
+-                     return TypeInfo(
+-                         annotation=container_type[elem_type.annotation],  # type: ignore
+-                         source="docstring",
+-                         confidence=0.7,
+-                         metadata={
+-                             "original": type_str,
+-                             "container": container,
+-                             "element_type": elem_type,
+-                         },
+-                     )
+-                 elif container.lower() == "dict":
+-                     key_type, value_type = map(str.strip, content.split(","))
+-                     key_info = self._parse_type_string(key_type)
+-                     value_info = self._parse_type_string(value_type)
+-                     return TypeInfo(
+-                         annotation=dict[
+-                             Any, Any
+-                         ],  # Using Any as a fallback since we can't use variables as types
+-                         source="docstring",
+-                         confidence=0.7,
+-                         metadata={
+-                             "original": type_str,
+-                             "key_type": key_info,
+-                             "value_type": value_info,
+-                         },
+-                     )
+- 
+-             # Try to resolve as a type alias or fall back to Any
++     def _parse_container_type(self, container: str, content: str) -> TypeInfo | None:
++         """Parse a container type like List[str] or Dict[str, int].
++ 
++         Args:
++             container: Container type name
++             content: Content type string
++ 
++         Returns:
++             TypeInfo for the container type if valid, None otherwise
++         """
++         if container.lower() in ("list", "set", "tuple"):
++             elem_type = self._parse_type_string(content)
++             container_type = self.TYPE_MAPPINGS.get(container.lower(), list)
++             return TypeInfo(
++                 annotation=container_type[elem_type.annotation],  # type: ignore
++                 source="docstring",
++                 confidence=0.7,
++                 metadata={
++                     "original": f"{container}[{content}]",
++                     "container": container,
++                     "element_type": elem_type,
++                 },
++             )
++         elif container.lower() == "dict":
++             key_type, value_type = map(str.strip, content.split(","))
++             key_info = self._parse_type_string(key_type)
++             value_info = self._parse_type_string(value_type)
++             return TypeInfo(
++                 annotation=dict[Any, Any],  # Using Any as a fallback
++                 source="docstring",
++                 confidence=0.7,
++                 metadata={
++                     "original": f"{container}[{content}]",
++                     "key_type": key_info,
++                     "value_type": value_info,
++                 },
++             )
++         return None
++ 
++     def _parse_type_string(self, type_str: str) -> TypeInfo:
++         """Parse a type string from a docstring.
++ 
++         Args:
++             type_str: Type string to parse
++ 
++         Returns:
++             Parsed type information
++ 
++         Raises:
++             TypeInferenceError: If type string parsing fails
++         """
++         try:
++             type_str = type_str.strip()
++ 
++             # Try simple type first
++             if result := self._parse_simple_type(type_str):
++                 return result
++ 
++             # Try union type
++             if result := self._parse_union_type(type_str):
++                 return result
++ 
++             # Try generic container type
++             if match := re.match(r"(\w+)\[(.*)\]", type_str):
++                 container, content = match.groups()
++                 if result := self._parse_container_type(container, content):
++                     return result
++ 
++             # Try type alias
+              if type_str in self.type_registry._type_aliases:
+                  return TypeInfo(
+                  )
+  
+-             # If all else fails, return Any with low confidence
++             # Fall back to Any
+              return TypeInfo(
+                  annotation=Any,
+```
+
+---
+
+_****_
+
+
+
+
+
+Let's run the cleanup script again to verify our changes:
+
+---
+
+_****_
+
+```bash
+./cleanup.py update | cat
+```
+
+```
+2025-02-22 05:12:22 - 
+=== PROJECT STATEMENT ===
+2025-02-22 05:12:22 - ---
+description: About this project
+globs: 
+---
+---
+name: About this project
+key: 0project
+---
+
+`twat-coding` is a Python toolkit focused on code analysis and tra
+nsformation. Its main package `pystubnik` generates "smart stubs"
+- a hybrid between full source code and type stubs that helps LLMs
+ understand large codebases efficiently. Smart stubs preserve esse
+ntial code structure (signatures, types, imports) while intelligen
+tly reducing verbosity based on code importance.
+
+## 1. Overview
+
+Pystubnik creates a "shadow" directory structure that mirrors your
+ Python package, containing smart stubs for all Python files. Thes
+e smart stubs are designed to be more informative than traditional
+ `.pyi` stub files while being more concise than full source code.
+### 1.1. What are Smart Stubs?
+
+Smart stubs are an intermediate representation that includes:
+- All function and class signatures with type hints
+- All imports (organized and optimized)
+- Docstrings (with configurable length limits)
+- Important/relevant code sections
+- Truncated versions of large data structures and strings
+- Simplified function bodies for non-critical code
+
+The verbosity level is automatically adjusted based on the code's 
+importance and complexity.
+
+## 2. Architecture
+
+### 2.1. Backends
+
+#### 2.1.1. AST Backend
+- Uses Python's built-in AST module for precise control
+- Preserves code structure while reducing verbosity
+- Configurable truncation of large literals and sequences
+- Maintains type information and docstrings
+- Supports Python 3.12+ features (type parameters, etc.)
+
+#### 2.1.2. MyPy Backend
+- Leverages mypy's stubgen for type information
+- Better type inference capabilities
+- Handles special cases (dataclasses, properties)
+- Supports type comment extraction
+
+### 2.2. Processors
+
+#### 2.2.1. Import Processor
+- Analyzes and organizes imports
+- Groups by type (stdlib, third-party, local)
+- Handles relative imports
+- Detects and removes duplicates
+
+#### 2.2.2. Docstring Processor
+- Configurable docstring preservation
+- Format detection and conversion
+- Type information extraction
+- Length-based truncation
+
+#### 2.2.3. Importance Processor
+- Scores code elements by importance
+- Pattern-based importance detection
+- Inheritance-aware scoring
+- Configurable filtering
+2025-02-22 05:12:22 - 
+=== Current Status ===
+2025-02-22 05:12:22 - Error: LOG.md is missing
+2025-02-22 05:12:22 - [ 960]  .
+├── [  64]  .benchmarks
+├── [  96]  .cursor
+│   └── [ 224]  rules
+│       ├── [2.2K]  0project.mdc
+│       ├── [ 632]  cleanup.mdc
+│       ├── [4.0K]  filetree.mdc
+│       └── [2.0K]  quality.mdc
+├── [  96]  .github
+│   └── [ 128]  workflows
+│       ├── [2.7K]  push.yml
+│       └── [1.4K]  release.yml
+├── [3.5K]  .gitignore
+├── [ 532]  .pre-commit-config.yaml
+├── [  96]  .specstory
+│   └── [ 576]  history
+│       ├── [2.0K]  .what-is-this.md
+│       ├── [ 63K]  adjusting-todo-priorities-from-cleanup-status.
+md
+│       ├── [ 97K]  cleanup-script-execution-and-todo-management-1
+.md
+│       ├── [ 55K]  cleanup-script-execution-and-todo-management-2
+.md
+│       ├── [322K]  cleanup-script-execution-and-todo-management.m
+d
+│       ├── [333K]  command-execution-and-todo-update.md
+│       ├── [ 248]  detailed-overview-of-python-stubbing-tools.md
+│       ├── [ 25K]  integrating-importance-analysis-modules.md
+│       ├── [267K]  managing-todo-list-tasks.md
+│       ├── [380K]  managing-todo-md-tasks.md
+│       ├── [3.0K]  overview-of-python-tools-and-their-functions.m
+d
+│       ├── [ 58K]  project-directory-structure-for-python-package
+.md
+│       ├── [ 64K]  reviewing-and-tracking-todo-progress.md
+│       ├── [ 56K]  task-management-from-todo-md.md
+│       ├── [4.9K]  task-organization-and-cleanup-process.md
+│       └── [165K]  todo-list-cleanup-and-review.md
+├── [1.0K]  LICENSE
+├── [ 173]  MANIFEST.in
+├── [1.4K]  README.md
+├── [1.9K]  TODO.md
+├── [ 12K]  cleanup.py
+├── [  96]  cursor
+│   └── [  96]  rules
+│       └── [  31]  0project.mdc
+├── [  96]  dist
+│   └── [   1]  .gitkeep
+├── [ 305]  mypy.ini
+├── [ 426]  package.toml
+├── [4.8K]  pyproject.toml
+├── [223K]  repomix-output.txt
+├── [ 128]  src
+│   └── [ 256]  twat_coding
+│       ├── [ 144]  __init__.py
+│       ├── [ 448]  pystubnik
+│       │   ├── [5.3K]  README.md
+│       │   ├── [ 16K]  __init__.py
+│       │   ├── [ 224]  backends
+│       │   │   ├── [1.2K]  __init__.py
+│       │   │   ├── [ 12K]  ast_backend.py
+│       │   │   ├── [2.4K]  base.py
+│       │   │   └── [ 982]  mypy_backend.py
+│       │   ├── [8.8K]  config.py
+│       │   ├── [ 256]  core
+│       │   │   ├── [6.1K]  config.py
+│       │   │   ├── [2.4K]  conversion.py
+│       │   │   ├── [ 492]  shared_types.py
+│       │   │   ├── [3.9K]  types.py
+│       │   │   └── [8.3K]  utils.py
+│       │   ├── [5.1K]  errors.py
+│       │   ├── [ 320]  processors
+│       │   │   ├── [1.2K]  __init__.py
+│       │   │   ├── [5.0K]  docstring.py
+│       │   │   ├── [ 16K]  file_importance.py
+│       │   │   ├── [8.6K]  importance.py
+│       │   │   ├── [6.6K]  imports.py
+│       │   │   ├── [ 11K]  stub_generation.py
+│       │   │   └── [7.4K]  type_inference.py
+│       │   ├── [1.6K]  read_imports.py
+│       │   ├── [ 160]  types
+│       │   │   ├── [ 10K]  docstring.py
+│       │   │   └── [9.7K]  type_system.py
+│       │   └── [ 192]  utils
+│       │       ├── [5.6K]  ast_utils.py
+│       │       ├── [1.8K]  display.py
+│       │       └── [5.2K]  memory.py
+│       └── [1.6K]  twat_coding.py
+└── [ 128]  tests
+    └── [6.2K]  test_package.py
+
+20 directories, 64 files
+
+2025-02-22 05:12:22 - 
+Project structure:
+2025-02-22 05:12:22 - [ 960]  .
+├── [  64]  .benchmarks
+├── [  96]  .cursor
+│   └── [ 224]  rules
+│       ├── [2.2K]  0project.mdc
+│       ├── [ 632]  cleanup.mdc
+│       ├── [4.0K]  filetree.mdc
+│       └── [2.0K]  quality.mdc
+├── [  96]  .github
+│   └── [ 128]  workflows
+│       ├── [2.7K]  push.yml
+│       └── [1.4K]  release.yml
+├── [3.5K]  .gitignore
+├── [ 532]  .pre-commit-config.yaml
+├── [  96]  .specstory
+│   └── [ 576]  history
+│       ├── [2.0K]  .what-is-this.md
+│       ├── [ 63K]  adjusting-todo-priorities-from-cleanup-status.
+md
+│       ├── [ 97K]  cleanup-script-execution-and-todo-management-1
+.md
+│       ├── [ 55K]  cleanup-script-execution-and-todo-management-2
+.md
+│       ├── [322K]  cleanup-script-execution-and-todo-management.m
+d
+│       ├── [333K]  command-execution-and-todo-update.md
+│       ├── [ 248]  detailed-overview-of-python-stubbing-tools.md
+│       ├── [ 25K]  integrating-importance-analysis-modules.md
+│       ├── [267K]  managing-todo-list-tasks.md
+│       ├── [380K]  managing-todo-md-tasks.md
+│       ├── [3.0K]  overview-of-python-tools-and-their-functions.m
+d
+│       ├── [ 58K]  project-directory-structure-for-python-package
+.md
+│       ├── [ 64K]  reviewing-and-tracking-todo-progress.md
+│       ├── [ 56K]  task-management-from-todo-md.md
+│       ├── [4.9K]  task-organization-and-cleanup-process.md
+│       └── [165K]  todo-list-cleanup-and-review.md
+├── [1.0K]  LICENSE
+├── [ 173]  MANIFEST.in
+├── [1.4K]  README.md
+├── [1.9K]  TODO.md
+├── [ 12K]  cleanup.py
+├── [  96]  cursor
+│   └── [  96]  rules
+│       └── [  31]  0project.mdc
+├── [  96]  dist
+│   └── [   1]  .gitkeep
+├── [ 305]  mypy.ini
+├── [ 426]  package.toml
+├── [4.8K]  pyproject.toml
+├── [223K]  repomix-output.txt
+├── [ 128]  src
+│   └── [ 256]  twat_coding
+│       ├── [ 144]  __init__.py
+│       ├── [ 448]  pystubnik
+│       │   ├── [5.3K]  README.md
+│       │   ├── [ 16K]  __init__.py
+│       │   ├── [ 224]  backends
+│       │   │   ├── [1.2K]  __init__.py
+│       │   │   ├── [ 12K]  ast_backend.py
+│       │   │   ├── [2.4K]  base.py
+│       │   │   └── [ 982]  mypy_backend.py
+│       │   ├── [8.8K]  config.py
+│       │   ├── [ 256]  core
+│       │   │   ├── [6.1K]  config.py
+│       │   │   ├── [2.4K]  conversion.py
+│       │   │   ├── [ 492]  shared_types.py
+│       │   │   ├── [3.9K]  types.py
+│       │   │   └── [8.3K]  utils.py
+│       │   ├── [5.1K]  errors.py
+│       │   ├── [ 320]  processors
+│       │   │   ├── [1.2K]  __init__.py
+│       │   │   ├── [5.0K]  docstring.py
+│       │   │   ├── [ 16K]  file_importance.py
+│       │   │   ├── [8.6K]  importance.py
+│       │   │   ├── [6.6K]  imports.py
+│       │   │   ├── [ 11K]  stub_generation.py
+│       │   │   └── [7.4K]  type_inference.py
+│       │   ├── [1.6K]  read_imports.py
+│       │   ├── [ 160]  types
+│       │   │   ├── [ 10K]  docstring.py
+│       │   │   └── [9.7K]  type_system.py
+│       │   └── [ 192]  utils
+│       │       ├── [5.6K]  ast_utils.py
+│       │       ├── [1.8K]  display.py
+│       │       └── [5.2K]  memory.py
+│       └── [1.6K]  twat_coding.py
+└── [ 128]  tests
+    └── [6.2K]  test_package.py
+
+20 directories, 64 files
+
+2025-02-22 05:12:22 - On branch main
+Your branch is ahead of 'origin/main' by 2 commits.
+  (use "git push" to publish your local commits)
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working direc
+tory)
+        modified:   .cursor/rules/filetree.mdc
+        modified:   src/twat_coding/pystubnik/__init__.py
+        modified:   src/twat_coding/pystubnik/core/types.py
+        modified:   src/twat_coding/pystubnik/types/docstring.py
+        modified:   tests/test_package.py
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        .specstory/history/cleanup-script-execution-and-todo-manag
+ement-2.md
+
+no changes added to commit (use "git add" and/or "git commit -a")
+
+2025-02-22 05:12:22 - On branch main
+Your branch is ahead of 'origin/main' by 2 commits.
+  (use "git push" to publish your local commits)
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working direc
+tory)
+        modified:   .cursor/rules/filetree.mdc
+        modified:   src/twat_coding/pystubnik/__init__.py
+        modified:   src/twat_coding/pystubnik/core/types.py
+        modified:   src/twat_coding/pystubnik/types/docstring.py
+        modified:   tests/test_package.py
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        .specstory/history/cleanup-script-execution-and-todo-manag
+ement-2.md
+
+no changes added to commit (use "git add" and/or "git commit -a")
+
+2025-02-22 05:12:22 - 
+=== Environment Status ===
+2025-02-22 05:12:22 - Setting up virtual environment
+2025-02-22 05:12:23 - Virtual environment created and activated
+2025-02-22 05:12:23 - Installing package with all extras
+2025-02-22 05:12:23 - Setting up virtual environment
+2025-02-22 05:12:23 - Virtual environment created and activated
+2025-02-22 05:12:23 - Package installed successfully
+2025-02-22 05:12:23 - Running code quality checks
+2025-02-22 05:12:23 - >>> Running code fixes...
+2025-02-22 05:12:24 - ::error title=Ruff (E501),file=/Users/adam/D
+eveloper/vcs/github.twardoch/pub/twat-packages/_good/twat/plugins/
+repos/twat_coding/src/twat_coding/pystubnik/config.py,line=75,col=
+89,endLine=75,endColumn=98::src/twat_coding/pystubnik/config.py:75
+:89: E501 Line too long (97 > 88)
+::error title=Ruff (E501),file=/Users/adam/Developer/vcs/github.tw
+ardoch/pub/twat-packages/_good/twat/plugins/repos/twat_coding/src/
+twat_coding/pystubnik/core/config.py,line=177,col=89,endLine=177,e
+ndColumn=100::src/twat_coding/pystubnik/core/config.py:177:89: E50
+1 Line too long (99 > 88)
+::error title=Ruff (E501),file=/Users/adam/Developer/vcs/github.tw
+ardoch/pub/twat-packages/_good/twat/plugins/repos/twat_coding/src/
+twat_coding/pystubnik/processors/file_importance.py,line=29,col=89
+,endLine=29,endColumn=90::src/twat_coding/pystubnik/processors/fil
+e_importance.py:29:89: E501 Line too long (89 > 88)
+::error title=Ruff (E501),file=/Users/adam/Developer/vcs/github.tw
+ardoch/pub/twat-packages/_good/twat/plugins/repos/twat_coding/src/
+twat_coding/pystubnik/types/docstring.py,line=134,col=89,endLine=1
+34,endColumn=90::src/twat_coding/pystubnik/types/docstring.py:134:
+89: E501 Line too long (89 > 88)
+::error title=Ruff (E501),file=/Users/adam/Developer/vcs/github.tw
+ardoch/pub/twat-packages/_good/twat/plugins/repos/twat_coding/test
+s/test_package.py,line=164,col=89,endLine=164,endColumn=92::tests/
+test_package.py:164:89: E501 Line too long (91 > 88)
+
+2025-02-22 05:12:24 - 1 file reformatted, 27 files left unchanged
+
+2025-02-22 05:12:24 - >>>Running type checks...
+2025-02-22 05:12:26 - Success: no issues found in 29 source files
+
+2025-02-22 05:12:26 - >>> Running tests...
+2025-02-22 05:12:31 - ......
+
+                             [100%]
+=============================== warnings summary =================
+==============
+tests/test_package.py::test_ast_backend
+tests/test_package.py::test_ast_backend
+tests/test_package.py::test_docstring_preservation
+tests/test_package.py::test_docstring_preservation
+  /Users/adam/Developer/vcs/github.twardoch/pub/twat-packages/_goo
+d/twat/plugins/repos/twat_coding/src/twat_coding/pystubnik/backend
+s/ast_backend.py:76: DeprecationWarning: ast.Str is deprecated and
+ will be removed in Python 3.14; use ast.Constant instead
+    if isinstance(first, ast.Expr) and isinstance(first.value, ast
+.Str):
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings
+.html
+
+---------- coverage: platform darwin, python 3.12.8-final-0 ------
+----
+Name                                                      Stmts
+
+Miss  Cover
+------------------------------------------------------------------
+-----------
+src/twat_coding/__init__.py                                   2
+
+   0   100%
+src/twat_coding/__version__.py                                4
+
+   0   100%
+src/twat_coding/pystubnik/__init__.py                        99
+
+  65    34%
+src/twat_coding/pystubnik/backends/__init__.py               18
+
+   7    61%
+src/twat_coding/pystubnik/backends/ast_backend.py           137
+
+  43    69%
+src/twat_coding/pystubnik/backends/base.py                   25
+
+  25     0%
+src/twat_coding/pystubnik/backends/mypy_backend.py            9
+
+   0   100%
+src/twat_coding/pystubnik/config.py                         102
+
+  26    75%
+src/twat_coding/pystubnik/core/config.py                     95
+
+  22    77%
+src/twat_coding/pystubnik/core/conversion.py                 12
+
+   1    92%
+src/twat_coding/pystubnik/core/shared_types.py                8
+
+   0   100%
+src/twat_coding/pystubnik/core/types.py                      90
+
+   6    93%
+src/twat_coding/pystubnik/core/utils.py                     141
+
+ 114    19%
+src/twat_coding/pystubnik/errors.py                          53
+
+  23    57%
+src/twat_coding/pystubnik/processors/__init__.py             17
+
+   7    59%
+src/twat_coding/pystubnik/processors/docstring.py            67
+
+  42    37%
+src/twat_coding/pystubnik/processors/file_importance.py     209
+
+ 166    21%
+src/twat_coding/pystubnik/processors/importance.py          101
+
+  73    28%
+src/twat_coding/pystubnik/processors/imports.py              87
+
+  74    15%
+src/twat_coding/pystubnik/processors/stub_generation.py     116
+
+ 116     0%
+src/twat_coding/pystubnik/processors/type_inference.py       66
+
+  66     0%
+src/twat_coding/pystubnik/read_imports.py                    29
+
+  29     0%
+src/twat_coding/pystubnik/types/docstring.py                131
+
+  43    67%
+src/twat_coding/pystubnik/types/type_system.py               96
+
+  65    32%
+src/twat_coding/pystubnik/utils/ast_utils.py                 69
+
+  47    32%
+src/twat_coding/pystubnik/utils/display.py                   27
+
+  18    33%
+src/twat_coding/pystubnik/utils/memory.py                    94
+
+  51    46%
+src/twat_coding/twat_coding.py                               29
+
+  29     0%
+------------------------------------------------------------------
+-----------
+TOTAL                                                      1933
+
+1158    40%
+
+6 passed, 4 warnings in 2.72s
+
+2025-02-22 05:12:31 - All checks completed
+2025-02-22 05:12:31 - 
+=== TODO.md ===
+2025-02-22 05:12:31 - ---
+this_file: TODO.md
+---
+
+# TODO
+
+## 1. Immediate Priorities
+
+- [!] **Improve Test Coverage (Current: 40%)**
+  - *Critical Modules with 0% Coverage*:
+    - [ ] Write tests for `stub_generation.py`
+    - [ ] Write tests for `type_inference.py`
+    - [ ] Write tests for `read_imports.py`
+    - [ ] Write tests for `backends/base.py`
+    - [ ] Write tests for `twat_coding.py`
+
+- [!] **Enhance Type Inference**
+  - *Tasks*:
+    - [ ] Improve type inference from docstrings
+    - [ ] Add support for more complex type annotations
+    - [ ] Handle generic types and type variables
+    - [ ] Fix UP007 type annotation in `core/types.py` (use `X | Y
+` syntax)
+
+- [!] **Code Quality Improvements**
+  - *High Priority*:
+    - [ ] Remove unused `sys` import from `__init__.py`
+    - [ ] Refactor complex `_parse_type_string` function in `docst
+ring.py`
+    - [ ] Fix type comparison in `test_package.py` (use `isinstanc
+e()`)
+
+## 2. Future Tasks
+
+- [ ] **Documentation Updates**
+  - Update README.md with detailed usage and examples
+  - Add `examples/greet.py`
+  - Ensure `pystubnik/README.md` has basic usage
+  - Add docstrings to untested modules
+
+- [ ] **Performance Optimization**
+  - Optimize stub generation performance
+  - Improve caching in AST backend
+  - Profile and optimize file importance calculations
+
+## 3. Notes
+
+- Use `uv pip` for package management
+- Ignore minor linting issues (line length) for now
+- Run `./cleanup.py update | cat` after changes to verify fixes
+
+## 4. Development Guidelines
+
+1. Before making changes:
+   - Run: `./cleanup.py install && source .venv/bin/activate && ./
+cleanup.py update | cat`
+   - Analyze results and update priorities
+2. After changes:
+   - Run: `./cleanup.py update | cat`
+   - Verify fixes and update TODO.md
+3. When editing TODO.md:
+   - Use `- [ ]` for pending tasks
+   - Use `- [x]` for completed tasks
+   - Use `- [!]` for next priority tasks
+
+2025-02-22 05:12:31 -  M .cursor/rules/filetree.mdc
+ M src/twat_coding/pystubnik/__init__.py
+ M src/twat_coding/pystubnik/core/types.py
+ M src/twat_coding/pystubnik/types/docstring.py
+ M tests/test_package.py
+?? .specstory/history/cleanup-script-execution-and-todo-management
+-2.md
+
+2025-02-22 05:12:31 - Changes detected in repository
+2025-02-22 05:12:31 - [main c5dc39c] Update repository files
+ 6 files changed, 1497 insertions(+), 70 deletions(-)
+ create mode 100644 .specstory/history/cleanup-script-execution-an
+d-todo-management-2.md
+
+2025-02-22 05:12:31 - Changes committed successfully
+
+
+```
+
+---
+
+_****_
+
+
+
+Let me update the TODO.md to reflect our progress:
+
+---
+
+_****_
+
+```diff
+      - [ ] Add support for more complex type annotations
+      - [ ] Handle generic types and type variables
+-     - [ ] Fix UP007 type annotation in `core/types.py` (use `X | Y` syntax)
++     - [x] Fix UP007 type annotation in `core/types.py` (use `X | Y` syntax)
+  
+  - [!] **Code Quality Improvements**
+    - *High Priority*:
+-     - [ ] Remove unused `sys` import from `__init__.py`
+-     - [ ] Refactor complex `_parse_type_string` function in `docstring.py`
+-     - [ ] Fix type comparison in `test_package.py` (use `isinstance()`)
++     - [x] Remove unused `sys` import from `__init__.py`
++     - [x] Refactor complex `_parse_type_string` function in `docstring.py`
++     - [x] Fix type comparison in `test_package.py` (use `isinstance()`)
++     - [ ] Fix deprecation warning for `ast.Str` in `ast_backend.py`
+  
+  ## 2. Future Tasks
+```
+
+---
+
+_****_
+
+
+
+We've made good progress on the code quality improvements:
+1. Removed unused `sys` import
+2. Fixed type annotation to use `|` instead of `Union`
+3. Fixed type comparison to use `isinstance()`
+4. Refactored the complex `_parse_type_string` function into smaller, focused functions
+
+I noticed a new issue during the cleanup: a deprecation warning about `ast.Str` in `ast_backend.py`, which I've added to the TODO list.
+
+The next highest priority should be improving test coverage, as we have several modules with 0% coverage. Would you like me to start working on that next?
+
+---
+
+_**User**_
+
+don't ask, just work through the @TODO.md 
+
+---
+
+_**Assistant**_
 
 
 

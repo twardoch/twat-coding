@@ -13,6 +13,10 @@ from twat_coding.pystubnik.core.config import (
     StubGenConfig,
 )
 from twat_coding.pystubnik.core.conversion import convert_to_stub_gen_config
+from twat_coding.pystubnik.processors.stub_generation import (
+    StubConfig as GenStubConfig,
+    StubGenerator,
+)
 from twat_coding.pystubnik.types.docstring import DocstringTypeExtractor
 from twat_coding.pystubnik.types.type_system import TypeRegistry
 
@@ -181,3 +185,145 @@ def test_docstring_type_extraction() -> None:
     assert type_info.confidence == 0.7
     assert "key_type" in type_info.metadata
     assert "value_type" in type_info.metadata
+
+
+def test_stub_generation_basic(tmp_path: Path) -> None:
+    """Test basic stub generation functionality."""
+    # Create a test file with various Python constructs
+    test_file = tmp_path / "test_stub.py"
+    test_file.write_text("""
+import typing
+from pathlib import Path
+from typing import List, Optional
+
+class MyClass:
+    \"\"\"Test class docstring.\"\"\"
+
+    def __init__(self, name: str) -> None:
+        self.name = name
+
+    def process(self, items: List[int]) -> Optional[str]:
+        \"\"\"Process items.\"\"\"
+        return None
+
+def helper(x: int = 42) -> bool:
+    \"\"\"Helper function.\"\"\"
+    return True
+
+CONSTANT: int = 100
+""")
+
+    # Create stub generator with default config
+    generator = StubGenerator()
+
+    # Generate stub
+    stub_content = generator.generate_stub(test_file)
+
+    # Verify stub content
+    assert "import typing" in stub_content
+    assert "from pathlib import Path" in stub_content
+    assert "from typing import List, Optional" in stub_content
+    assert "class MyClass:" in stub_content
+    assert '"""Test class docstring."""' in stub_content
+    assert "def __init__(self, name: str) -> None:" in stub_content
+    assert "def process(self, items: List[int]) -> Optional[str]:" in stub_content
+    assert '"""Process items."""' in stub_content
+    assert "def helper(x: int = 42) -> bool:" in stub_content
+    assert "CONSTANT: int = 100" in stub_content
+
+
+def test_stub_generation_config(tmp_path: Path) -> None:
+    """Test stub generation with different configurations."""
+    test_file = tmp_path / "test_config.py"
+    test_file.write_text("""
+class PrivateClass:
+    \"\"\"Private class docstring.\"\"\"
+    def __private_method(self) -> None:
+        pass
+
+class PublicClass:
+    \"\"\"Public class docstring.\"\"\"
+    def public_method(self) -> str:
+        return "public"
+""")
+
+    # Test with private members excluded
+    config = GenStubConfig(include_private=False)
+    generator = StubGenerator(config=config)
+    stub_content = generator.generate_stub(test_file)
+
+    assert "class PublicClass:" in stub_content
+    assert "def public_method" in stub_content
+    assert "class PrivateClass:" not in stub_content
+    assert "def __private_method" not in stub_content
+
+    # Test with docstrings excluded
+    config = GenStubConfig(include_docstrings=False)
+    generator = StubGenerator(config=config)
+    stub_content = generator.generate_stub(test_file)
+
+    assert "class PublicClass:" in stub_content
+    assert '"""Public class docstring."""' not in stub_content
+
+
+def test_stub_generation_imports(tmp_path: Path) -> None:
+    """Test import handling in stub generation."""
+    test_file = tmp_path / "test_imports.py"
+    test_file.write_text("""
+from typing import List, Dict
+import sys
+import os.path
+from pathlib import Path
+from .local_module import something
+from typing import Optional
+
+def func(x: List[int], y: Dict[str, Optional[Path]]) -> None:
+    pass
+""")
+
+    # Test with sorted imports
+    config = GenStubConfig(sort_imports=True)
+    generator = StubGenerator(config=config)
+    stub_content = generator.generate_stub(test_file)
+
+    # Verify import sorting and essential imports preserved
+    imports = [
+        line.strip()
+        for line in stub_content.split("\n")
+        if "import" in line or "from" in line
+    ]
+    assert "from pathlib import Path" in imports
+    assert "from typing import Dict, List, Optional" in imports
+
+    # Verify typing imports are preserved and merged
+    typing_imports = [imp for imp in imports if "typing" in imp]
+    assert len(typing_imports) == 1  # Should be merged into one import
+
+
+def test_stub_generation_assignments(tmp_path: Path) -> None:
+    """Test handling of variable assignments in stub generation."""
+    test_file = tmp_path / "test_assignments.py"
+    test_file.write_text("""
+from typing import List, Optional
+
+# Type annotated assignments
+x: int = 42
+names: List[str] = ["a", "b"]
+maybe: Optional[float] = None
+
+# Regular assignments
+CONSTANT = "value"
+FLAG = True
+""")
+
+    generator = StubGenerator()
+    stub_content = generator.generate_stub(test_file)
+
+    # Verify type annotated assignments are preserved
+    assert "x: int" in stub_content
+    assert "names: List[str]" in stub_content
+    assert "maybe: Optional[float]" in stub_content
+
+    # Verify regular assignments are preserved with inferred types
+    assert "CONSTANT: str = 'value'" in stub_content
+    assert "FLAG: bool = True" in stub_content

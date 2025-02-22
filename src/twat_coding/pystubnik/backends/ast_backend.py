@@ -73,7 +73,11 @@ class SignatureExtractor(ast.NodeTransformer):
 
         # Check if first statement is a docstring
         first = body[0]
-        if isinstance(first, ast.Expr) and isinstance(first.value, ast.Str):
+        if (
+            isinstance(first, ast.Expr)
+            and isinstance(first.value, ast.Constant)
+            and isinstance(first.value.value, str)
+        ):
             return [first]  # Keep only docstring
         return []  # No docstring found
 
@@ -93,7 +97,11 @@ class SignatureExtractor(ast.NodeTransformer):
         for stmt in node.body:
             if isinstance(stmt, ast.Import | ast.ImportFrom):
                 imports.append(stmt)
-            elif isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Str):
+            elif (
+                isinstance(stmt, ast.Expr)
+                and isinstance(stmt.value, ast.Constant)
+                and isinstance(stmt.value.value, str)
+            ):
                 new_body.append(stmt)
             else:
                 new_body.append(self.visit(stmt))

@@ -21,7 +21,7 @@ globs:
 │       ├── [2.0K]  .what-is-this.md
 │       ├── [ 63K]  adjusting-todo-priorities-from-cleanup-status.md
 │       ├── [ 97K]  cleanup-script-execution-and-todo-management-1.md
-│       ├── [ 55K]  cleanup-script-execution-and-todo-management-2.md
+│       ├── [ 85K]  cleanup-script-execution-and-todo-management-2.md
 │       ├── [322K]  cleanup-script-execution-and-todo-management.md
 │       ├── [333K]  command-execution-and-todo-update.md
 │       ├── [ 248]  detailed-overview-of-python-stubbing-tools.md
@@ -37,7 +37,7 @@ globs:
 ├── [1.0K]  LICENSE
 ├── [ 173]  MANIFEST.in
 ├── [1.4K]  README.md
-├── [1.9K]  TODO.md
+├── [3.6K]  TODO.md
 ├── [ 12K]  cleanup.py
 ├── [  96]  cursor
 │   └── [  96]  rules
@@ -73,7 +73,7 @@ globs:
 │       │   │   ├── [ 16K]  file_importance.py
 │       │   │   ├── [8.6K]  importance.py
 │       │   │   ├── [6.6K]  imports.py
-│       │   │   ├── [ 11K]  stub_generation.py
+│       │   │   ├── [ 15K]  stub_generation.py
 │       │   │   └── [7.4K]  type_inference.py
 │       │   ├── [1.6K]  read_imports.py
 │       │   ├── [ 160]  types
@@ -85,6 +85,6 @@ globs:
 │       │       └── [5.2K]  memory.py
 │       └── [1.6K]  twat_coding.py
 └── [ 128]  tests
-    └── [6.2K]  test_package.py
+    └── [ 11K]  test_package.py
 
 20 directories, 64 files
