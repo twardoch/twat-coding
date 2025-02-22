@@ -74,7 +74,7 @@ globs:
 │       │   ├── [1.6K]  read_imports.py
 │       │   ├── [ 160]  types
 │       │   │   ├── [9.3K]  docstring.py
-│       │   │   └── [9.7K]  type_system.py
+│       │   │   └── [9.8K]  type_system.py
 │       │   └── [ 192]  utils
 │       │       ├── [5.6K]  ast_utils.py
 │       │       ├── [1.8K]  display.py

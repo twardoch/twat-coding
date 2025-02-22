@@ -6,30 +6,33 @@ this_file: TODO.md
 
 ## 1. Immediate Priorities
 
-- [!] **Fix Test Failures**
-  - *Problem*: Test `test_type_hints` is failing due to string comparison mismatch
+- [!] **Fix Type Errors**
+  - *Problem*: Multiple type errors in core files
   - *Solution*:
-    1. Update test to handle AST formatting differences
-    2. Fix string comparison in test assertions
-    3. Ensure AST backend preserves type hints exactly
-
-- [!] **Fix Type Errors in __init__.py**
-  - *Problem*: Multiple type errors in `__init__.py` related to `StubConfig`
-  - *Solution*:
-    1. Update `StubConfig` to accept all required parameters
-    2. Fix type compatibility between `StubConfig` and `StubGenConfig`
-    3. Update function signatures to match expected types
+    1. Fix `type_system.py` issubclass error with Protocol
+    2. Fix type hints in `docstring.py`
+    3. Fix `StubConfig` vs `StubGenConfig` compatibility in `__init__.py`
+    4. Fix Coroutine type mismatch in async functions
 
 - [!] **Improve Test Coverage**
-  - *Current*: 39% (up from 10%, target: 50%)
+  - *Current*: 39% (target: 50%)
   - *Focus Areas*:
-    1. `src/twat_coding/pystubnik/processors/stub_generation.py` (0% coverage)
-    2. `src/twat_coding/pystubnik/processors/type_inference.py` (0% coverage)
-    3. `src/twat_coding/pystubnik/read_imports.py` (0% coverage)
+    1. Add tests for `stub_generation.py` (0% coverage)
+    2. Add tests for `type_inference.py` (0% coverage)
+    3. Add tests for `read_imports.py` (0% coverage)
+    4. Improve coverage in `importance.py` and `docstring.py`
+
+- [!] **Integrate File Importance**
+  - *Status*: Core functionality ready, needs integration
+  - *Next Steps*:
+    1. Update `StubResult` in `core/types.py` to store importance metadata
+    2. Modify `SignatureExtractor` to use importance scores
+    3. Implement importance-based docstring preservation
+    4. Add tests for importance-based stub generation
 
 ## 2. Future Tasks
 
-- [ ] **Enhance Documentation**
+- [ ] **Documentation Updates**
   - Update README.md with clear usage examples
   - Add docstrings to key classes and functions
   - Create example files demonstrating features
@@ -37,7 +40,7 @@ this_file: TODO.md
 - [ ] **Code Cleanup**
   - Refactor complex functions in `ast_backend.py`
   - Simplify configuration system
-  - Remove redundant code
+  - Remove redundant code in processors
 
 - [ ] **Performance Optimization**
   - Profile stub generation performance
@@ -63,9 +66,11 @@ this_file: TODO.md
 
 ## 4. Notes
 
-- Focus on fixing the failing test first as it indicates a core functionality issue
-- Then address type errors in `__init__.py` to ensure type safety
-- Continue improving test coverage, focusing on untested modules
+- Focus on fixing type errors first as they affect core functionality
+- Then improve test coverage to ensure stability
+- Complete file importance integration to enable smart stub generation
+- Run `./cleanup.py status` to check progress
+- Use `uv pip` instead of `pip` for package management
 - Ignore minor linting issues (line length) for now
 
 Before you do any changes or if I say "cleanup", run the `./cleanup.py install && source .venv/bin/activate && ./cleanup.py update | cat` script in the main folder. Analyze the results, describe recent changes @TODO.md to update priorities and plan next changes. PERFORM THE CHANGES, then run the `./cleanup.py update | cat` script and react to the results.
