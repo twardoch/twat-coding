@@ -7,7 +7,7 @@ processors that can be used during stub generation.
 from abc import abstractmethod
 from typing import Protocol
 
-from pystubnik.core.types import StubResult
+from ..core.types import StubResult
 
 
 class Processor(Protocol):

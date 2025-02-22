@@ -6,9 +6,9 @@ based on the original make_stubs_mypy.py implementation.
 
 from pathlib import Path
 
-from pystubnik.backends import StubBackend
-from pystubnik.core.config import PathConfig, StubGenConfig
-from pystubnik.core.types import StubResult
+from . import StubBackend
+from ..core.config import PathConfig, StubGenConfig
+from ..core.types import StubResult
 
 
 class MypyBackend(StubBackend):
@@ -17,9 +17,9 @@ class MypyBackend(StubBackend):
     def __init__(self, config: StubGenConfig | None = None):
         self.config = config or StubGenConfig(paths=PathConfig())
 
-    def generate_stub(
+    async def generate_stub(
         self, source_path: Path, output_path: Path | None = None
-    ) -> StubResult:
+    ) -> str:
         """Generate stub for the given source file using MyPy's stubgen.
 
         Args:
@@ -27,7 +27,7 @@ class MypyBackend(StubBackend):
             output_path: Optional path to write the stub file
 
         Returns:
-            StubResult containing the generated stub and metadata
+            Generated stub content as string
         """
         # TODO: Port functionality from make_stubs_mypy.py
         msg = "MyPy backend not yet implemented"
