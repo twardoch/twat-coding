@@ -159,7 +159,7 @@
     - [x] Move SignatureExtractor to ast_backend.py
     - [x] Move truncate_literal to utils/ast_utils.py
     - [x] Add print_file_tree to utils/display.py
-    - [ ] Integrate FileLocations into config system
+    - [x] Integrate FileLocations into config system
     - [ ] Move generate_shadow_file to ast_backend.py
     - [ ] Move process_directory to ast_backend.py
   - [ ] From make_stubs_mypy.py:
