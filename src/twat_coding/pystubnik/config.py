@@ -105,6 +105,10 @@ class StubConfig(BaseModel):
         None,
         description="Path to output directory for stubs",
     )
+    files: list[Path] = Field(
+        default_factory=list,
+        description="List of files to process",
+    )
     include_patterns: list[str] = Field(
         default_factory=lambda: ["*.py"],
         description="Glob patterns for files to include",
@@ -127,6 +131,12 @@ class StubConfig(BaseModel):
         None,
         description="Maximum number of worker threads",
         ge=1,
+    )
+
+    # Stub generation settings
+    stub_gen_config: "StubGenConfig" = Field(
+        default_factory=lambda: StubGenConfig(),
+        description="Configuration for stub generation",
     )
 
     # Type inference settings
@@ -199,89 +209,20 @@ class StubConfig(BaseModel):
         default_factory=list,
         description="List of module names to process",
     )
-    packages: Sequence[str] = Field(
-        default_factory=list,
-        description="List of package names to process recursively",
-    )
-    files: Sequence[str | Path] = Field(
-        default_factory=list,
-        description="List of files to process",
-    )
-    verbose: bool = Field(
-        False,
-        description="Show more detailed output",
-    )
-    quiet: bool = Field(
-        True,
-        description="Show minimal output",
-    )
-    export_less: bool = Field(
-        False,
-        description="Don't export imported names",
-    )
-    importance_patterns: dict[str, float] = Field(
-        default_factory=dict,
-        description="Dict of regex patterns to importance scores",
-    )
-    max_docstring_length: int = Field(
-        500,
-        description="Maximum length for included docstrings",
-        ge=1,
-    )
-    include_type_comments: bool = Field(
-        True,
-        description="Include type comments in stubs",
-    )
-    infer_property_types: bool = Field(
-        True,
-        description="Try to infer property types from docstrings",
-    )
-
-    @field_validator("output_path", mode="before")
-    @classmethod
-    def validate_output_path(cls, v: Any) -> Path | None:
-        """Validate and create output directory if it doesn't exist."""
-        if v is None:
-            return None
-        try:
-            path = Path(v)
-            path.mkdir(parents=True, exist_ok=True)
-            return path
-        except Exception as e:
-            raise ConfigError(
-                f"Failed to create output directory: {e}",
-                ErrorCode.CONFIG_IO_ERROR,
-                source=str(v),
-            ) from e
-
-    @field_validator("input_path")
-    @classmethod
-    def validate_input_path(cls, v: Path) -> Path:
-        """Validate input path exists."""
-        if not v.exists():
-            raise ConfigError(
-                "Input path does not exist",
-                ErrorCode.CONFIG_VALIDATION_ERROR,
-                source=str(v),
-            )
-        return v
 
     def get_file_locations(self, source_path: Path) -> FileLocations:
-        """Create FileLocations for a source file.
+        """Get file locations for a source file.
 
         Args:
             source_path: Path to source file
 
         Returns:
-            FileLocations instance
-
-        Raises:
-            ConfigError: If paths are invalid
+            FileLocations object
         """
         return FileLocations(
             source_path=source_path,
             input_dir=self.input_path,
-            output_dir=self.output_path or self.input_path.parent / "stubs",
+            output_dir=self.output_path or Path("out"),
         )
 
 

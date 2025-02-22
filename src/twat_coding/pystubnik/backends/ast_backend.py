@@ -8,7 +8,6 @@ based on the original make_stubs_ast.py implementation.
 import ast
 import asyncio
 import functools
-import hashlib
 import weakref
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
@@ -16,14 +15,14 @@ from pathlib import Path
 from typing import Any, ClassVar
 
 from loguru import logger
-from . import StubBackend
-from ..core.config import StubGenConfig, TruncationConfig
 
 from ..config import StubConfig
+from ..core.config import StubGenConfig, TruncationConfig
 from ..errors import ASTError, ErrorCode
 from ..utils.ast_utils import attach_parents, truncate_literal
 from ..utils.display import print_progress
 from ..utils.memory import MemoryMonitor, stream_process_ast
+from . import StubBackend
 
 
 @dataclass
@@ -46,7 +45,9 @@ class SignatureExtractor(ast.NodeTransformer):
     But replaces function bodies with an ellipsis.
     """
 
-    def __init__(self, config: StubGenConfig, file_size: int = 0, importance_score: float = 1.0):
+    def __init__(
+        self, config: StubGenConfig, file_size: int = 0, importance_score: float = 1.0
+    ):
         super().__init__()
         self.config = config
         self.file_size = file_size
@@ -66,13 +67,19 @@ class SignatureExtractor(ast.NodeTransformer):
             return []
 
         # Skip docstrings for large, low-importance files
-        if self.file_size > self.config.truncation.max_file_size and self.importance_score < 0.7:
+        if (
+            self.file_size > self.config.truncation.max_file_size
+            and self.importance_score < 0.7
+        ):
             return []
 
         match body[0]:
             case ast.Expr(value=ast.Constant(value=str() as docstring)):
                 # Skip long docstrings unless very important
-                if len(docstring) > self.config.truncation.max_docstring_length and self.importance_score < 0.9:
+                if (
+                    len(docstring) > self.config.truncation.max_docstring_length
+                    and self.importance_score < 0.9
+                ):
                     return []
                 return [body[0]]
             case _:
@@ -170,7 +177,7 @@ class ASTBackend(StubBackend):
         Args:
             config: Configuration for stub generation
         """
-        super().__init__(config)
+        self.config = config
         self._executor = ThreadPoolExecutor(
             max_workers=config.max_workers if config.max_workers else None
         )
@@ -211,7 +218,10 @@ class ASTBackend(StubBackend):
             # Calculate importance score
             file_score = 0.5  # Default score
             try:
-                from ..processors.importance import ImportanceProcessor, ImportanceConfig
+                from ..processors.importance import (
+                    ImportanceProcessor,
+                )
+
                 processor = ImportanceProcessor()
                 file_score = processor._get_file_score({"file_path": source_path})
             except Exception as e:
@@ -225,9 +235,7 @@ class ASTBackend(StubBackend):
 
             # Transform AST
             transformer = SignatureExtractor(
-                self.config.stub_gen_config,
-                len(source),
-                importance_score=file_score
+                self.config.stub_gen_config, len(source), importance_score=file_score
             )
             transformed = transformer.visit(tree)
             stub_content = ast.unparse(transformed)

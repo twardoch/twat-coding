@@ -8,7 +8,7 @@ globs:
 │   └── [ 224]  rules
 │       ├── [2.2K]  0project.mdc
 │       ├── [ 632]  cleanup.mdc
-│       ├── [3.8K]  filetree.mdc
+│       ├── [3.7K]  filetree.mdc
 │       └── [2.0K]  quality.mdc
 ├── [  96]  .github
 │   └── [ 128]  workflows
@@ -24,13 +24,13 @@ globs:
 │       ├── [333K]  command-execution-and-todo-update.md
 │       ├── [ 248]  detailed-overview-of-python-stubbing-tools.md
 │       ├── [ 25K]  integrating-importance-analysis-modules.md
+│       ├── [ 77K]  managing-todo-list-tasks.md
 │       ├── [3.0K]  overview-of-python-tools-and-their-functions.md
 │       ├── [ 58K]  project-directory-structure-for-python-package.md
 │       ├── [ 64K]  reviewing-and-tracking-todo-progress.md
 │       ├── [ 56K]  task-management-from-todo-md.md
 │       ├── [4.9K]  task-organization-and-cleanup-process.md
-│       ├── [165K]  todo-list-cleanup-and-review.md
-│       └── [ 632]  untitled.md
+│       └── [165K]  todo-list-cleanup-and-review.md
 ├── [1.0K]  LICENSE
 ├── [ 173]  MANIFEST.in
 ├── [1.4K]  README.md
@@ -48,38 +48,38 @@ globs:
 ├── [ 128]  src
 │   └── [ 256]  twat_coding
 │       ├── [ 144]  __init__.py
-│       ├── [ 384]  pystubnik
+│       ├── [ 416]  pystubnik
 │       │   ├── [5.3K]  README.md
 │       │   ├── [ 14K]  __init__.py
-│       │   ├── [ 192]  backends
+│       │   ├── [ 224]  backends
 │       │   │   ├── [1.3K]  __init__.py
 │       │   │   ├── [ 12K]  ast_backend.py
 │       │   │   ├── [2.1K]  base.py
-│       │   │   └── [1.1K]  mypy_backend.py
-│       │   ├── [9.5K]  config.py
-│       │   ├── [ 160]  core
+│       │   │   └── [1.0K]  mypy_backend.py
+│       │   ├── [7.7K]  config.py
+│       │   ├── [ 192]  core
 │       │   │   ├── [4.9K]  config.py
 │       │   │   ├── [3.9K]  types.py
 │       │   │   └── [8.3K]  utils.py
 │       │   ├── [5.1K]  errors.py
-│       │   ├── [ 288]  processors
+│       │   ├── [ 320]  processors
 │       │   │   ├── [1.2K]  __init__.py
 │       │   │   ├── [5.0K]  docstring.py
 │       │   │   ├── [ 16K]  file_importance.py
-│       │   │   ├── [6.4K]  importance.py
+│       │   │   ├── [7.5K]  importance.py
 │       │   │   ├── [6.6K]  imports.py
 │       │   │   ├── [ 11K]  stub_generation.py
 │       │   │   └── [7.4K]  type_inference.py
 │       │   ├── [1.6K]  read_imports.py
-│       │   ├── [ 128]  types
+│       │   ├── [ 160]  types
 │       │   │   ├── [8.4K]  docstring.py
 │       │   │   └── [8.2K]  type_system.py
-│       │   └── [ 160]  utils
+│       │   └── [ 192]  utils
 │       │       ├── [5.3K]  ast_utils.py
 │       │       ├── [1.8K]  display.py
 │       │       └── [5.2K]  memory.py
 │       └── [1.6K]  twat_coding.py
 └── [ 128]  tests
-    └── [ 165]  test_package.py
+    └── [3.9K]  test_package.py
 
 20 directories, 59 files

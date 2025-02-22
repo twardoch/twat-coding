@@ -5,8 +5,9 @@ and a registry to manage different backend implementations.
 """
 
 from abc import abstractmethod
+from collections.abc import Coroutine
 from pathlib import Path
-from typing import Protocol, Coroutine, Any
+from typing import Any, Protocol
 
 from ..core.types import StubResult
 

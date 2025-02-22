@@ -1,10 +1,10 @@
 #!/usr/bin/env -S uv run
 """Importance scoring for symbols and code elements."""
 
+import ast
 import re
 from dataclasses import dataclass, field
 from typing import Any
-import ast
 
 from loguru import logger
 
@@ -66,7 +66,9 @@ class ImportanceProcessor(Processor):
         if not self._file_scores:
             try:
                 package_dir = str(stub_result.source_path.parent)
-                self._file_scores = prioritize_files(package_dir, self.config.file_importance)
+                self._file_scores = prioritize_files(
+                    package_dir, self.config.file_importance
+                )
             except Exception as e:
                 logger.warning(f"Failed to calculate file importance: {e}")
 
@@ -81,25 +83,28 @@ class ImportanceProcessor(Processor):
         try:
             tree = ast.parse(stub_result.stub_content)
             for node in ast.walk(tree):
-                if isinstance(node, (ast.FunctionDef, ast.ClassDef)):
+                if isinstance(node, ast.FunctionDef | ast.ClassDef):
                     docstring = ast.get_docstring(node)
                     score = self.calculate_importance(
                         name=node.name,
                         docstring=docstring,
-                        is_public=not node.name.startswith('_'),
-                        is_special=node.name.startswith('__') and node.name.endswith('__'),
-                        extra_info={"file_path": stub_result.source_path}
+                        is_public=not node.name.startswith("_"),
+                        is_special=node.name.startswith("__")
+                        and node.name.endswith("__"),
+                        extra_info={"file_path": stub_result.source_path},
                     )
                     stub_result.metadata[f"{node.name}_score"] = score
-                    
+
                     # For low importance functions, replace body with ellipsis
                     if score < 0.7 and isinstance(node, ast.FunctionDef):
                         node.body = [ast.Expr(value=ast.Constant(value=Ellipsis))]
-            
+
             # Update stub content with modified AST
             stub_result.stub_content = ast.unparse(tree)
         except Exception as e:
-            logger.warning(f"Error processing symbols in {stub_result.source_path}: {e}")
+            logger.warning(
+                f"Error processing symbols in {stub_result.source_path}: {e}"
+            )
 
         return stub_result
 

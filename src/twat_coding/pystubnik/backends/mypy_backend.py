@@ -6,9 +6,8 @@ based on the original make_stubs_mypy.py implementation.
 
 from pathlib import Path
 
-from . import StubBackend
 from ..core.config import PathConfig, StubGenConfig
-from ..core.types import StubResult
+from . import StubBackend
 
 
 class MypyBackend(StubBackend):
