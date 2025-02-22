@@ -26,7 +26,7 @@ globs:
 │       ├── [ 248]  detailed-overview-of-python-stubbing-tools.md
 │       ├── [ 25K]  integrating-importance-analysis-modules.md
 │       ├── [267K]  managing-todo-list-tasks.md
-│       ├── [137K]  managing-todo-md-tasks.md
+│       ├── [220K]  managing-todo-md-tasks.md
 │       ├── [3.0K]  overview-of-python-tools-and-their-functions.md
 │       ├── [ 58K]  project-directory-structure-for-python-package.md
 │       ├── [ 64K]  reviewing-and-tracking-todo-progress.md
@@ -36,7 +36,7 @@ globs:
 ├── [1.0K]  LICENSE
 ├── [ 173]  MANIFEST.in
 ├── [1.4K]  README.md
-├── [3.3K]  TODO.md
+├── [3.5K]  TODO.md
 ├── [ 12K]  cleanup.py
 ├── [  96]  cursor
 │   └── [  96]  rules
@@ -59,8 +59,9 @@ globs:
 │       │   │   ├── [2.4K]  base.py
 │       │   │   └── [1.1K]  mypy_backend.py
 │       │   ├── [8.8K]  config.py
-│       │   ├── [ 224]  core
+│       │   ├── [ 256]  core
 │       │   │   ├── [6.1K]  config.py
+│       │   │   ├── [1.1K]  conversion.py
 │       │   │   ├── [ 492]  shared_types.py
 │       │   │   ├── [3.9K]  types.py
 │       │   │   └── [8.3K]  utils.py
@@ -85,4 +86,4 @@ globs:
 └── [ 128]  tests
     └── [2.3K]  test_package.py
 
-20 directories, 62 files
+20 directories, 63 files

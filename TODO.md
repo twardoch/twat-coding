@@ -16,58 +16,41 @@ this_file: TODO.md
 
 ## 2. Immediate Priorities
 
-- [x] **Fix Syntax Error in `__init__.py`**
-  - *Task*: Correct the syntax error on line 428 to enable execution.
-
 - [!] **Fix Critical Type Errors**
   - *Tasks*:
-    1. In `docstring.py`, fix `key_info.annotation` and `value_info.annotation` errors.
-    2. In `__init__.py`, complete `StubConfig` initialization.
-    3. In `__init__.py`, align `StubConfig` and `StubGenConfig` types.
-
-- [x] **Clean Up Unused Imports**
-  - *Task*: Remove unused imports per Ruff reports:
-    1. Remove unused `collections.abc.Coroutine` from `backends/__init__.py`
-    2. Remove unused `typing.Any` from `backends/__init__.py`
-    3. Remove unused `..core.types.StubResult` from `backends/__init__.py`
-
-- [x] **Fix Failing Tests**
-  - *Tasks*:
-    1. Update `test_package.py` to use `StubResult.stub_content`.
-    2. Verify AST backend and docstring tests pass.
+    1. Fix `StubGenConfig` initialization in `core/config.py` - it's missing proper parameter names (`paths`, `runtime`, `processing`, `truncation`).
+    2. Fix `StubConfig` attribute access in `core/conversion.py` - need to align attributes with actual class definition.
+    3. Fix circular import between `__init__.py` and `ast_backend.py` by moving conversion functions to `core/conversion.py`.
+    4. Fix type error in `docstring.py` for `key_info.annotation` and `value_info.annotation`.
 
 - [!] **Simplify Configuration**
   - *Tasks*:
-    1. Reduce `StubGenConfig` to core settings in `core/config.py`.
-    2. Adjust `SmartStubGenerator` accordingly.
+    1. Consolidate configuration in `core/config.py` to reduce duplication.
+    2. Ensure consistent parameter names across all config classes.
+    3. Update all config usages to match new structure.
 
-- [!] **Integrate File Importance**
+- [!] **Fix Backend Type Compatibility**
+  - *Tasks*:
+    1. Fix `MypyBackend` signature compatibility with `StubBackend`.
+    2. Ensure consistent return types across all backend implementations.
+    3. Fix type errors in `ast_backend.py` for imports and assignments.
+
+- [ ] **Improve Test Coverage**
+  - *Tasks*:
+    1. Add tests for configuration conversion.
+    2. Add tests for backend type compatibility.
+    3. Add tests for docstring type extraction.
+
+- [ ] **Integrate File Importance**
   - *Tasks*:
     1. Enhance `StubResult` with metadata.
     2. Update `SignatureExtractor` for importance-based decisions.
     3. Configure `ImportanceProcessor` to apply scores.
-    4. Test importance functionality.
-
-- [ ] **Implement Basic CLI** *(Optional if time-constrained)*
-  - *Tasks*:
-    1. Add Click CLI in `__init__.py`.
-    2. Test with a sample file.
-
-- [ ] **Improve Test Coverage to 50%**
-  - *Tasks*:
-    1. Test key modules (e.g., `imports.py`).
-    2. Confirm coverage target met.
-
-- [ ] **Prepare for Release**
-  - *Tasks*:
-    1. Set version to `1.0.0`.
-    2. Run cleanup scripts and push.
-    3. Build and test package installation.
 
 ## 3. Future Tasks
 
 - [ ] **Documentation Updates**
-  - Revamp README.md with detailed usage and examples.
+  - Update README.md with detailed usage and examples.
   - Add `examples/greet.py`.
   - Ensure `pystubnik/README.md` has basic usage.
 
@@ -77,16 +60,31 @@ this_file: TODO.md
 
 - [ ] **Performance Optimization**
   - Optimize stub generation performance.
+  - Improve caching in AST backend.
 
-## 4. Notes
+## 4. Completed Tasks
 
-- Prioritize AST backend; CLI is optional for MVP if rushed.
-- Update `pystubnik/README.md` with basic usage for MVP.
-- Use `./cleanup.py status` for progress checks.
-- Use `uv pip` for package management.
+- [x] **Fix Syntax Error in `__init__.py`**
+  - Fixed syntax error on line 428.
+
+- [x] **Clean Up Unused Imports**
+  - Removed unused imports from `backends/__init__.py`:
+    - `collections.abc.Coroutine`
+    - `typing.Any`
+    - `..core.types.StubResult`
+
+- [x] **Fix Failing Tests**
+  - Updated `test_package.py` to use `StubResult.stub_content`.
+  - Fixed AST backend and docstring tests.
 
 ## 5. Next Actions
 
-1. Fix type errors in `docstring.py` for `key_info.annotation` and `value_info.annotation`
-2. Complete `StubConfig` initialization in `__init__.py`
-3. Align `StubConfig` and `StubGenConfig` types in `__init__.py`
+1. Fix `StubGenConfig` initialization in `core/config.py`
+2. Fix `StubConfig` attribute access in `core/conversion.py`
+3. Fix circular import between `__init__.py` and `ast_backend.py`
+
+## 6. Notes
+
+- Use `uv pip` for package management
+- Ignore minor linting issues (line length) for now
+- Run `./cleanup.py update | cat` after changes to verify fixes
