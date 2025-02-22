@@ -69,6 +69,7 @@ src/
         mypy_backend.py
       core/
         config.py
+        shared_types.py
         types.py
         utils.py
       processors/
@@ -89,9 +90,6 @@ src/
       __init__.py
       config.py
       errors.py
-      make_stubs_ast.py
-      make_stubs_mypy.py
-      pypacky2.sh
       read_imports.py
       README.md
     __init__.py
@@ -215,13 +213,15 @@ globs:
 ├── [3.5K]  .gitignore
 ├── [ 532]  .pre-commit-config.yaml
 ├── [  96]  .specstory
-│   └── [ 448]  history
+│   └── [ 512]  history
 │       ├── [2.0K]  .what-is-this.md
 │       ├── [ 63K]  adjusting-todo-priorities-from-cleanup-status.md
-│       ├── [ 79K]  cleanup-script-execution-and-todo-management.md
+│       ├── [ 97K]  cleanup-script-execution-and-todo-management-1.md
+│       ├── [172K]  cleanup-script-execution-and-todo-management.md
 │       ├── [333K]  command-execution-and-todo-update.md
 │       ├── [ 248]  detailed-overview-of-python-stubbing-tools.md
 │       ├── [ 25K]  integrating-importance-analysis-modules.md
+│       ├── [267K]  managing-todo-list-tasks.md
 │       ├── [3.0K]  overview-of-python-tools-and-their-functions.md
 │       ├── [ 58K]  project-directory-structure-for-python-package.md
 │       ├── [ 64K]  reviewing-and-tracking-todo-progress.md
@@ -231,7 +231,7 @@ globs:
 ├── [1.0K]  LICENSE
 ├── [ 173]  MANIFEST.in
 ├── [1.4K]  README.md
-├── [ 12K]  TODO.md
+├── [ 17K]  TODO.md
 ├── [ 12K]  cleanup.py
 ├── [  96]  cursor
 │   └── [  96]  rules
@@ -241,46 +241,44 @@ globs:
 ├── [ 305]  mypy.ini
 ├── [ 426]  package.toml
 ├── [4.8K]  pyproject.toml
-├── [215K]  repomix-output.txt
+├── [237K]  repomix-output.txt
 ├── [ 128]  src
 │   └── [ 256]  twat_coding
 │       ├── [ 144]  __init__.py
-│       ├── [ 480]  pystubnik
+│       ├── [ 416]  pystubnik
 │       │   ├── [5.3K]  README.md
-│       │   ├── [ 14K]  __init__.py
-│       │   ├── [ 192]  backends
-│       │   │   ├── [1.3K]  __init__.py
-│       │   │   ├── [ 12K]  ast_backend.py
+│       │   ├── [ 16K]  __init__.py
+│       │   ├── [ 224]  backends
+│       │   │   ├── [1.4K]  __init__.py
+│       │   │   ├── [ 13K]  ast_backend.py
 │       │   │   ├── [2.1K]  base.py
 │       │   │   └── [1.1K]  mypy_backend.py
-│       │   ├── [9.5K]  config.py
-│       │   ├── [ 160]  core
-│       │   │   ├── [4.9K]  config.py
+│       │   ├── [8.8K]  config.py
+│       │   ├── [ 224]  core
+│       │   │   ├── [6.1K]  config.py
+│       │   │   ├── [ 492]  shared_types.py
 │       │   │   ├── [3.9K]  types.py
 │       │   │   └── [8.3K]  utils.py
 │       │   ├── [5.1K]  errors.py
-│       │   ├── [ 14K]  make_stubs_ast.py
-│       │   ├── [ 11K]  make_stubs_mypy.py
-│       │   ├── [ 288]  processors
+│       │   ├── [ 320]  processors
 │       │   │   ├── [1.2K]  __init__.py
 │       │   │   ├── [5.0K]  docstring.py
 │       │   │   ├── [ 16K]  file_importance.py
-│       │   │   ├── [6.4K]  importance.py
+│       │   │   ├── [7.5K]  importance.py
 │       │   │   ├── [6.6K]  imports.py
 │       │   │   ├── [ 11K]  stub_generation.py
 │       │   │   └── [7.4K]  type_inference.py
-│       │   ├── [2.0K]  pypacky2.sh
 │       │   ├── [1.6K]  read_imports.py
-│       │   ├── [ 128]  types
-│       │   │   ├── [8.4K]  docstring.py
-│       │   │   └── [8.2K]  type_system.py
-│       │   └── [ 160]  utils
-│       │       ├── [5.3K]  ast_utils.py
+│       │   ├── [ 160]  types
+│       │   │   ├── [9.2K]  docstring.py
+│       │   │   └── [9.7K]  type_system.py
+│       │   └── [ 192]  utils
+│       │       ├── [5.6K]  ast_utils.py
 │       │       ├── [1.8K]  display.py
 │       │       └── [5.2K]  memory.py
 │       └── [1.6K]  twat_coding.py
 └── [ 128]  tests
-    └── [ 165]  test_package.py
+    └── [2.3K]  test_package.py
 
 20 directories, 61 files
 
@@ -508,19 +506,20 @@ and a registry to manage different backend implementations.
 """
 
 from abc import abstractmethod
+from collections.abc import Coroutine
 from pathlib import Path
-from typing import Protocol
+from typing import Any, Protocol
 
-from pystubnik.core.types import StubResult
+from ..core.types import StubResult
 
 
 class StubBackend(Protocol):
     """Protocol defining the interface for stub generation backends."""
 
     @abstractmethod
-    def generate_stub(
+    async def generate_stub(
         self, source_path: Path, output_path: Path | None = None
-    ) -> StubResult:
+    ) -> str:
         """Generate stub for the given source file.
 
         Args:
@@ -528,7 +527,7 @@ class StubBackend(Protocol):
             output_path: Optional path to write the stub file
 
         Returns:
-            StubResult containing the generated stub and metadata
+            Generated stub content as string
         """
         ...
 
@@ -566,22 +565,31 @@ based on the original make_stubs_ast.py implementation.
 import ast
 import asyncio
 import functools
-import hashlib
 import weakref
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, ClassVar
+from typing import Any, ClassVar, cast, Union
 
 from loguru import logger
-from pystubnik.backends import StubBackend
-from pystubnik.core.config import StubGenConfig, TruncationConfig
 
+from .. import _convert_to_stub_gen_config
 from ..config import StubConfig
+from ..core.config import (
+    Backend,
+    PathConfig,
+    ProcessingConfig,
+    RuntimeConfig,
+    StubGenConfig,
+    TruncationConfig,
+)
+from ..core.types import StubResult
 from ..errors import ASTError, ErrorCode
+from ..processors import Processor
 from ..utils.ast_utils import attach_parents, truncate_literal
 from ..utils.display import print_progress
 from ..utils.memory import MemoryMonitor, stream_process_ast
+from . import StubBackend
 
 
 @dataclass
@@ -594,233 +602,206 @@ class ASTCacheEntry:
 
 
 class SignatureExtractor(ast.NodeTransformer):
-    """Transform AST to preserve signatures while truncating implementation details.
+    """Extract type signatures and docstrings from AST."""
 
-    This transformer preserves:
-    - imports
-    - docstrings (subject to length constraints)
-    - function & method signatures
-    - class-level assignments
-    But replaces function bodies with an ellipsis.
-    """
+    def __init__(
+        self, config: StubGenConfig, file_size: int = 0, importance_score: float = 1.0
+    ):
+        """Initialize the signature extractor.
 
-    def __init__(self, config: StubGenConfig, file_size: int = 0):
+        Args:
+            config: Configuration for stub generation
+            file_size: Size of the source file
+            importance_score: Importance score for the file
+        """
         super().__init__()
         self.config = config
         self.file_size = file_size
+        self.importance_score = importance_score
 
     def _preserve_docstring(self, body: list[ast.stmt]) -> list[ast.stmt]:
-        """If the first statement is a docstring, keep it if it meets size constraints.
+        """Preserve docstrings based on importance and configuration.
 
         Args:
-            body: List of statements to check for docstring
+            body: List of AST statements
 
         Returns:
-            List containing the docstring statement if it should be preserved,
-            otherwise an empty list
+            List of AST statements with docstrings preserved or removed
         """
         if not body:
             return []
-
-        # Skip all docstrings if file is too large
-        if self.file_size > self.config.truncation.max_file_size:
-            return []
-
+        if (
+            self.file_size > self.config.truncation.max_file_size
+            and self.importance_score < 0.7
+        ):
+            return []  # Skip docstrings for big, low-importance files
         match body[0]:
             case ast.Expr(value=ast.Constant(value=str() as docstring)):
-                # Skip if docstring is too long
-                if len(docstring) > self.config.truncation.max_docstring_length:
-                    return []
+                if (
+                    len(docstring) > self.config.truncation.max_docstring_length
+                    and self.importance_score < 0.9
+                ):
+                    return []  # Skip long docstrings unless very important
                 return [body[0]]
             case _:
                 return []
 
-    def _make_ellipsis_expr(self, node: ast.AST, indent: int = 0) -> ast.Expr:
-        """Create an ellipsis node with the same location offsets.
+    def visit_Module(self, node: ast.Module) -> ast.Module:
+        """Process module node.
 
         Args:
-            node: Node to copy location from
-            indent: Additional indentation to add
+            node: Module AST node
 
         Returns:
-            Ellipsis expression node
+            Processed module node
         """
-        return ast.Expr(
-            value=ast.Constant(value=Ellipsis),
-            lineno=getattr(node, "lineno", 1),
-            col_offset=getattr(node, "col_offset", 0) + indent,
-        )
+        node.body = [
+            stmt
+            for stmt in node.body
+            if isinstance(
+                stmt, ast.FunctionDef | ast.ClassDef | ast.Import | ast.ImportFrom
+            )
+            or (isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Constant))
+        ]
+        return cast(ast.Module, self.generic_visit(node))
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> ast.FunctionDef:
-        """Keep function signature and docstring, replace body with ellipsis."""
-        preserved_doc = self._preserve_docstring(node.body)
-        ellipsis_body = [self._make_ellipsis_expr(node, indent=4)]
-        return ast.FunctionDef(
-            name=node.name,
-            args=node.args,
-            body=preserved_doc + ellipsis_body,
-            decorator_list=node.decorator_list,
-            returns=node.returns,
-            type_params=[],  # For Python 3.12+
-            lineno=node.lineno,
-            col_offset=node.col_offset,
-        )
+        """Process function definition.
+
+        Args:
+            node: Function definition AST node
+
+        Returns:
+            Processed function node
+        """
+        docstring = self._preserve_docstring(node.body)
+        node.body = docstring + [ast.Expr(value=ast.Constant(value=...))]
+        return node
 
     def visit_ClassDef(self, node: ast.ClassDef) -> ast.ClassDef:
-        """Preserve class structure but transform method bodies."""
-        preserved_doc = self._preserve_docstring(node.body)
-        remainder = node.body[len(preserved_doc) :]
-        new_body: list[ast.stmt] = []
+        """Process class definition.
 
-        for item in remainder:
-            match item:
-                case ast.FunctionDef():
-                    new_body.append(self.visit_FunctionDef(item))
-                case _:
-                    # Visit child nodes to truncate large literals
-                    new_body.append(self.visit(item))
+        Args:
+            node: Class definition AST node
 
-        return ast.ClassDef(
-            name=node.name,
-            bases=node.bases,
-            keywords=node.keywords,
-            body=preserved_doc + new_body,
-            decorator_list=node.decorator_list,
-            type_params=[],  # For Python 3.12+
-            lineno=node.lineno,
-            col_offset=node.col_offset,
-        )
-
-    def visit_Module(self, node: ast.Module) -> ast.Module:
-        """Process top-level statements."""
-        body: list[ast.stmt] = []
-        for item in node.body:
-            # Skip empty or purely whitespace expressions
-            is_empty_expr = (
-                isinstance(item, ast.Expr)
-                and isinstance(item.value, ast.Constant)
-                and (not item.value.value or str(item.value.value).isspace())
-            )
-            if is_empty_expr:
-                continue
-            body.append(self.visit(item))
-
-        return ast.Module(body=body, type_ignores=[])
-
-    def generic_visit(self, node: ast.AST) -> ast.AST:
-        """Recurse into all child nodes, then apply literal truncation."""
-        new_node = super().generic_visit(node)
-        return truncate_literal(new_node, self.config.truncation)
+        Returns:
+            Processed class node
+        """
+        docstring = self._preserve_docstring(node.body)
+        node.body = docstring + [
+            stmt
+            for stmt in node.body
+            if isinstance(stmt, ast.FunctionDef | ast.ClassDef)
+        ]
+        return cast(ast.ClassDef, self.generic_visit(node))
 
 
 class ASTBackend(StubBackend):
     """AST-based stub generation backend with advanced concurrency."""
 
     # Class-level LRU cache for parsed AST nodes
-    _ast_cache: ClassVar[dict[Path, ASTCacheEntry]] = {}
+    _ast_cache: ClassVar[dict[Path, Any]] = {}
     _ast_cache_lock: ClassVar[asyncio.Lock] = asyncio.Lock()
     _max_cache_size: ClassVar[int] = 100
 
-    def __init__(self, config: StubConfig) -> None:
-        """Initialize the AST backend.
+    def __init__(self, config: Union[StubConfig, StubGenConfig] | None = None) -> None:
+        """Initialize the backend.
 
         Args:
             config: Configuration for stub generation
         """
         super().__init__(config)
-        self._executor = ThreadPoolExecutor(
-            max_workers=config.max_workers if config.max_workers else None
-        )
-        self._node_registry: weakref.WeakValueDictionary[int, ast.AST] = (
-            weakref.WeakValueDictionary()
-        )
+        self.processors: list[Processor] = []  # List of processors to apply to stubs
+        self._node_registry: weakref.WeakValueDictionary[int, ast.AST] = weakref.WeakValueDictionary()
+
+        # Handle different config types
+        if isinstance(config, StubConfig):
+            self._executor = ThreadPoolExecutor(
+                max_workers=config.max_workers if config.parallel else 1,
+                thread_name_prefix="ast_backend",
+            )
+            self.include_patterns = config.include_patterns
+            self.exclude_patterns = config.exclude_patterns
+        else:  # StubGenConfig or None
+            stub_config = config or StubGenConfig(paths=PathConfig(), runtime=RuntimeConfig())
+            self._executor = ThreadPoolExecutor(
+                max_workers=stub_config.runtime.max_workers if stub_config.runtime.parallel else 1,
+                thread_name_prefix="ast_backend",
+            )
+            self.include_patterns = ["*.py"]  # Default patterns
+            self.exclude_patterns = ["test_*.py", "*_test.py"]
+
         self._memory_monitor = MemoryMonitor()
 
-    async def generate_stub(self, source_path: Path) -> str:
-        """Generate a stub for a Python source file using AST parsing.
+    @property
+    def config(self) -> StubConfig | StubGenConfig:
+        """Get the current configuration.
+
+        Returns:
+            Current configuration
+        """
+        return self._config
+
+    async def generate_stub(self, source_path: Path) -> StubResult:
+        """Generate a stub for a Python source file.
 
         Args:
             source_path: Path to the source file
 
         Returns:
-            Generated stub content
-
-        Raises:
-            ASTError: If AST parsing or processing fails
+            Generated stub result
         """
         try:
-            # Get file locations
-            locations = self.config.get_file_locations(source_path)
-            locations.check_paths()
-
-            # Start memory monitoring
-            self._memory_monitor.start()
-
-            # Read and parse source file
+            # Read source file
             source = await self._run_in_executor(source_path.read_text)
-            source_hash = hashlib.sha256(source.encode()).hexdigest()
 
-            # Try to get from cache
-            async with self._ast_cache_lock:
-                if source_path in self._ast_cache:
-                    entry = self._ast_cache[source_path]
-                    if entry.source_hash == source_hash:
-                        logger.debug(f"AST cache hit for {source_path}")
-                        return await self._process_ast(entry.node, source_path)
-
-            # Parse file
+            # Parse AST
             tree = await self._run_in_executor(
                 functools.partial(ast.parse, source, filename=str(source_path))
             )
-
-            # Attach parent references
             attach_parents(tree)
 
-            # Update cache
-            async with self._ast_cache_lock:
-                self._ast_cache[source_path] = ASTCacheEntry(
-                    node=tree,
-                    source_hash=source_hash,
-                    access_time=asyncio.get_event_loop().time(),
-                )
-                if len(self._ast_cache) > self._max_cache_size:
-                    # Remove oldest entry
-                    oldest = min(
-                        self._ast_cache.items(),
-                        key=lambda x: x[1].access_time,
-                    )
-                    del self._ast_cache[oldest[0]]
+            # Transform AST
+            stub_gen_config = self.config if isinstance(self.config, StubGenConfig) else _convert_to_stub_gen_config(self.config)
+            transformer = SignatureExtractor(stub_gen_config, len(source))
+            transformed = transformer.visit(tree)
 
-            # Process AST
-            stub_content = await self._process_ast(tree, source_path)
+            # Generate stub content
+            stub_content = ast.unparse(transformed)
 
-            # Write output
-            output_path = locations.output_path
-            await self._run_in_executor(output_path.write_text, stub_content)
+            # Create StubResult
+            result = StubResult(
+                source_path=source_path,
+                stub_content=stub_content,
+                imports=[],  # TODO: Extract imports
+                errors=[],
+                importance_score=0.0,
+                metadata={},
+            )
 
-            return stub_content
+            # Apply processors if available
+            if hasattr(self, "processors"):
+                for processor in self.processors:
+                    result = processor.process(result)
+
+            return result
 
         except Exception as e:
+            logger.error(f"Error generating stub for {source_path}: {e}")
             raise ASTError(
-                f"Failed to generate stub for {source_path}: {e}",
-                ErrorCode.AST_PARSE_ERROR,
-                source=str(source_path),
+                code=ErrorCode.AST_TRANSFORM_ERROR,
+                message=f"Failed to generate stub for {source_path}",
+                details={"error": str(e)},
             ) from e
-        finally:
-            # Stop memory monitoring and log stats
-            self._memory_monitor.stop()
-            peak_mb = self._memory_monitor.peak_memory / 1024 / 1024
-            logger.debug(f"Peak memory usage: {peak_mb:.1f}MB")
-            self._memory_monitor.clear_stats()
 
-    async def process_directory(self, directory: Path) -> dict[Path, str]:
+    async def process_directory(self, directory: Path) -> dict[Path, StubResult]:
         """Process a directory recursively.
 
         Args:
             directory: Directory to process
 
         Returns:
-            Dictionary mapping output paths to stub contents
+            Dictionary mapping output paths to stub results
 
         Raises:
             ASTError: If directory processing fails
@@ -828,25 +809,26 @@ class ASTBackend(StubBackend):
         try:
             # Find all Python files matching patterns
             python_files: list[Path] = []
-            for pattern in self.config.include_patterns:
+            for pattern in self.include_patterns:
                 python_files.extend(directory.rglob(pattern))
 
             # Filter out excluded files
-            for pattern in self.config.exclude_patterns:
+            for pattern in self.exclude_patterns:
                 python_files = [f for f in python_files if not f.match(pattern)]
 
             # Process files with progress reporting
-            results: dict[Path, str] = {}
+            results: dict[Path, StubResult] = {}
             total = len(python_files)
             for i, path in enumerate(python_files, 1):
                 try:
                     print_progress("Processing files", i, total)
-                    stub = await self.generate_stub(path)
-                    results[path] = stub
+                    result = await self.generate_stub(path)
+                    results[path] = result
                 except Exception as e:
                     logger.error(f"Failed to process {path}: {e}")
-                    if not self.config.ignore_errors:
-                        raise
+                    if isinstance(self.config, StubGenConfig) and self.config.runtime.ignore_errors:
+                        continue
+                    raise
 
             return results
 
@@ -857,55 +839,41 @@ class ASTBackend(StubBackend):
                 source=str(directory),
             ) from e
 
+    async def process_module(self, module_name: str) -> StubResult:
+        """Process a module by its import name.
+
+        Args:
+            module_name: Fully qualified module name
+
+        Returns:
+            Generated stub result
+
+        Raises:
+            StubGenerationError: If module processing fails
+        """
+        # TODO: Implement module processing
+        raise NotImplementedError
+
+    async def process_package(self, package_path: Path) -> dict[Path, StubResult]:
+        """Process a package directory recursively.
+
+        Args:
+            package_path: Path to the package directory
+
+        Returns:
+            Dictionary mapping output paths to stub results
+
+        Raises:
+            StubGenerationError: If package processing fails
+        """
+        return await self.process_directory(package_path)
+
     def cleanup(self) -> None:
         """Clean up resources."""
         self._executor.shutdown(wait=True)
         self._ast_cache.clear()
         self._node_registry.clear()
         self._memory_monitor.stop()
-
-    async def _process_ast(self, tree: ast.AST, source_path: Path) -> str:
-        """Process an AST to generate a stub.
-
-        Args:
-            tree: AST to process
-            source_path: Source file path for error reporting
-
-        Returns:
-            Generated stub content
-
-        Raises:
-            ASTError: If processing fails
-        """
-        try:
-            # Create truncation config
-            trunc_config = TruncationConfig(
-                max_sequence_length=4,  # TODO: Make configurable
-                max_string_length=17,
-                max_docstring_length=150,
-                max_file_size=3_000,
-                truncation_marker="...",
-            )
-
-            # Process AST nodes in chunks to optimize memory usage
-            stub_parts = []
-            async for nodes in stream_process_ast(tree):
-                # Process each chunk of nodes
-                for node in nodes:
-                    # Apply truncation
-                    truncated = truncate_literal(node, trunc_config)
-                    # Convert to string
-                    stub_parts.append(ast.unparse(truncated))
-
-            # Combine processed parts
-            return "\n".join(stub_parts)
-
-        except Exception as e:
-            raise ASTError(
-                f"Failed to process AST for {source_path}: {e}",
-                ErrorCode.AST_TRANSFORM_ERROR,
-                source=str(source_path),
-            ) from e
 
     async def _run_in_executor(self, func: Any, *args: Any) -> Any:
         """Run a function in the thread pool executor.
@@ -915,9 +883,9 @@ class ASTBackend(StubBackend):
             *args: Arguments to pass to the function
 
         Returns:
-            Function result
+            Result of the function
         """
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         return await loop.run_in_executor(self._executor, func, *args)
 
 ================
@@ -928,46 +896,50 @@ File: src/twat_coding/pystubnik/backends/base.py
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any
+from typing import Any, Union
 
+from .. import _convert_to_stub_gen_config
 from ..config import StubConfig
+from ..core.config import PathConfig, StubGenConfig
+from ..core.types import StubResult
 
 
 class StubBackend(ABC):
-    """Abstract base class for stub generation backends."""
+    """Base class for stub generation backends."""
 
-    def __init__(self, config: StubConfig) -> None:
+    def __init__(self, config: Union[StubConfig, StubGenConfig] | None = None) -> None:
         """Initialize the backend.
 
         Args:
             config: Configuration for stub generation
         """
-        self.config = config
+        # Convert StubConfig to StubGenConfig if needed
+        if isinstance(config, StubConfig):
+            self._config = _convert_to_stub_gen_config(config)
+        else:
+            self._config = config or StubGenConfig(paths=PathConfig())
 
     @abstractmethod
-    async def generate_stub(self, source_path: Path) -> str:
+    async def generate_stub(self, source_path: Path) -> StubResult:
         """Generate a stub for a Python source file.
 
         Args:
             source_path: Path to the source file
 
         Returns:
-            Generated stub content as a string
-
-        Raises:
-            StubGenerationError: If stub generation fails
+            Generated stub result
         """
         raise NotImplementedError
 
     @abstractmethod
-    async def process_module(self, module_name: str) -> str:
+    async def process_module(self, module_name: str) -> StubResult:
         """Process a module by its import name.
 
         Args:
             module_name: Fully qualified module name
 
         Returns:
-            Generated stub content as a string
+            Generated stub result
 
         Raises:
             StubGenerationError: If module processing fails
@@ -975,20 +947,21 @@ class StubBackend(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def process_package(self, package_path: Path) -> dict[Path, str]:
+    async def process_package(self, package_path: Path) -> dict[Path, StubResult]:
         """Process a package directory recursively.
 
         Args:
             package_path: Path to the package directory
 
         Returns:
-            Dictionary mapping output paths to stub contents
+            Dictionary mapping output paths to stub results
 
         Raises:
             StubGenerationError: If package processing fails
         """
         raise NotImplementedError
 
+    @abstractmethod
     def cleanup(self) -> None:
         """Clean up any resources used by the backend.
 
@@ -1015,20 +988,25 @@ based on the original make_stubs_mypy.py implementation.
 
 from pathlib import Path
 
-from pystubnik.backends import StubBackend
-from pystubnik.core.config import PathConfig, StubGenConfig
-from pystubnik.core.types import StubResult
+from ..core.config import StubGenConfig
+from . import StubBackend
 
 
 class MypyBackend(StubBackend):
     """MyPy-based stub generation backend."""
 
     def __init__(self, config: StubGenConfig | None = None):
-        self.config = config or StubGenConfig(paths=PathConfig())
+        """Initialize the backend.
 
-    def generate_stub(
+        Args:
+            config: Stub generation configuration
+        """
+        super().__init__()
+        self.config = config
+
+    async def generate_stub(
         self, source_path: Path, output_path: Path | None = None
-    ) -> StubResult:
+    ) -> str:
         """Generate stub for the given source file using MyPy's stubgen.
 
         Args:
@@ -1036,7 +1014,7 @@ class MypyBackend(StubBackend):
             output_path: Optional path to write the stub file
 
         Returns:
-            StubResult containing the generated stub and metadata
+            Generated stub content as string
         """
         # TODO: Port functionality from make_stubs_mypy.py
         msg = "MyPy backend not yet implemented"
@@ -1055,6 +1033,8 @@ from enum import Enum, auto
 from pathlib import Path
 from typing import Any
 
+from .shared_types import TruncationConfig
+
 
 class Backend(Enum):
     """Available stub generation backends."""
@@ -1072,17 +1052,6 @@ class ImportanceLevel(Enum):
     NORMAL = 1.0  # Standard preservation
     LOW = 0.8  # Minimal preservation
     IGNORE = 0.0  # Can be omitted
-
-
-@dataclass(frozen=True)
-class TruncationConfig:
-    """Configuration for code truncation."""
-
-    max_sequence_length: int = 4  # For lists, dicts, sets, tuples
-    max_string_length: int = 17  # For strings except docstrings
-    max_docstring_length: int = 150  # Default max length for docstrings
-    max_file_size: int = 3_000  # Default max file size before removing all docstrings
-    truncation_marker: str = "..."
 
 
 def _default_importance_keywords() -> set[str]:
@@ -1107,6 +1076,24 @@ class ProcessingConfig:
     importance_keywords: set[str] = field(default_factory=_default_importance_keywords)
 
 
+def _default_include_patterns() -> list[str]:
+    """Get default include patterns.
+
+    Returns:
+        List of default include patterns
+    """
+    return ["*.py"]
+
+
+def _default_exclude_patterns() -> list[str]:
+    """Get default exclude patterns.
+
+    Returns:
+        List of default exclude patterns
+    """
+    return ["test_*.py", "*_test.py"]
+
+
 @dataclass(frozen=True)
 class PathConfig:
     """Configuration for file paths and search."""
@@ -1117,6 +1104,8 @@ class PathConfig:
     modules: Sequence[str] = field(default_factory=list)
     packages: Sequence[str] = field(default_factory=list)
     files: Sequence[Path] = field(default_factory=list)
+    include_patterns: list[str] = field(default_factory=_default_include_patterns)
+    exclude_patterns: list[str] = field(default_factory=_default_exclude_patterns)
 
 
 @dataclass(frozen=True)
@@ -1179,6 +1168,40 @@ class StubGenConfig:
     processing: ProcessingConfig = field(default_factory=ProcessingConfig)
     truncation: TruncationConfig = field(default_factory=TruncationConfig)
 
+    # Convenience properties to access common settings
+    @property
+    def include_patterns(self) -> list[str]:
+        """Get include patterns."""
+        return self.paths.include_patterns
+
+    @property
+    def exclude_patterns(self) -> list[str]:
+        """Get exclude patterns."""
+        return self.paths.exclude_patterns
+
+    @property
+    def ignore_errors(self) -> bool:
+        """Get ignore errors setting."""
+        return self.runtime.ignore_errors
+
+    def get_file_locations(self, source_path: Path) -> tuple[Path, Path]:
+        """Get input and output paths for a source file.
+
+        Args:
+            source_path: Path to source file
+
+        Returns:
+            Tuple of (input_path, output_path)
+        """
+        try:
+            rel_path = source_path.relative_to(self.paths.output_dir)
+            output_path = self.paths.output_dir / rel_path
+            return source_path, output_path
+        except ValueError as e:
+            raise ValueError(
+                f"Source file {source_path} is not within output directory {self.paths.output_dir}"
+            ) from e
+
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "StubGenConfig":
         """Create configuration from a dictionary."""
@@ -1204,6 +1227,24 @@ class StubGenConfig:
             "processing": self.processing.__dict__,
             "truncation": self.truncation.__dict__,
         }
+
+================
+File: src/twat_coding/pystubnik/core/shared_types.py
+================
+"""Shared types for pystubnik."""
+
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class TruncationConfig:
+    """Configuration for code truncation."""
+
+    max_sequence_length: int = 4  # For lists, dicts, sets, tuples
+    max_string_length: int = 17  # For strings except docstrings
+    max_docstring_length: int = 150  # Default max length for docstrings
+    max_file_size: int = 3_000  # Default max file size before removing all docstrings
+    truncation_marker: str = "..."
 
 ================
 File: src/twat_coding/pystubnik/core/types.py
@@ -1338,10 +1379,10 @@ class ImportType(Enum):
 
 @dataclass
 class ImportInfo:
-    """Information about an imported module or name."""
+    """Information about an import statement."""
 
     module_name: str
-    import_type: ImportType
+    import_type: "ImportType"
     imported_names: list[str]
     is_from_import: bool = False
     relative_level: int = 0
@@ -1349,13 +1390,14 @@ class ImportInfo:
 
 @dataclass
 class StubResult:
-    """Result of stub generation for a single file."""
+    """Result of stub generation."""
 
     source_path: Path
     stub_content: str
     imports: list[ImportInfo]
     errors: list[str]
     importance_score: float = 0.0
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 # Type aliases
@@ -1679,7 +1721,7 @@ processors that can be used during stub generation.
 from abc import abstractmethod
 from typing import Protocol
 
-from pystubnik.core.types import StubResult
+from ..core.types import StubResult
 
 
 class Processor(Protocol):
@@ -2389,6 +2431,7 @@ File: src/twat_coding/pystubnik/processors/importance.py
 #!/usr/bin/env -S uv run
 """Importance scoring for symbols and code elements."""
 
+import ast
 import re
 from dataclasses import dataclass, field
 from typing import Any
@@ -2453,7 +2496,9 @@ class ImportanceProcessor(Processor):
         if not self._file_scores:
             try:
                 package_dir = str(stub_result.source_path.parent)
-                prioritize_files(package_dir, self.config.file_importance)
+                self._file_scores = prioritize_files(
+                    package_dir, self.config.file_importance
+                )
             except Exception as e:
                 logger.warning(f"Failed to calculate file importance: {e}")
 
@@ -2462,10 +2507,34 @@ class ImportanceProcessor(Processor):
 
         # Adjust stub result's importance score
         stub_result.importance_score = file_score
+        stub_result.metadata["file_score"] = file_score
 
-        # Process each symbol in the stub result
-        # TODO: Traverse AST to find and score individual symbols
-        # For now, we'll just use the file score as a base
+        # Process individual symbols
+        try:
+            tree = ast.parse(stub_result.stub_content)
+            for node in ast.walk(tree):
+                if isinstance(node, ast.FunctionDef | ast.ClassDef):
+                    docstring = ast.get_docstring(node)
+                    score = self.calculate_importance(
+                        name=node.name,
+                        docstring=docstring,
+                        is_public=not node.name.startswith("_"),
+                        is_special=node.name.startswith("__")
+                        and node.name.endswith("__"),
+                        extra_info={"file_path": stub_result.source_path},
+                    )
+                    stub_result.metadata[f"{node.name}_score"] = score
+
+                    # For low importance functions, replace body with ellipsis
+                    if score < 0.7 and isinstance(node, ast.FunctionDef):
+                        node.body = [ast.Expr(value=ast.Constant(value=Ellipsis))]
+
+            # Update stub content with modified AST
+            stub_result.stub_content = ast.unparse(tree)
+        except Exception as e:
+            logger.warning(
+                f"Error processing symbols in {stub_result.source_path}: {e}"
+            )
 
         return stub_result
 
@@ -2588,8 +2657,8 @@ File: src/twat_coding/pystubnik/processors/imports.py
 import ast
 from pathlib import Path
 
-from pystubnik.core.types import ImportInfo, ImportType, StubResult
-from pystubnik.processors import Processor
+from ..core.types import ImportInfo, ImportType, StubResult
+from . import Processor
 
 
 class ImportProcessor(Processor):
@@ -3352,13 +3421,46 @@ File: src/twat_coding/pystubnik/types/docstring.py
 
 import ast
 import re
-from dataclasses import dataclass
-from typing import Any, ClassVar, cast
+from dataclasses import dataclass, field
+from enum import Enum, auto
+from typing import Any, ClassVar
 
 from docstring_parser import parse as parse_docstring
 from loguru import logger
 
+from ..core.types import ArgInfo
 from ..types.type_system import TypeInferenceError, TypeInfo, TypeRegistry
+
+
+class DocstringStyle(Enum):
+    """Docstring style."""
+
+    GOOGLE = auto()
+    NUMPY = auto()
+    SPHINX = auto()
+    EPYTEXT = auto()
+    UNKNOWN = auto()
+
+
+@dataclass
+class DocstringInfo:
+    """Information extracted from a docstring."""
+
+    style: DocstringStyle
+    description: str = ""
+    args: list[ArgInfo] = field(default_factory=list)
+    returns: str = ""
+    raises: list[str] = field(default_factory=list)
+    examples: list[str] = field(default_factory=list)
+    notes: list[str] = field(default_factory=list)
+    see_also: list[str] = field(default_factory=list)
+    references: list[str] = field(default_factory=list)
+    todo: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    version: str = ""
+    deprecated: bool = False
+    since: str = ""
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -3544,10 +3646,7 @@ class DocstringTypeExtractor:
                     key_info = self._parse_type_string(key_type)
                     value_info = self._parse_type_string(value_type)
                     return TypeInfo(
-                        annotation=dict[
-                            cast(type, key_info.annotation),
-                            cast(type, value_info.annotation),
-                        ],
+                        annotation=dict[key_info.annotation, value_info.annotation],  # type: ignore
                         source="docstring",
                         confidence=0.7,
                         metadata={
@@ -3592,6 +3691,7 @@ from typing import (
     Any,
     Protocol,
     TypeVar,
+    Union,
     get_args,
     get_origin,
     get_type_hints,
@@ -3728,11 +3828,7 @@ class TypeRegistry:
                     },
                 )
             # Handle Protocol
-            elif (
-                isinstance(resolved, type)
-                and issubclass(resolved, Protocol)
-                and resolved is not Protocol
-            ):
+            elif _is_protocol(resolved):
                 type_info = TypeInfo(
                     annotation=resolved,
                     source="protocol",
@@ -3858,6 +3954,71 @@ def infer_type_from_usage(node: ast.AST) -> TypeInfo | None:
     # This will be implemented in a separate commit
     return None
 
+
+def _is_protocol(resolved: Any) -> bool:
+    """Check if a type is a Protocol.
+
+    Args:
+        resolved: Type to check
+
+    Returns:
+        True if the type is a Protocol
+    """
+    try:
+        return (
+            isinstance(resolved, type)
+            and hasattr(resolved, "__mro__")
+            and Protocol in resolved.__mro__
+        )
+    except (AttributeError, TypeError):
+        return False
+
+
+def _resolve_type(type_hint: Any) -> Any:
+    """Resolve a type hint to its concrete type.
+
+    Args:
+        type_hint: Type hint to resolve
+
+    Returns:
+        Resolved type
+    """
+    try:
+        if isinstance(type_hint, str):
+            # Handle forward references
+            return eval(type_hint, globals(), locals())
+        return type_hint
+    except (NameError, SyntaxError):
+        return type_hint
+
+
+def _is_subtype(type_hint: Any, expected_type: Any) -> bool:
+    """Check if a type hint is a subtype of an expected type.
+
+    Args:
+        type_hint: Type hint to check
+        expected_type: Expected type
+
+    Returns:
+        True if type_hint is a subtype of expected_type
+    """
+    resolved = _resolve_type(type_hint)
+    expected = _resolve_type(expected_type)
+
+    # Handle Protocol types
+    if _is_protocol(expected):
+        return True  # Assume Protocol compatibility for now
+
+    # Handle Union types
+    if hasattr(expected, "__origin__") and expected.__origin__ is Union:
+        return any(_is_subtype(resolved, t) for t in expected.__args__)
+
+    # Handle normal types
+    try:
+        return isinstance(resolved, type) and issubclass(resolved, expected)
+    except TypeError:
+        return False
+
 ================
 File: src/twat_coding/pystubnik/utils/ast_utils.py
 ================
@@ -3865,23 +4026,13 @@ File: src/twat_coding/pystubnik/utils/ast_utils.py
 """AST manipulation utilities."""
 
 import ast
-from dataclasses import dataclass
 from typing import cast
 from weakref import WeakKeyDictionary
 
+from ..core.shared_types import TruncationConfig
+
 # Global dict to store parent references
 _parent_refs: WeakKeyDictionary[ast.AST, ast.AST] = WeakKeyDictionary()
-
-
-@dataclass(frozen=True)
-class TruncationConfig:
-    """Configuration for AST literal truncation."""
-
-    max_sequence_length: int = 4  # For lists, dicts, sets, tuples
-    max_string_length: int = 17  # For strings except docstrings
-    max_docstring_length: int = 150  # Default max length for docstrings
-    max_file_size: int = 3_000  # Default max file size before removing all docstrings
-    truncation_marker: str = "..."
 
 
 def _get_parent(node: ast.AST) -> ast.AST | None:
@@ -3978,66 +4129,80 @@ def _truncate_dict(node: ast.Dict, config: TruncationConfig) -> ast.Dict:
 
 
 def truncate_literal(node: ast.AST, config: TruncationConfig) -> ast.AST:
-    """Truncate literal values to keep them small in the generated shadow file.
+    """Truncate literal values in AST nodes.
 
     Args:
-        node: AST node to truncate
+        node: AST node to process
         config: Truncation configuration
 
     Returns:
-        Truncated AST node
+        Processed AST node
     """
+    result = node  # Default to returning the original node
     match node:
         case ast.Constant(value=str() as s):
-            # Skip docstrings (handled separately in _preserve_docstring)
-            parent = _get_parent(node)
-            parent_parent = _get_parent(parent) if parent else None
-            if isinstance(parent, ast.Expr) and isinstance(
-                parent_parent,
-                ast.Module | ast.ClassDef | ast.FunctionDef,
-            ):
-                return node
-            return ast.Constant(value=_truncate_string(s, config))
-
+            if len(s) > config.max_string_length:
+                result = ast.Constant(
+                    value=f"{s[: config.max_string_length]}{config.truncation_marker}"
+                )
         case ast.Constant(value=bytes() as b):
             return ast.Constant(value=_truncate_bytes(b, config))
 
         case ast.List() | ast.Set() | ast.Tuple():
-            node_cast = cast(ast.List | ast.Set | ast.Tuple, node)
-            return _truncate_sequence(node_cast, config)
-
+            if len(node.elts) > config.max_sequence_length:
+                node.elts = node.elts[: config.max_sequence_length] + [
+                    ast.Constant(value=config.truncation_marker)
+                ]
+                result = node
         case ast.Dict():
-            return _truncate_dict(cast(ast.Dict, node), config)
-
+            if len(node.keys) > config.max_sequence_length:
+                node.keys = node.keys[: config.max_sequence_length] + [
+                    ast.Constant(value=config.truncation_marker)
+                ]
+                node.values = node.values[: config.max_sequence_length] + [
+                    ast.Constant(value=config.truncation_marker)
+                ]
+                result = node
         case _:
             return node
 
+    return result
+
 
 def attach_parents(node: ast.AST) -> None:
-    """Attach parent references to all nodes in an AST.
+    """Attach parent references to AST nodes.
 
     Args:
-        node: Root AST node
+        node: AST node to process
     """
-    for parent in ast.walk(node):
-        for child in ast.iter_child_nodes(parent):
-            _parent_refs[child] = parent
+    for child in ast.walk(node):
+        for _field, value in ast.iter_fields(child):
+            if isinstance(value, list):
+                for item in value:
+                    if isinstance(item, ast.AST):
+                        item.parent = child  # type: ignore
+            elif isinstance(value, ast.AST):
+                value.parent = child  # type: ignore
 
 
-def get_docstring(
-    node: ast.AsyncFunctionDef | ast.FunctionDef | ast.ClassDef | ast.Module,
-) -> str | None:
+def get_docstring(node: ast.AST) -> str | None:
     """Get docstring from an AST node.
 
     Args:
-        node: AST node to extract docstring from (must be a module, class, or function)
+        node: AST node to process
 
     Returns:
         Docstring if found, None otherwise
     """
-    docstring = ast.get_docstring(node)
-    if docstring:
-        return docstring.strip()
+    match node:
+        case ast.Module() | ast.ClassDef() | ast.FunctionDef():
+            if (
+                node.body
+                and isinstance(node.body[0], ast.Expr)
+                and isinstance(node.body[0].value, ast.Constant)
+                and isinstance(node.body[0].value.value, str)
+            ):
+                return node.body[0].value.value
     return None
 
 
@@ -4327,10 +4492,12 @@ with support for multiple backends and intelligent processing of imports,
 docstrings, and code importance.
 """
 
+import asyncio
+import sys
 from collections.abc import Mapping, Sequence
 from importlib.metadata import version
 from pathlib import Path
-from typing import Protocol
+from typing import Literal, Protocol
 
 from loguru import logger
 
@@ -4371,6 +4538,12 @@ def _convert_to_stub_config(config: StubGenConfig) -> StubConfig:
     Returns:
         Converted configuration
     """
+    # Convert paths to strings for search_paths
+    search_paths = [str(p) for p in config.paths.search_paths]
+
+    # Convert files to list[Path]
+    files = list(config.paths.files)  # Convert Sequence to list
+
     return StubConfig(
         input_path=config.paths.files[0] if config.paths.files else Path("."),
         output_path=config.paths.output_dir,
@@ -4384,14 +4557,14 @@ def _convert_to_stub_config(config: StubGenConfig) -> StubConfig:
         no_import=config.runtime.no_import,
         inspect=config.runtime.inspect,
         doc_dir=str(config.paths.doc_dir) if config.paths.doc_dir else "",
-        search_paths=config.paths.search_paths,
+        search_paths=search_paths,
         interpreter=config.runtime.interpreter,
         ignore_errors=config.runtime.ignore_errors,
         parse_only=config.runtime.parse_only,
         include_private=config.processing.include_private,
-        modules=config.paths.modules,
-        packages=config.paths.packages,
-        files=config.paths.files,
+        modules=list(config.paths.modules),  # Convert Sequence to list
+        packages=list(config.paths.packages),  # Convert Sequence to list
+        files=files,
         verbose=config.runtime.verbose,
         quiet=config.runtime.quiet,
         export_less=config.processing.export_less,
@@ -4405,14 +4578,59 @@ def _convert_to_stub_config(config: StubGenConfig) -> StubConfig:
     )
 
 
+def _convert_to_stub_gen_config(config: StubConfig) -> StubGenConfig:
+    """Convert StubConfig to StubGenConfig.
+
+    Args:
+        config: Source configuration
+
+    Returns:
+        Converted configuration
+    """
+    return StubGenConfig(
+        paths=PathConfig(
+            output_dir=config.output_path or Path("out"),
+            doc_dir=Path(config.doc_dir) if config.doc_dir else None,
+            search_paths=[Path(p) for p in config.search_paths],
+            modules=list(config.modules),
+            packages=list(config.packages),
+            files=list(config.files),
+        ),
+        runtime=RuntimeConfig.create(
+            backend=Backend.AST if config.backend == "ast" else Backend.MYPY,
+            python_version=config.python_version,
+            interpreter=config.interpreter,
+            no_import=config.no_import,
+            inspect=config.inspect,
+            parse_only=config.parse_only,
+            ignore_errors=config.ignore_errors,
+            verbose=config.verbose,
+            quiet=config.quiet,
+            parallel=config.parallel,
+            max_workers=config.max_workers,
+        ),
+        processing=ProcessingConfig(
+            include_docstrings=config.docstring_type_hints,
+            include_private=config.include_private,
+            include_type_comments=config.include_type_comments,
+            infer_property_types=config.infer_property_types,
+            export_less=config.export_less,
+            importance_patterns=dict(config.importance_patterns),
+        ),
+        truncation=TruncationConfig(
+            max_docstring_length=config.max_docstring_length,
+        ),
+    )
+
+
 class Processor(Protocol):
     """Protocol for stub processors."""
 
-    def process(self, stub: StubResult) -> StubResult:
+    def process(self, stub_result: StubResult) -> StubResult:
         """Process a stub result.
 
         Args:
-            stub: Input stub result
+            stub_result: Input stub result
 
         Returns:
             Processed stub result
@@ -4569,40 +4787,42 @@ class SmartStubGenerator:
         Returns:
             Initialized backend
         """
-        match self.config.runtime.backend:
-            case Backend.AST:
-                return ASTBackend(_convert_to_stub_config(self.config))
-            case Backend.MYPY:
-                return MypyBackend(_convert_to_stub_config(self.config))
-            case Backend.HYBRID:
-                # TODO: Implement hybrid backend
-                logger.warning("Hybrid backend not implemented, falling back to AST")
-                return ASTBackend(_convert_to_stub_config(self.config))
-            case _:
-                raise ValueError(f"Unknown backend: {self.config.runtime.backend}")
+        # Convert StubGenConfig to StubConfig for the backend
+        stub_config = _convert_to_stub_config(self.config)
+
+        if self.config.runtime.backend == Backend.AST:
+            return ASTBackend(stub_config)
+        elif self.config.runtime.backend == Backend.MYPY:
+            return MypyBackend(stub_config)
+        else:
+            raise ConfigError(
+                f"Unknown backend: {self.config.runtime.backend}",
+                ErrorCode.CONFIG_VALIDATION_ERROR,
+            )
 
     def _process_file(self, backend: StubBackend, file_path: Path) -> None:
-        """Process a single file.
-
-        Args:
-            backend: Backend to use for stub generation
-            file_path: Path to the file to process
-        """
+        """Process a single file."""
         try:
             # Generate stub
-            result = backend.generate_stub(file_path)
-            if isinstance(result, StubResult):
+            result = asyncio.run(backend.generate_stub(file_path))
+            if isinstance(result, str):
+                stub_content = result
+            elif isinstance(result, StubResult):
                 # Apply processors
                 for processor in self.processors:
                     result = processor.process(result)
-
-                # Write stub
-                output_path = (
-                    self.config.paths.output_dir / file_path.with_suffix(".pyi").name
-                )
-                output_path.write_text(result.stub_content)
+                stub_content = result.stub_content
             else:
-                logger.error(f"Invalid result type for {file_path}")
+                logger.error(
+                    f"Unexpected result type from generate_stub: {type(result)}"
+                )
+                return
+
+            # Write stub
+            output_path = (
+                self.config.paths.output_dir / file_path.with_suffix(".pyi").name
+            )
+            output_path.write_text(stub_content)
 
         except Exception as e:
             logger.error(f"Failed to process {file_path}: {e}")
@@ -4666,8 +4886,8 @@ class SmartStubGenerator:
 async def generate_stub(
     source_path: PathLike,
     output_path: PathLike | None = None,
-    backend: str = "ast",
-    config: StubGenConfig | None = None,
+    backend: Literal["ast", "mypy"] = "ast",
+    config: StubConfig | None = None,
 ) -> StubResult:
     """Generate a type stub for a Python source file.
 
@@ -4686,20 +4906,51 @@ async def generate_stub(
     source_path = Path(source_path)
     output_path_obj = Path(output_path) if output_path else None
 
-    config = config or StubGenConfig(paths=PathConfig())
+    # Create default config if none provided
+    if config is None:
+        config = StubConfig(
+            input_path=source_path,
+            output_path=output_path_obj,
+            backend=backend,  # type: Literal["ast", "mypy"]
+            parallel=True,
+            max_workers=None,
+            infer_types=True,
+            preserve_literals=True,
+            docstring_type_hints=True,
+            line_length=88,
+            sort_imports=True,
+            add_header=True,
+            no_import=False,
+            inspect=False,
+            doc_dir="",
+            ignore_errors=True,
+            parse_only=False,
+            include_private=False,
+            verbose=False,
+            quiet=True,
+            export_less=False,
+            max_docstring_length=150,
+            include_type_comments=True,
+            infer_property_types=True,
+            files=[source_path],
+            include_patterns=["*.py"],
+            exclude_patterns=["test_*.py", "*_test.py"],
+            modules=[],
+            packages=[],
+            search_paths=[],
+            python_version=(sys.version_info.major, sys.version_info.minor),
+            interpreter=Path(sys.executable),
+        )
 
-    # Convert StubGenConfig to StubConfig
-    stub_config = _convert_to_stub_config(config)
-    stub_config.input_path = source_path
-    stub_config.output_path = output_path_obj
-    stub_config.backend = "ast" if backend == "ast" else "mypy"  # Convert to Literal
+    # Convert StubConfig to StubGenConfig for backend
+    stub_gen_config = _convert_to_stub_gen_config(config)
 
     # Initialize backend
     backend_obj: StubBackend
     if backend == "ast":
-        backend_obj = ASTBackend(stub_config)
+        backend_obj = ASTBackend(stub_gen_config)
     elif backend == "mypy":
-        backend_obj = MypyBackend(stub_config)
+        backend_obj = MypyBackend(stub_gen_config)
     else:
         raise ValueError(f"Unsupported backend: {backend}")
 
@@ -4710,6 +4961,7 @@ async def generate_stub(
 
     # Write stub if output path is specified
     if output_path_obj:
+        output_path_obj.parent.mkdir(parents=True, exist_ok=True)
         output_path_obj.write_text(result.stub_content)
 
     return result
@@ -4761,6 +5013,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from .core.config import PathConfig, StubGenConfig
 from .errors import ConfigError, ErrorCode
 
 
@@ -4838,11 +5091,20 @@ class FileLocations(BaseModel):
             )
 
 
+def _default_stub_gen_config() -> StubGenConfig:
+    """Create default StubGenConfig instance.
+
+    Returns:
+        Default StubGenConfig instance
+    """
+    return StubGenConfig(paths=PathConfig())
+
+
 class StubConfig(BaseModel):
     """Configuration for stub generation."""
 
     model_config = SettingsConfigDict(
-        extra="forbid",
+        extra="allow",  # Allow extra fields to handle all parameters
         frozen=True,
         validate_assignment=True,
     )
@@ -4855,6 +5117,10 @@ class StubConfig(BaseModel):
     output_path: Path | None = Field(
         None,
         description="Path to output directory for stubs",
+    )
+    files: list[Path] = Field(
+        default_factory=list,
+        description="List of files to process",
     )
     include_patterns: list[str] = Field(
         default_factory=lambda: ["*.py"],
@@ -4878,6 +5144,12 @@ class StubConfig(BaseModel):
         None,
         description="Maximum number of worker threads",
         ge=1,
+    )
+
+    # Stub generation settings
+    stub_gen_config: StubGenConfig = Field(
+        default_factory=_default_stub_gen_config,
+        description="Configuration for stub generation",
     )
 
     # Type inference settings
@@ -4952,87 +5224,50 @@ class StubConfig(BaseModel):
     )
     packages: Sequence[str] = Field(
         default_factory=list,
-        description="List of package names to process recursively",
-    )
-    files: Sequence[str | Path] = Field(
-        default_factory=list,
-        description="List of files to process",
+        description="List of package names to process",
     )
     verbose: bool = Field(
         False,
-        description="Show more detailed output",
+        description="Enable verbose output",
     )
     quiet: bool = Field(
         True,
-        description="Show minimal output",
+        description="Enable quiet mode",
     )
     export_less: bool = Field(
         False,
-        description="Don't export imported names",
+        description="Export fewer symbols",
     )
     importance_patterns: dict[str, float] = Field(
         default_factory=dict,
-        description="Dict of regex patterns to importance scores",
+        description="Patterns for importance scoring",
     )
     max_docstring_length: int = Field(
-        500,
-        description="Maximum length for included docstrings",
-        ge=1,
+        150,
+        description="Maximum docstring length",
     )
     include_type_comments: bool = Field(
         True,
-        description="Include type comments in stubs",
+        description="Include type comments",
     )
     infer_property_types: bool = Field(
         True,
-        description="Try to infer property types from docstrings",
+        description="Infer property types",
     )
 
-    @field_validator("output_path", mode="before")
-    @classmethod
-    def validate_output_path(cls, v: Any) -> Path | None:
-        """Validate and create output directory if it doesn't exist."""
-        if v is None:
-            return None
-        try:
-            path = Path(v)
-            path.mkdir(parents=True, exist_ok=True)
-            return path
-        except Exception as e:
-            raise ConfigError(
-                f"Failed to create output directory: {e}",
-                ErrorCode.CONFIG_IO_ERROR,
-                source=str(v),
-            ) from e
-
-    @field_validator("input_path")
-    @classmethod
-    def validate_input_path(cls, v: Path) -> Path:
-        """Validate input path exists."""
-        if not v.exists():
-            raise ConfigError(
-                "Input path does not exist",
-                ErrorCode.CONFIG_VALIDATION_ERROR,
-                source=str(v),
-            )
-        return v
-
     def get_file_locations(self, source_path: Path) -> FileLocations:
-        """Create FileLocations for a source file.
+        """Get file locations for a source file.
 
         Args:
             source_path: Path to source file
 
         Returns:
-            FileLocations instance
-
-        Raises:
-            ConfigError: If paths are invalid
+            FileLocations object
         """
         return FileLocations(
             source_path=source_path,
             input_dir=self.input_path,
-            output_dir=self.output_path or self.input_path.parent / "stubs",
+            output_dir=self.output_path or Path("out"),
         )
 
 
@@ -5237,845 +5472,6 @@ class ConfigError(StubGenerationError):
             details = details or {}
             details["config_key"] = config_key
         super().__init__(message, code, details, source=source)
-
-================
-File: src/twat_coding/pystubnik/make_stubs_ast.py
-================
-#!/usr/bin/env python3
-"""
-Generate shadow Python files containing only signatures and imports,
-while truncating large literal strings, bytes, lists, dicts, etc.
-"""
-
-import ast
-import os
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import dataclass
-from pathlib import Path
-from typing import Any, cast
-
-from loguru import logger
-from pydantic import BaseModel
-from rich.console import Console
-
-# Constants
-MAX_WORKERS = os.cpu_count() or 1
-MAX_SEQUENCE_LENGTH: int = 4  # For lists, dicts, sets, tuples
-MAX_STRING_LENGTH: int = 17  # For strings except docstrings
-MAX_DOCSTRING_LENGTH: int = 150  # Default max length for docstrings
-MAX_FILE_SIZE: int = 3_000  # Default max file size before removing all docstrings
-TRUNCATION_MARKER: str = "..."
-
-console = Console()
-
-
-@dataclass(frozen=True)
-class Config:
-    """Configuration settings."""
-
-    max_sequence_length: int = MAX_SEQUENCE_LENGTH
-    max_string_length: int = MAX_STRING_LENGTH
-    max_docstring_length: int = MAX_DOCSTRING_LENGTH
-    max_file_size: int = MAX_FILE_SIZE
-    truncation_marker: str = TRUNCATION_MARKER
-
-
-class FileLocations(BaseModel):
-    """File locations for shadow file generation."""
-
-    py_path: Path
-    in_dir: Path
-    out_dir: Path
-
-    class Config:
-        arbitrary_types_allowed = True
-
-    @property
-    def output_path(self) -> Path:
-        """Calculate output path based on input path and bases."""
-        rel_path = self.py_path.relative_to(self.in_dir)
-        return self.out_dir / rel_path
-
-    def check_paths(self) -> None:
-        """Validate file locations and create output directories."""
-        if not self.py_path.exists():
-            msg = f"Input file not found: {self.py_path}"
-            raise FileNotFoundError(msg)
-        if not self.py_path.is_relative_to(self.in_dir):
-            base = self.in_dir
-            msg = f"Input file {self.py_path} is not within base {base}"
-            raise ValueError(msg)
-
-        # Create output directory and verify permissions
-        self.output_path.parent.mkdir(parents=True, exist_ok=True)
-        if not os.access(self.output_path.parent, os.W_OK):
-            msg = f"No write permission: {self.output_path.parent}"
-            raise PermissionError(msg)
-
-
-def _is_docstring(node: ast.AST) -> bool:
-    """Check if the node is a docstring."""
-    parent = getattr(node, "parent", None)
-    parent_parent = getattr(parent, "parent", None)
-    return isinstance(parent, ast.Expr) and isinstance(
-        parent_parent, ast.Module | ast.ClassDef | ast.FunctionDef
-    )
-
-
-def _truncate_string(s: str, max_length: int, marker: str) -> str:
-    """Truncate a string to the specified length."""
-    if len(s) <= max_length:
-        return s
-    return f"{s[:max_length]}{marker}"
-
-
-def _truncate_bytes(b: bytes, max_length: int) -> bytes:
-    """Truncate bytes to the specified length."""
-    if len(b) <= max_length:
-        return b
-    return bytes(b[:max_length]) + b"..."
-
-
-def _truncate_sequence(
-    elts: list[ast.expr], max_length: int, config: Config
-) -> list[ast.expr]:
-    """Truncate a sequence of AST elements."""
-    truncated_elts = []
-    for i, e in enumerate(elts):
-        if i < max_length:
-            truncated_elts.append(cast(ast.expr, truncate_literal(e, config)))
-        else:
-            truncated_elts.append(ast.Constant(value=config.truncation_marker))
-            break
-    return truncated_elts
-
-
-def truncate_literal(node: ast.AST, config: Config) -> ast.AST:
-    """Truncate literal values to keep them small in the generated shadow file."""
-    match node:
-        case ast.Constant(value=str() as s):
-            if _is_docstring(node):
-                return node
-            trunc = _truncate_string(
-                s, config.max_string_length, config.truncation_marker
-            )
-            return ast.Constant(value=trunc)
-
-        case ast.Constant(value=bytes() as b):
-            trunc = _truncate_bytes(b, config.max_string_length)
-            return ast.Constant(value=trunc)
-
-        case ast.List(elts=elts):
-            truncated = _truncate_sequence(elts, config.max_sequence_length, config)
-            return ast.List(elts=truncated, ctx=ast.Load())
-
-        case ast.Set(elts=elts):
-            truncated = _truncate_sequence(elts, config.max_sequence_length, config)
-            return ast.Set(elts=truncated)
-
-        case ast.Tuple(elts=elts):
-            truncated = _truncate_sequence(elts, config.max_sequence_length, config)
-            return ast.Tuple(elts=truncated, ctx=ast.Load())
-
-        case ast.Dict(keys=keys, values=values):
-            truncated_pairs = []
-            for i, (k, v) in enumerate(zip(keys, values, strict=False)):
-                if i < config.max_sequence_length:
-                    new_v = cast(ast.expr, truncate_literal(v, config))
-                    truncated_pairs.append((k, new_v))
-                else:
-                    truncated_pairs.append(
-                        (ast.Constant(value="..."), ast.Constant(value="..."))
-                    )
-                    break
-            return ast.Dict(
-                keys=[k for k, _ in truncated_pairs],
-                values=[v for _, v in truncated_pairs],
-            )
-
-        case _:
-            return node
-
-
-class SignatureExtractor(ast.NodeTransformer):
-    """
-    Transform AST to preserve:
-      - imports
-      - docstrings (subject to length constraints)
-      - function & method signatures
-      - class-level assignments
-    But replace function bodies with an ellipsis.
-    """
-
-    def __init__(self, config: Config, file_size: int = 0):
-        super().__init__()
-        self.config = config
-        self.file_size = file_size
-
-    def _preserve_docstring(self, body: list[ast.stmt]) -> list[ast.stmt]:
-        """
-        If the first statement is a docstring, keep it if it meets size constraints.
-        Return that docstring statement (list of 1) or an empty list.
-        """
-        if not body:
-            return []
-
-        # Skip all docstrings if file is too large
-        if self.file_size > self.config.max_file_size:
-            return []
-
-        match body[0]:
-            case ast.Expr(value=ast.Constant(value=str() as docstring)):
-                # Skip if docstring is too long
-                if len(docstring) > self.config.max_docstring_length:
-                    return []
-                return [body[0]]
-            case _:
-                return []
-
-    def _make_ellipsis_expr(self, node: ast.AST, indent: int = 0) -> ast.Expr:
-        """Create an ellipsis node with the same location offsets."""
-        return ast.Expr(
-            value=ast.Constant(value=Ellipsis),
-            lineno=getattr(node, "lineno", 1),
-            col_offset=getattr(node, "col_offset", 0) + indent,
-        )
-
-    def visit_FunctionDef(self, node: ast.FunctionDef) -> ast.FunctionDef:
-        """
-        Keep:
-         - function name
-         - decorators
-         - signature (args, returns)
-         - docstring
-        Replace body with '...'
-        """
-        preserved_doc = self._preserve_docstring(node.body)
-        ellipsis_body = [self._make_ellipsis_expr(node, indent=4)]
-        return ast.FunctionDef(
-            name=node.name,
-            args=node.args,
-            body=preserved_doc + ellipsis_body,
-            decorator_list=node.decorator_list,
-            returns=node.returns,
-            type_params=[],  # For Python 3.12+
-            lineno=node.lineno,
-            col_offset=node.col_offset,
-        )
-
-    def visit_ClassDef(self, node: ast.ClassDef) -> ast.ClassDef:
-        """
-        Preserve:
-         - class name
-         - decorators
-         - docstring
-         - definitions inside (methods, nested classes, assignments)
-        But transform method bodies to ellipses via visit_FunctionDef.
-        """
-        preserved_doc = self._preserve_docstring(node.body)
-        remainder = node.body[len(preserved_doc) :]
-        new_body: list[ast.stmt] = []
-
-        for item in remainder:
-            match item:
-                case ast.FunctionDef():
-                    new_body.append(self.visit_FunctionDef(item))
-                case _:
-                    # Visit child nodes to truncate large literals
-                    new_body.append(self.visit(item))
-
-        return ast.ClassDef(
-            name=node.name,
-            bases=node.bases,
-            keywords=node.keywords,
-            body=preserved_doc + new_body,
-            decorator_list=node.decorator_list,
-            type_params=[],  # For Python 3.12+
-            lineno=node.lineno,
-            col_offset=node.col_offset,
-        )
-
-    def visit_Module(self, node: ast.Module) -> ast.Module:
-        """Process top-level statements."""
-        body: list[ast.stmt] = []
-        for item in node.body:
-            # Skip empty or purely whitespace expressions
-            is_empty_expr = (
-                isinstance(item, ast.Expr)
-                and isinstance(item.value, ast.Constant)
-                and (not item.value.value or item.value.value.isspace())
-            )
-            if is_empty_expr:
-                continue
-            body.append(self.visit(item))
-
-        return ast.Module(body=body, type_ignores=[])
-
-    def generic_visit(self, node: ast.AST) -> ast.AST:
-        """
-        Recurse into all child nodes, then apply literal truncation.
-        This ensures we handle nested dictionaries, strings, bytes, etc.
-        """
-        new_node = super().generic_visit(node)
-        return truncate_literal(new_node, self.config)
-
-
-def generate_shadow_file(
-    py_path: Path | str,
-    in_dir: Path | str,
-    out_dir: Path | str,
-    config: Config | None = None,
-) -> None:
-    """Generate a shadow file with signatures, docstrings, and imports."""
-    try:
-        locations = FileLocations(
-            py_path=Path(py_path),
-            in_dir=Path(in_dir),
-            out_dir=Path(out_dir),
-        )
-        locations.check_paths()
-
-        config = config or Config()
-        source = locations.py_path.read_text(encoding="utf-8")
-        file_size = len(source)
-        tree = ast.parse(source)
-
-        # Add parent references for docstring detection
-        def _attach_parents(curr: ast.AST, parent: ast.AST | None = None) -> None:
-            for child in ast.iter_child_nodes(curr):
-                child.parent = curr
-                _attach_parents(child, curr)
-
-        _attach_parents(tree)
-
-        transformed_tree = SignatureExtractor(config, file_size).visit(tree)
-
-        output_code = ast.unparse(transformed_tree)
-        locations.output_path.write_text(output_code, encoding="utf-8")
-        logger.debug(f"> {locations.output_path.relative_to(locations.out_dir)}")
-
-    except Exception as exc:
-        logger.error(f"Failed to process {py_path}: {exc!s}")
-        raise
-
-
-def process_directory(
-    input_dir: Path | str,
-    in_dir: Path | str,
-    out_dir: Path | str,
-    config: Config | None = None,
-) -> None:
-    """
-    Recursively process all .py files in the given directory, generating shadow files.
-    Builds a sorted structure of relative paths and processes them concurrently.
-    Failed files are logged and skipped.
-    """
-    input_dir = Path(input_dir)
-    in_dir = Path(in_dir)
-
-    # Build sorted structure of relative paths
-    files = sorted(input_dir.rglob("*.py"))
-    [f.relative_to(in_dir) for f in files]
-    total = len(files)
-
-    if not total:
-        logger.warning(f"No Python files found in {input_dir}")
-        return
-
-    logger.debug(f"Found {total} Python files to process")
-    config = config or Config()
-
-    # Process files concurrently
-    successful_paths = []
-    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-        futures = {
-            executor.submit(generate_shadow_file, f, in_dir, out_dir, config): f
-            for f in files
-        }
-
-        for future in as_completed(futures):
-            file = futures[future]
-            try:
-                future.result()
-                successful_paths.append(file.relative_to(in_dir))
-            except Exception as exc:
-                logger.error(f"Failed to process {file}: {exc!s}")
-
-    # Print tree structure of processed files
-    if successful_paths:
-        logger.debug("Successfully processed files:")
-        print_file_tree(successful_paths)
-    else:
-        logger.error("No files were processed successfully")
-
-
-def print_file_tree(paths: list[Path]) -> None:
-    """Print a tree structure of the given file paths."""
-
-    def add_to_tree(tree: dict, components: list[str]) -> None:
-        """Add path components to tree structure."""
-        if not components:
-            return
-        head, *tail = components
-        if tail:
-            tree[head] = tree.get(head, {})
-            add_to_tree(tree[head], tail)
-        else:
-            tree[head] = None
-
-    def print_tree(tree: dict, prefix: str = "", is_last: bool = True) -> None:
-        """Print the tree structure recursively."""
-        items = list(tree.items())
-        for i, (_name, subtree) in enumerate(items):
-            is_last_item = i == len(items) - 1
-            if subtree is not None:
-                extension = "    " if is_last_item else "│   "
-                print_tree(subtree, prefix + extension, is_last_item)
-
-    # Build tree structure
-    tree: dict[str, Any] = {}
-    for path in sorted(paths):
-        components = str(path).split("/")
-        add_to_tree(tree, components)
-
-    # Print root and tree
-    print_tree(tree)
-
-
-def cli(
-    in_dir: str | Path,
-    out_dir: str | Path,
-    py_path: str | Path | None = None,
-    verbose: bool = False,
-) -> None:
-    """
-    Generate shadow Python files (signatures, imports, docstrings),
-    truncating large literals. Writes files to the corresponding
-    directory under out_dir.
-    """
-    logger.remove()
-    logger.add(
-        console.out,
-        format="<blue>{level}</blue> {message}",
-        level="DEBUG" if verbose else "INFO",
-    )
-
-    try:
-        config = Config()
-        if py_path is not None:
-            path = Path(py_path)
-            if path.is_dir():
-                process_directory(path, in_dir, out_dir, config)
-            else:
-                generate_shadow_file(path, in_dir, out_dir, config)
-        else:
-            process_directory(in_dir, in_dir, out_dir, config)
-
-    except Exception as exc:
-        logger.error(f"Application error: {exc!s}")
-        raise
-
-
-if __name__ == "__main__":
-    try:
-        import fire
-
-        fire.Fire(cli)
-    except ImportError:
-        logger.error("Please install python-fire: pip install fire")
-
-================
-File: src/twat_coding/pystubnik/make_stubs_mypy.py
-================
-#!/usr/bin/env python3
-"""Enhanced MyPy-based stub generator.
-
-Combines MyPy's stubgen with smart stub generation to provide better type information.
-
-This module provides a more sophisticated approach to stub generation by:
-1. Using MyPy's stubgen for basic stub generation
-2. Enhancing the stubs with smart docstring processing
-3. Adding importance-based filtering
-4. Proper handling of special cases (dataclasses, properties, etc.)
-"""
-
-import sys
-from collections.abc import Sequence
-from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Any, NamedTuple, cast
-
-from loguru import logger
-from mypy import stubgen
-from mypy.stubdoc import (
-    ArgSig,
-    FunctionSig,
-    infer_sig_from_docstring,
-    parse_all_signatures,
-)
-
-# Current Python version
-pyversion_current = (sys.version_info.major, sys.version_info.minor)
-
-# Optional fire import for CLI
-try:
-    import fire  # type: ignore
-except ImportError:
-    fire = None  # type: ignore
-
-
-class DocSignature(NamedTuple):
-    """Signature information extracted from docstring."""
-
-    name: str
-    args: list[tuple[str, str | None, str | None]]  # (name, type, default)
-    ret_type: str | None
-
-
-@dataclass
-class StubGenConfig:
-    """Configuration for stub generation with smart defaults."""
-
-    pyversion: tuple[int, int] = pyversion_current
-    no_import: bool = False
-    inspect: bool = False
-    doc_dir: str = ""
-    search_path: Sequence[str | Path] = field(default_factory=list)
-    interpreter: str | Path = sys.executable
-    ignore_errors: bool = True
-    parse_only: bool = False
-    include_private: bool = False
-    output_dir: str | Path = ""
-    modules: Sequence[str] = field(default_factory=list)
-    packages: Sequence[str] = field(default_factory=list)
-    files: Sequence[str | Path] = field(default_factory=list)
-    verbose: bool = False
-    quiet: bool = True
-    export_less: bool = False
-    include_docstrings: bool = True  # Changed default to True
-    importance_patterns: dict[str, float] = field(default_factory=dict)
-    max_docstring_length: int = 500
-    include_type_comments: bool = True
-    infer_property_types: bool = True
-
-    def to_stubgen_options(self) -> stubgen.Options:
-        """Convert to MyPy's stubgen.Options."""
-        return stubgen.Options(
-            pyversion=self.pyversion,
-            no_import=self.no_import,
-            inspect=self.inspect,
-            doc_dir=self.doc_dir,
-            search_path=[str(p) for p in self.search_path],
-            interpreter=str(self.interpreter),
-            ignore_errors=self.ignore_errors,
-            parse_only=self.parse_only,
-            include_private=self.include_private,
-            output_dir=str(self.output_dir),
-            modules=list(self.modules),
-            packages=list(self.packages),
-            files=[str(f) for f in self.files],
-            verbose=self.verbose,
-            quiet=self.quiet,
-            export_less=self.export_less,
-            include_docstrings=self.include_docstrings,
-        )
-
-
-class SmartStubGenerator:
-    """Enhanced stub generator that combines MyPy's stubgen with smart features."""
-
-    def __init__(self, config: StubGenConfig):
-        self.config = config
-        self.logger = logger.opt(colors=True)
-
-    def _convert_function_sig(self, sig: FunctionSig | tuple[str, str]) -> DocSignature:
-        """Convert FunctionSig to DocSignature.
-
-        Args:
-            sig: Function signature from mypy.stubdoc
-
-        Returns:
-            Converted signature
-        """
-        if not isinstance(sig, FunctionSig):
-            # Handle tuple format from parse_all_signatures
-            name, ret_type = sig
-            return DocSignature(name=name, args=[], ret_type=ret_type)
-
-        # Handle FunctionSig format from infer_sig_from_docstring
-        args: list[tuple[str, str | None, str | None]] = []
-        for arg in sig.args:
-            if isinstance(arg, ArgSig):
-                # ArgSig attributes are dynamically added by mypy
-                arg_dict = cast(dict[str, Any], arg.__dict__)
-                type_str = arg_dict.get("type_str")
-                type_str = None if type_str == "Any" else type_str
-                default = arg_dict.get("default")
-                default = None if default == "..." else default
-                args.append(
-                    (
-                        arg_dict.get("name", ""),
-                        type_str,
-                        default,
-                    )
-                )
-            elif isinstance(arg, tuple):
-                name, type_str, default = cast(tuple[str, str, str], arg)
-                args.append(
-                    (
-                        name,
-                        type_str if type_str != "Any" else None,
-                        default if default != "..." else None,
-                    )
-                )
-
-        return DocSignature(
-            name=sig.name,
-            args=args,
-            ret_type=sig.ret_type if sig.ret_type != "Any" else None,
-        )
-
-    def process_docstring(
-        self, docstring: str | None
-    ) -> tuple[str | None, list[DocSignature]]:
-        """Process docstring to extract type information and signatures.
-
-        Args:
-            docstring: The docstring to process
-
-        Returns:
-            Tuple of (processed docstring, list of extracted signatures)
-        """
-        if not docstring:
-            return None, []
-
-        # Truncate if too long
-        if len(docstring) > self.config.max_docstring_length:
-            docstring = docstring[: self.config.max_docstring_length] + "..."
-
-        # Try to infer signatures
-        sigs: list[DocSignature] = []
-        try:
-            inferred_sigs = infer_sig_from_docstring(docstring, "") or []
-            sigs.extend(self._convert_function_sig(sig) for sig in inferred_sigs)
-        except Exception as e:
-            self.logger.debug(f"Failed to infer signatures from docstring: {e}")
-
-        # If doc_dir is specified, try to find additional signatures
-        if self.config.doc_dir:
-            try:
-                doc_sigs, _ = parse_all_signatures([docstring])
-                sigs.extend(self._convert_function_sig(sig) for sig in doc_sigs)
-            except Exception as e:
-                self.logger.debug(f"Failed to parse doc signatures: {e}")
-
-        return docstring, sigs
-
-    def calculate_importance(self, name: str, docstring: str | None = None) -> float:
-        """Calculate importance score for a symbol."""
-        score = 1.0
-
-        # Check against importance patterns
-        for pattern, weight in self.config.importance_patterns.items():
-            if pattern in name:
-                score *= weight
-
-        # Docstring-based importance
-        if docstring:
-            # More detailed docstrings might indicate importance
-            score *= 1 + (len(docstring.split()) / 100)
-
-            # Check for specific keywords indicating importance
-            importance_keywords = {"important", "critical", "essential", "main", "key"}
-            if any(keyword in docstring.lower() for keyword in importance_keywords):
-                score *= 1.5
-
-        # Name-based importance
-        if name.startswith("__") and name.endswith("__"):
-            score *= 1.2  # Special methods are usually important
-        elif not name.startswith("_"):
-            score *= 1.1  # Public methods are usually more important
-
-        return score
-
-    def enhance_stub(self, stub_content: str, module_name: str) -> str:
-        """Enhance a generated stub with additional information."""
-        # TODO: Implement stub enhancement logic
-        return stub_content
-
-    def generate_stubs(self) -> None:
-        """Generate enhanced stubs using MyPy's stubgen with additional processing."""
-        try:
-            # First, use MyPy's stubgen
-            options = self.config.to_stubgen_options()
-            stubgen.generate_stubs(options)
-
-            # Then enhance the stubs (TODO)
-            self.logger.info("<green>Successfully generated stubs</green>")
-
-        except Exception as e:
-            self.logger.error(f"<red>Failed to generate stubs: {e}</red>")
-            if self.config.verbose:
-                import traceback
-
-                self.logger.debug(traceback.format_exc())
-            if not self.config.ignore_errors:
-                raise
-
-
-def generate_stubs(
-    pyversion: tuple[int, int] = pyversion_current,
-    no_import: bool = False,
-    inspect: bool = False,
-    doc_dir: str = "",
-    search_path: Sequence[str | Path] = [],
-    interpreter: str | Path = sys.executable,
-    ignore_errors: bool = True,
-    parse_only: bool = False,
-    include_private: bool = False,
-    output_dir: str | Path = "",
-    modules: Sequence[str] = [],
-    packages: Sequence[str] = [],
-    files: Sequence[str | Path] = [],
-    verbose: bool = False,
-    quiet: bool = True,
-    export_less: bool = False,
-    include_docstrings: bool = True,
-    importance_patterns: dict[str, float] | None = None,
-    max_docstring_length: int = 500,
-    include_type_comments: bool = True,
-    infer_property_types: bool = True,
-) -> None:
-    """Generate smart stubs for modules specified in options.
-
-    This is an enhanced version of MyPy's stub generation that adds:
-    - Importance-based filtering
-    - Smart docstring processing
-    - Better type inference
-    - Special case handling
-
-    Args:
-        pyversion: Python version as (major, minor) tuple
-        no_import: Don't import modules, just parse and analyze
-        inspect: Import and inspect modules instead of parsing source
-        doc_dir: Path to .rst documentation directory
-        search_path: List of module search directories
-        interpreter: Path to Python interpreter
-        ignore_errors: Ignore errors during stub generation
-        parse_only: Don't do semantic analysis of source
-        include_private: Include private objects in stubs
-        output_dir: Directory to write stub files to
-        modules: List of module names to generate stubs for
-        packages: List of package names to generate stubs for recursively
-        files: List of files/directories to generate stubs for
-        verbose: Show more detailed output
-        quiet: Show minimal output
-        export_less: Don't export imported names
-        include_docstrings: Include docstrings in stubs
-        importance_patterns: Dict of regex patterns to importance scores
-        max_docstring_length: Maximum length for included docstrings
-        include_type_comments: Include type comments in stubs
-        infer_property_types: Try to infer property types from docstrings
-
-    The function will generate .pyi stub files in the specified output_dir.
-    """
-    config = StubGenConfig(
-        pyversion=pyversion,
-        no_import=no_import,
-        inspect=inspect,
-        doc_dir=doc_dir,
-        search_path=search_path,
-        interpreter=interpreter,
-        ignore_errors=ignore_errors,
-        parse_only=parse_only,
-        include_private=include_private,
-        output_dir=output_dir,
-        modules=modules,
-        packages=packages,
-        files=files,
-        verbose=verbose,
-        quiet=quiet,
-        export_less=export_less,
-        include_docstrings=include_docstrings,
-        importance_patterns=importance_patterns or {},
-        max_docstring_length=max_docstring_length,
-        include_type_comments=include_type_comments,
-        infer_property_types=infer_property_types,
-    )
-
-    generator = SmartStubGenerator(config)
-    generator.generate_stubs()
-
-
-if __name__ == "__main__":
-    if fire is None:
-        print("Error: python-fire package is required to run this script directly")
-        sys.exit(1)
-    fire.Fire(generate_stubs)
-
-================
-File: src/twat_coding/pystubnik/pypacky2.sh
-================
-#!/usr/bin/env bash
-dir=${0%/*}
-if [ "$dir" = "$0" ]; then dir="."; fi
-dir=$(grealpath "$dir")
-cd "$dir"
-workdir=$(grealpath "$dir/work")
-cd "$workdir"
-
-PROJ="sluglet"
-
-uv venv --allow-existing --relocatable --python-preference only-system "$dir/venv" # && source work/myvenv/bin/activate
-uv venv --allow-existing --relocatable --python-preference only-system "$dir/devenv"
-
-source "$dir/devenv/bin/activate"
-
-uv pip install -U -r "$workdir/dev_requirements.txt"
-
-projdir=$(grealpath "$workdir/$PROJ")
-
-UPROJ=$(echo "$PROJ" | tr '-' '_')
-putup --name $UPROJ --package $UPROJ --url https://github.com/twardoch/$PROJ --license Apache-2.0 --description "Python tool to composite two images using multiple mask images" --github-actions $PROJ && cd "$projdir" && pre-commit autoupdate
-
-cd "$projdir"
-pre-commit autoupdate
-rm "src/$PROJ/skeleton.py"
-cp "$workdir/$PROJ.py" "$projdir/src/$PROJ/"
-
-cd "$workdir"
-pyodide minify "$PROJ"
-MINIFIED_DIR="${PROJ}_stripped"
-OUT_DIR="$workdir/_vulture"
-mkdir -p "$OUT_DIR"
-vulture "$MINIFIED_DIR" --sort-by-size --make-whitelist >"$OUT_DIR/vulture_dead_code.txt"
-uv pip install -U "$projdir"
-
-compile_with_nuitka() {
-    echo "Compiling with Nuitka..."
-    OUT_DIR="$workdir/_nuit"
-    mkdir -p "$OUT_DIR"
-    MAIN_FILE="$workdir/main.py"
-    if [ -n "$MAIN_FILE" ]; then
-        nuitka --standalone "$MAIN_FILE" --include-package="$PROJ" --show-modules --show-scons --output-dir="$OUT_DIR" --follow-imports --prefer-source-code
-    else
-        echo "Main file not found. Skipping Nuitka compilation."
-    fi
-}
-compile_with_nuitka
-
-package_with_pyinstaller() {
-    echo "Packaging with PyInstaller..."
-    OUT_DIR="$workdir/_pyins"
-    mkdir -p "$OUT_DIR"
-    MAIN_FILE="$workdir/main.py"
-    if [ -n "$MAIN_FILE" ]; then
-        pyinstaller --console --onedir -y --workpath "$OUT_DIR/work" --distpath "$OUT_DIR/dist" --specpath "$OUT_DIR/spec" "$MAIN_FILE" -d all --clean --contents-directory . --optimize 0
-    else
-        echo "Main file not found. Skipping PyInstaller packaging."
-    fi
-}
-package_with_pyinstaller
 
 ================
 File: src/twat_coding/pystubnik/read_imports.py
@@ -6429,14 +5825,74 @@ if __name__ == "__main__":
 ================
 File: tests/test_package.py
 ================
-"""Test suite for twat_coding."""
+"""Test package functionality."""
+
+from pathlib import Path
+
+import pytest
+
+from twat_coding.pystubnik.backends.ast_backend import ASTBackend
+from twat_coding.pystubnik.core.config import PathConfig, StubGenConfig
 
 
-def test_version() -> None:
-    """Verify package exposes version."""
-    import twat_coding
+@pytest.mark.asyncio
+async def test_ast_backend(tmp_path: Path) -> None:
+    """Test AST stub generation."""
+    test_file = tmp_path / "test.py"
+    test_file.write_text("""
+def hello(name: str) -> str:
+    \"\"\"Important function.\"\"\"
+    return "Hello"
+""")
+    config = StubGenConfig(paths=PathConfig(output_dir=tmp_path, files=[test_file]))
+    backend = ASTBackend(config)
+    result = await backend.generate_stub(test_file)
+    assert "def hello(name: str) -> str" in result
+    assert "Important function" in result
 
-    assert twat_coding.__version__
+
+@pytest.mark.asyncio
+async def test_docstring_preservation(tmp_path: Path) -> None:
+    """Test docstring handling based on importance."""
+    test_file = tmp_path / "important.py"
+    test_file.write_text("""
+def critical_function():
+    \"\"\"This is a very important function that should keep its docstring.\"\"\"
+    pass
+
+def minor_function():
+    \"\"\"This is a less important function that might lose its docstring.\"\"\"
+    pass
+""")
+    config = StubGenConfig(paths=PathConfig(output_dir=tmp_path, files=[test_file]))
+    backend = ASTBackend(config)
+    result = await backend.generate_stub(test_file)
+    assert "This is a very important function" in result
+
+
+@pytest.mark.asyncio
+async def test_type_hints(tmp_path: Path) -> None:
+    """Test type hint preservation."""
+    test_file = tmp_path / "types.py"
+    test_file.write_text("""
+from typing import List, Dict, Optional
+
+def process_data(items: List[str], config: Optional[Dict[str, int]] = None) -> bool:
+    return True
+""")
+    config = StubGenConfig(paths=PathConfig(output_dir=tmp_path, files=[test_file]))
+    backend = ASTBackend(config)
+    result = await backend.generate_stub(test_file)
+
+    # Remove all spaces to handle different formatting styles
+    result_no_spaces = result.replace(" ", "")
+    expected_no_spaces = "config:Optional[Dict[str,int]]"
+
+    # Check each part of the type hint separately
+    assert "def process_data" in result
+    assert "items:List[str]" in result_no_spaces
+    assert expected_no_spaces in result_no_spaces
+    assert "->bool" in result_no_spaces
 
 ================
 File: .gitignore
@@ -7472,377 +6928,464 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ================
 File: TODO.md
 ================
-Before you do any changes or if I say "cleanup", run the `./cleanup.py install && source .venv/bin/activate && ./cleanup.py update | cat` script in the main folder. Analyze the results, describe recent changes @TODO.md to update priorities and plan next changes. PERFORM THE CHANGES, then run the `./cleanup.py update | cat` script and react to the results.
-
-When you edit @TODO.md, lead in lines with empty GFM checkboxes if things aren't done (`- [ ] `) vs. filled (`- [x] `) if done, and `- [!]` if they're NEXT TODO. 
-
-Don't use `pip`, use `uv pip`. Ignore minor problems like "line too long", FOCUS ON MAJOR PROBLEMS! 
+---
+this_file: TODO.md
+---
 
 # TODO
 
-This TODO.md is a detailed development specification for making `pystubnik` functional ASAP, focusing on integrating the new file importance analysis and eliminating standalone scripts.
+## 1. Immediate Priorities
 
-## 1. Dependencies and Environment (URGENT)
+- [!] **Fix Critical Type Errors**
+  - *Problem*: Multiple type errors in core files affecting functionality
+  - *Details*:
+    1. In `docstring.py`: Name-defined errors for `key_info.annotation` and `value_info.annotation`
+    2. In `__init__.py`: StubConfig initialization missing required arguments
+    3. In `__init__.py`: Type mismatch between StubConfig and StubGenConfig in backend initialization
+  - *Solution*:
+    1. Fix dictionary type handling in `docstring.py`
+    2. Update StubConfig initialization with all required parameters
+    3. Implement proper type conversion between StubConfig and StubGenConfig
 
-- [x] **Add New Dependencies to `pyproject.toml`:**
-  ```toml
-  [project]
-  dependencies = [
-      # ... existing deps ...
-      "networkx>=3.2.1",     # For import graph analysis
-      "radon>=6.0.1",       # For code complexity metrics
-      "coverage>=7.4.1",    # For test coverage analysis
-      "pydocstyle>=6.3.0", # For docstring quality checks
-      "importlab>=0.8",    # For import graph building
-      "toml>=0.10.2",      # For pyproject.toml parsing
-  ]
-  ```
+- [!] **Improve Test Coverage**
+  - *Current*: 37% (target: 50%)
+  - *Zero Coverage Modules*:
+    1. `stub_generation.py` (0%)
+    2. `type_inference.py` (0%)
+    3. `read_imports.py` (0%)
+    4. `twat_coding.py` (0%)
+  - *Low Coverage Modules*:
+    1. `imports.py` (15%)
+    2. `core/utils.py` (19%)
+    3. `file_importance.py` (21%)
+    4. `type_system.py` (28%)
 
-- [x] **Fix Import Resolution:**
-  - Added missing type stubs: `types-toml`, replaced `types-pydocstyle` with `mypy-extensions`
-  - Simplified import graph building to not rely on importlab
-  - Added proper error handling for optional dependencies
+- [!] **Integrate File Importance**
+  - *Status*: Core functionality ready, needs integration
+  - *Next Steps*:
+    1. Update `StubResult` to store importance metadata
+    2. Modify `SignatureExtractor` to use importance scores
+    3. Implement importance-based docstring preservation
+    4. Add tests for importance-based stub generation
 
-## 2. Code Quality Fixes
+## 2. Future Tasks
 
-- [x] **Fix Critical Linter Errors:**
-  - Fixed `Numbers.percentage` attribute error in `file_importance.py`
-  - Added proper type hints for importlab classes
-  - Fixed line length issues in `file_importance.py`
-  - Added error handling for missing dependencies
-  - Fixed type errors in centrality calculation
+- [ ] **Documentation Updates**
+  - Update README.md with clear usage examples
+  - Add docstrings to key classes and functions
+  - Create example files demonstrating features
 
-- [x] **Fix Remaining Linter Errors:**
-  - Removed unused imports in `backends/__init__.py` and `processors/__init__.py`
-  - Replaced deprecated type hints with modern syntax:
-    - Replaced `typing.Dict` with `dict`
-    - Replaced `typing.Type` with `type`
-    - Used `X | Y` instead of `Union[X, Y]`
-  - Fixed line length issues in:
-    - `config.py`
-    - `core/utils.py`
-    - `types/docstring.py`
-  - Refactored complex functions:
-    - `truncate_literal` in `make_stubs_ast.py`
-    - `calculate_importance` in `importance.py`
-    - `extract_types` in `types/docstring.py`
+- [ ] **Code Cleanup**
+  - Refactor complex functions in `ast_backend.py`
+  - Simplify configuration system
+  - Remove redundant code in processors
 
-- [!] **Fix Type Checking Errors:**
-  The following type errors need to be fixed:
-  1. In `type_system.py`:
-     ```python
-     # Fix incompatible type in issubclass call by:
-     # 1. Import the correct type from typing._TypeAliasForm
-     # 2. Use isinstance() instead of issubclass() for type checking
-     # 3. Add proper type guards
-     ```
-  2. In `make_stubs_ast.py`:
-     ```python
-     # Fix bytes/str type mismatch by:
-     # 1. Add explicit encoding when converting between bytes and str
-     # 2. Use proper type annotations for binary data
-     # 3. Add error handling for encoding/decoding failures
-     ```
-  3. In `make_stubs_ast.py`:
-     ```python
-     # Fix AST parent attribute error by:
-     # 1. Create a custom AST node class that includes parent attribute
-     # 2. Use ast.fix_missing_locations after modifying AST
-     # 3. Add proper type hints for the parent attribute
-     ```
-  4. In `docstring.py`:
-     ```python
-     # Fix type annotation by:
-     # 1. Update type hints to use modern Python syntax
-     # 2. Add proper type guards for optional attributes
-     # 3. Use TypeVar for generic type parameters
-     ```
+- [ ] **Performance Optimization**
+  - Profile stub generation performance
+  - Optimize memory usage in AST processing
+  - Improve concurrent processing
 
-- [!] **Improve Code Organization:**
-  Create a new `utils/` directory with the following structure and functionality:
-  ```
-  utils/
-  ├── graph_utils.py       # Import graph building and analysis
-  │   ├── build_import_graph()  # Build graph from Python files
-  │   ├── analyze_centrality()  # Calculate node importance
-  │   └── resolve_imports()     # Handle import resolution
-  │
-  ├── metrics.py          # Code complexity and quality metrics
-  │   ├── calculate_complexity()  # Using radon
-  │   ├── check_coverage()       # Using coverage.py
-  │   └── evaluate_docs()        # Using pydocstyle
-  │
-  ├── config.py          # Configuration handling
-  │   ├── load_config()   # Load from pyproject.toml
-  │   ├── validate()      # Validate settings
-  │   └── merge()         # Merge with defaults
-  │
-  └── logging.py         # Centralized logging
-      ├── setup_logging()  # Configure loguru
-      ├── log_error()     # Error handling
-      └── log_metrics()   # Metrics reporting
-  ```
+## 3. Completed Tasks
 
-  Move the following functions from their current locations:
-  1. From `file_importance.py`:
-     - `calculate_file_scores()` → `metrics.py`
-     - `build_import_graph()` → `graph_utils.py`
-  2. From `importance.py`:
-     - `calculate_importance()` → `metrics.py`
-  3. From `core/utils.py`:
-     - `setup_logging()` → `logging.py`
-     - `normalize_path()` → `config.py`
+- [x] **Core AST Backend Implementation**
+  - Basic stub generation functionality
+  - AST transformation logic
+  - Error handling
 
-- [!] **Add Basic Tests:**
-  Create the following test files with specific test cases:
-  ```
-  tests/
-  ├── processors/
-  │   └── test_file_importance.py
-  │       ├── test_graph_building()  # Test import graph construction
-  │       ├── test_metrics()         # Test each metric calculation
-  │       ├── test_config()          # Test config validation
-  │       └── test_error_handling()  # Test dependency errors
-  │
-  ├── test_utils/
-  │   ├── test_files/               # Sample Python files for testing
-  │   │   ├── simple_module.py
-  │   │   ├── complex_module.py
-  │   │   └── error_module.py
-  │   └── fixtures.py               # Common test fixtures
-  │
-  └── conftest.py                   # pytest configuration
-  ```
+- [x] **Project Structure**
+  - Basic project layout
+  - Module organization
+  - Package configuration
 
-  Add performance benchmarks:
-  ```python
-  # benchmarks/test_performance.py
-  def test_large_codebase():
-      """Test processing speed on large codebase."""
-      # Process >1000 Python files
-      # Measure memory usage
-      # Track processing time
-  ```
+- [x] **Type System Improvements**
+  - Created `shared_types.py` for common types
+  - Defined `TruncationConfig` as a shared type
+  - Fixed type compatibility in `ast_utils.py`
 
-## 3. Feature Integration
+## 4. Notes
 
-- [x] **Complete File Importance Integration:**
-  ```python
-  # In ImportanceProcessor.process():
-  def process(self, stub_result: StubResult) -> StubResult:
-      # Calculate file scores
-      package_dir = str(stub_result.source_path.parent)
-      self._file_scores = calculate_file_scores(package_dir, self.config.file_importance)
-      
-      # Process AST
-      tree = ast.parse(stub_result.stub_content)
-      for node in ast.walk(tree):
-          if isinstance(node, (ast.FunctionDef, ast.ClassDef)):
-              score = self.calculate_importance(
-                  name=node.name,
-                  docstring=ast.get_docstring(node),
-                  is_public=not node.name.startswith('_'),
-                  is_special=node.name.startswith('__'),
-                  extra_info={"file_path": stub_result.source_path}
-              )
-              # TODO: Store score in node.importance_score
-              
-      return stub_result
-  ```
+- Focus on fixing type errors first as they affect core functionality
+- Then improve test coverage to ensure stability
+- Complete file importance integration to enable smart stub generation
+- Run `./cleanup.py status` to check progress
+- Use `uv pip` instead of `pip` for package management
+- Ignore minor linting issues (line length) for now
 
-- [!] **Enhance Configuration System:**
-  Create a comprehensive configuration system with the following components:
+Before you do any changes or if I say "cleanup", run the `./cleanup.py install && source .venv/bin/activate && ./cleanup.py update | cat` script in the main folder. Analyze the results, describe recent changes @TODO.md to update priorities and plan next changes. PERFORM THE CHANGES, then run the `./cleanup.py update | cat` script and react to the results.
 
-  1. `FileImportanceConfig` class:
-  ```python
-  @dataclass
-  class FileImportanceConfig:
-      exclude_dirs: list[str]
-      centrality_measure: Literal["pagerank", "betweenness", "eigenvector"]
-      coverage_data_path: Path | None
-      weights: dict[str, float]
-      min_coverage_threshold: float
-      max_complexity_threshold: float
-      doc_quality_checks: list[str]
-      cache_results: bool
-  ```
+When you edit @TODO.md, lead in lines with empty GFM checkboxes if things aren't done (`- [ ] `) vs. filled (`- [x] `) if done, and `- [!]` if they're NEXT TODO.
 
-  2. Configuration validation:
-  ```python
-  def validate_config(config: FileImportanceConfig) -> None:
-      """Validate configuration values."""
-      # Check thresholds are between 0 and 1
-      # Verify centrality measure is valid
-      # Ensure weights sum to 1.0
-      # Validate paths exist
-  ```
-
-  3. CLI integration:
-  ```python
-  @click.command()
-  @click.option("--config", type=click.Path(), help="Config file path")
-  @click.option("--exclude", multiple=True, help="Dirs to exclude")
-  @click.option("--measure", type=click.Choice(["pagerank", "betweenness"]))
-  def main(config: str, exclude: list[str], measure: str) -> None:
-      """Process files with importance analysis."""
-      # Load config from file
-      # Override with CLI options
-      # Run processing
-  ```
-
-  4. Documentation:
-  ```markdown
-  # Configuration Guide
-  
-  ## 4. File Importance Settings
-  - exclude_dirs: List of directories to exclude
-  - centrality_measure: Graph centrality algorithm
-  - weights: Metric importance weights
-  
-  ## 5. Examples
-  ```toml
-  [importance]
-  exclude_dirs = ["tests", "examples"]
-  centrality_measure = "pagerank"
-  weights = { complexity = 0.3, coverage = 0.3, docs = 0.4 }
-  ```
-  ```
-
-- [!] **Improve Processors:**
-  Enhance the processor system with the following improvements:
-
-  1. Update `DocstringProcessor`:
-  ```python
-  class DocstringProcessor:
-      """Process docstrings with quality metrics."""
-      
-      def process_file_docstring(self) -> float:
-          """Handle file-level docstrings."""
-          
-      def use_importance_score(self) -> None:
-          """Incorporate file importance."""
-          
-      def check_quality(self) -> float:
-          """Check docstring quality."""
-  ```
-
-  2. Update `ImportProcessor`:
-  ```python
-  class ImportProcessor:
-      """Handle imports with caching."""
-      
-      def process_imports(self) -> None:
-          """Process with cached graph."""
-          
-      def handle_circular(self) -> None:
-          """Handle circular imports."""
-          
-      def support_namespace(self) -> None:
-          """Support namespace packages."""
-  ```
-
-  3. Add progress reporting:
-  ```python
-  from rich.progress import Progress
-  
-  def process_files() -> None:
-      """Process files with progress bar."""
-      with Progress() as progress:
-          task = progress.add_task("Processing", total=len(files))
-          for file in files:
-              process_file(file)
-              progress.update(task, advance=1)
-  ```
-
-  4. Add caching system:
-  ```python
-  class ImportanceCache:
-      """Cache file importance scores."""
-      
-      def __init__(self, cache_dir: Path) -> None:
-          self.cache_dir = cache_dir
-          
-      def get_score(self, file_path: Path) -> float:
-          """Get cached score."""
-          
-      def set_score(self, file_path: Path, score: float) -> None:
-          """Cache new score."""
-  ```
-
-## 6. Documentation and Examples
-
-- [ ] **Update Documentation:**
-  Create comprehensive documentation covering:
-  1. Architecture overview
-  2. Metric explanations
-  3. Configuration guide
-  4. Troubleshooting guide
-  5. Performance tips
-  6. Migration guide
-
-- [ ] **Add Examples:**
-  Create example code for:
-  1. Basic usage
-  2. Custom metrics
-  3. Integration patterns
-  4. Configuration examples
-  5. Performance optimization
-
-## 7. Testing and Validation
-
-- [ ] **Add Comprehensive Tests:**
-  Add tests for:
-  1. Unit tests (current coverage is only 1%)
-  2. Integration tests
-  3. Performance tests
-  4. Edge case tests
-  5. Regression tests
-
-- [ ] **Add Benchmarks:**
-  Create benchmarks for:
-  1. Processing time
-  2. Memory usage
-  3. Baseline comparison
-  4. Bottleneck profiling
-  5. Optimization documentation
-
-## 8. Final Steps
-
-- [ ] **Clean Up Old Code:**
-  1. Remove standalone scripts
-  2. Update imports
-  3. Remove deprecated code
-  4. Update documentation
-
-- [ ] **Release Preparation:**
-  1. Update version numbers
-  2. Update changelog
-  3. Update README
-  4. Prepare release notes
-
-## 9. Next Actions
-
-1. [x] Add new dependencies to `pyproject.toml`
-2. [x] Fix import resolution issues
-3. [x] Fix critical linter errors
-4. [x] Fix remaining linter errors
-5. [!] Fix type checking errors
-6. [!] Improve code organization
-7. [!] Add basic tests
-8. [!] Enhance configuration system
-
-## 10. Notes
-
-- The file importance analysis is now integrated into the main package
-- The new system combines both file-level and symbol-level importance
-- All changes maintain backward compatibility
-- Performance impact should be monitored
-- Optional dependencies are now properly handled with graceful fallbacks
-- Current test coverage is only 1%, needs immediate attention
-- Several complex functions need refactoring
-- Type system needs modernization (using newer Python type hints)
+Don't use `pip`, use `uv pip`. Ignore minor problems like "line too long", FOCUS ON MAJOR PROBLEMS!
 
 ---
+
+Hey, junior dev! This `TODO.md` is your step-by-step guide to get `pystubnik` ready for its 1.0 release—a rock-solid tool for generating smart stubs. We're keeping it simple: one backend (AST), smart file importance, basic tests, and clear docs. Every task below is broken down so you can nail it. If you get stuck, run `./cleanup.py status`, check `CLEANUP.log`, and ask for help. Let's make this awesome together!
+
+## 5. Core Functionality
+
+- [x] **Lock Down the AST Backend**
+  - *Status*: It's in `src/twat_coding/pystubnik/backends/ast_backend.py` and works!
+  - *Why*: This is our stub-generating powerhouse for 1.0—no MyPy or hybrid yet (but keep them around)
+
+- [!] **Fully Integrate File Importance**
+  - *What*: Use importance scores to control stub detail (e.g., keep docstrings for important files).
+  - *Why*: This is the "smart" in smart stubs—more detail where it matters.
+  - *How*:
+    1. Open `src/twat_coding/pystubnik/core/types.py`.
+    2. Update `StubResult` to store metadata:
+       ```python
+       @dataclass
+       class StubResult:
+           source_path: Path
+           stub_content: str
+           imports: list[ImportInfo]
+           errors: list[str]
+           importance_score: float = 0.0
+           metadata: dict[str, Any] = field(default_factory=dict)  # Add this
+       ```
+    3. Open `src/twat_coding/pystubnik/backends/ast_backend.py`.
+    4. In `SignatureExtractor.__init__`, add importance:
+       ```python
+       def __init__(self, config: StubGenConfig, file_size: int = 0, importance_score: float = 1.0):
+           super().__init__()
+           self.config = config
+           self.file_size = file_size
+           self.importance_score = importance_score  # Add this
+       ```
+    5. Update `_preserve_docstring` to use importance:
+       ```python
+       def _preserve_docstring(self, body: list[ast.stmt]) -> list[ast.stmt]:
+           if not body:
+               return []
+           if self.file_size > self.config.truncation.max_file_size and self.importance_score < 0.7:
+               return []  # Skip docstrings for big, low-importance files
+           match body[0]:
+               case ast.Expr(value=ast.Constant(value=str() as docstring)):
+                   if len(docstring) > self.config.truncation.max_docstring_length and self.importance_score < 0.9:
+                       return []  # Skip long docstrings unless very important
+                   return [body[0]]
+               case _:
+                   return []
+       ```
+    6. In `ASTBackend.generate_stub`, pass the score:
+       ```python
+       async def generate_stub(self, source_path: Path) -> str:
+           # ... existing code ...
+           # After getting file_score elsewhere or calculating it:
+           file_score = 0.5  # Placeholder; we'll get this from ImportanceProcessor
+           tree = await self._run_in_executor(
+               functools.partial(ast.parse, source, filename=str(source_path))
+           )
+           attach_parents(tree)
+           transformer = SignatureExtractor(self.config.stub_gen_config, len(source), file_score)
+           transformed = transformer.visit(tree)
+           stub_content = ast.unparse(transformed)
+           # ... rest of the method ...
+       ```
+    7. Open `src/twat_coding/pystubnik/processors/importance.py`.
+    8. Update `process` to set the score:
+       ```python
+       def process(self, stub_result: StubResult) -> StubResult:
+           package_dir = str(stub_result.source_path.parent)
+           self._file_scores = prioritize_files(package_dir, self.config.file_importance)
+           file_score = self._file_scores.get(str(stub_result.source_path), 0.5)
+           stub_result.importance_score = file_score
+           stub_result.metadata["file_score"] = file_score
+           # Process individual symbols
+           tree = ast.parse(stub_result.stub_content)
+           for node in ast.walk(tree):
+               if isinstance(node, (ast.FunctionDef, ast.ClassDef)):
+                   docstring = ast.get_docstring(node)
+                   score = self.calculate_importance(
+                       name=node.name,
+                       docstring=docstring,
+                       is_public=not node.name.startswith('_'),
+                       is_special=node.name.startswith('__') and node.name.endswith('__'),
+                       extra_info={"file_path": stub_result.source_path}
+                   )
+                   stub_result.metadata[f"{node.name}_score"] = score
+                   if score < 0.7 and isinstance(node, ast.FunctionDef):
+                       node.body = [ast.Expr(value=ast.Constant(value=Ellipsis))]
+           stub_result.stub_content = ast.unparse(tree)
+           return stub_result
+       ```
+    9. Test it:
+       - Run `./cleanup.py install && source .venv/bin/activate`.
+       - Run `python -m twat_coding.pystubnik generate --files src/twat_coding/pystubnik/__init__.py`.
+       - Check `out/__init__.pyi`—important functions should keep docstrings, others should simplify.
+
+- [ ] **Simplify Configuration**
+  - *What*: Trim `StubGenConfig` to essentials for 1.0.
+  - *Why*: Less complexity for users and you!
+  - *How*:
+    1. Open `src/twat_coding/pystubnik/core/config.py`.
+    2. Replace `StubGenConfig` with:
+       ```python
+       @dataclass(frozen=True)
+       class StubGenConfig:
+           output_dir: Path = Path("out")
+           files: Sequence[Path] = field(default_factory=list)
+           include_docstrings: bool = True
+           max_docstring_length: int = 150
+           ignore_errors: bool = True
+       ```
+    3. Update `SmartStubGenerator.__init__` in `__init__.py`:
+       ```python
+       def __init__(
+           self,
+           output_dir: str | Path = "out",
+           files: Sequence[str | Path] = (),
+           include_docstrings: bool = True,
+           max_docstring_length: int = 150,
+           ignore_errors: bool = True,
+       ):
+           self.config = StubGenConfig(
+               output_dir=Path(output_dir),
+               files=[Path(f) for f in files],
+               include_docstrings=include_docstrings,
+               max_docstring_length=max_docstring_length,
+               ignore_errors=ignore_errors,
+           )
+           # ... rest of init ...
+       ```
+    4. Fix any import errors in other files (e.g., `ast_backend.py`).
+
+## 6. Testing
+
+- [!] **Add Core Tests**
+  - *What*: Test stub generation and importance logic.
+  - *Why*: We need 50% coverage for trust—start here.
+  - *How*:
+    1. Replace `tests/test_package.py` with:
+       ```python
+       import pytest
+       from twat_coding.pystubnik import SmartStubGenerator, StubResult
+       from twat_coding.pystubnik.backends.ast_backend import ASTBackend
+       from twat_coding.pystubnik.processors.importance import ImportanceProcessor
+       from pathlib import Path
+
+       def test_ast_backend(tmp_path):
+           """Test AST stub generation."""
+           test_file = tmp_path / "test.py"
+           test_file.write_text('''"""
+           Important file
+           """
+           def hello(name: str) -> str:
+               return "Hello"
+           ''')
+           config = StubGenConfig(output_dir=tmp_path, files=[test_file])
+           backend = ASTBackend(config)
+           result = backend.generate_stub(test_file).result()  # Async call
+           stub_file = tmp_path / "test.pyi"
+           assert stub_file.exists()
+           content = stub_file.read_text()
+           assert "def hello(name: str) -> str" in content
+           assert '"""Important file"""' in content  # Docstring preserved
+
+       def test_importance_processor(tmp_path):
+           """Test importance scoring affects stubs."""
+           test_file = tmp_path / "low.py"
+           test_file.write_text('''def minor():
+               """Minor function"""
+               pass
+           ''')
+           config = StubGenConfig(output_dir=tmp_path, files=[test_file])
+           generator = SmartStubGenerator(output_dir=tmp_path, files=[str(test_file)])
+           generator.generate()
+           stub_file = tmp_path / "low.pyi"
+           content = stub_file.read_text()
+           assert "def minor(): ..." in content  # Low importance, no docstring
+
+       def test_cli(tmp_path):
+           """Test CLI end-to-end."""
+           test_file = tmp_path / "cli.py"
+           test_file.write_text("def run(): pass")
+           import subprocess
+           subprocess.run([
+               "python", "-m", "twat_coding.pystubnik", "generate",
+               "--files", str(test_file), "--output-dir", str(tmp_path)
+           ], check=True)
+           assert (tmp_path / "cli.pyi").exists()
+       ```
+    2. Run `./cleanup.py install && source .venv/bin/activate && pytest tests/`.
+    3. Fix failures (e.g., add `asyncio.run()` around async calls if needed).
+
+- [ ] **Boost Coverage to 50%**
+  - *What*: Add tests for key modules.
+  - *Why*: Ensures stuff doesn't break.
+  - *How*:
+    1. Run `pytest --cov=src/twat_coding tests/`.
+    2. Create `tests/test_processors.py`:
+       ```python
+       def test_import_processor(tmp_path):
+           from twat_coding.pystubnik.processors.imports import ImportProcessor
+           processor = ImportProcessor()
+           result = StubResult(tmp_path / "test.py", "import os\n", [], [])
+           processed = processor.process(result)
+           assert "import os" in processed.stub_content
+       ```
+    3. Add more tests for `docstring.py`, `ast_utils.py` based on coverage gaps.
+    4. Rerun until coverage hits 50%.
+
+## 7. Documentation
+
+- [!] **Revamp README.md**
+  - *What*: Make it user-ready with usage and example.
+  - *Why*: First impression for adopters.
+  - *How*:
+    1. Open `README.md`.
+    2. Replace "Usage" section with:
+       ```markdown
+       ## 8. Usage
+
+       Generate smart stubs with a simple command:
+
+       ```bash
+       python -m twat_coding.pystubnik generate --files my_script.py --output-dir stubs
+       ```
+
+       Or in Python:
+
+       ```python
+       from twat_coding.pystubnik import SmartStubGenerator
+
+       generator = SmartStubGenerator(
+           output_dir="stubs",
+           files=["my_script.py"],
+           include_docstrings=True
+       )
+       generator.generate()
+       ```
+
+       ### 8.1. Example
+
+       **Input** (`example.py`):
+       ```python
+       def greet(name: str) -> str:
+           """Say hello to someone important."""
+           return f"Hello, {name}"
+       ```
+
+       **Output** (`stubs/example.pyi`):
+       ```python
+       def greet(name: str) -> str:
+           """Say hello to someone important."""
+           ...
+       ```
+       ```
+    3. Save and check with `cat README.md`.
+
+- [ ] **Add Example File**
+  - *What*: A real file to demo.
+  - *Why*: Users can try it themselves.
+  - *How*:
+    1. Create `examples/greet.py`:
+       ```python
+       def greet(name: str) -> str:
+           """Say hello to someone important."""
+           return f"Hello, {name}"
+       ```
+    2. Test it: `python -m twat_coding.pystubnik generate --files examples/greet.py`.
+
+- [ ] **Update CLI Help**
+  - *What*: Add clear CLI options.
+  - *Why*: Makes it user-friendly.
+  - *How*:
+    1. Open `src/twat_coding/pystubnik/__init__.py`.
+    2. Add a CLI entry point:
+       ```python
+       import click
+
+       @click.command()
+       @click.option("--files", multiple=True, type=click.Path(exists=True), help="Files to process")
+       @click.option("--output-dir", default="out", type=click.Path(), help="Output directory")
+       @click.option("--include-docstrings", is_flag=True, default=True, help="Keep docstrings")
+       def generate(files, output_dir, include_docstrings):
+           """Generate smart stubs for Python files."""
+           generator = SmartStubGenerator(
+               output_dir=output_dir,
+               files=files,
+               include_docstrings=include_docstrings
+           )
+           generator.generate()
+
+       if __name__ == "__main__":
+           generate()
+       ```
+    3. Test: `python -m twat_coding.pystubnik --help`.
+
+## 9. Code Quality
+
+- [!] **Fix Type Errors**
+  - *What*: Clear all `mypy` issues.
+  - *Why*: Clean code = fewer bugs.
+  - *How*:
+    1. Run `./cleanup.py install && source .venv/bin/activate && mypy src/`.
+    2. Fix errors:
+       - `type_system.py`: Replace `issubclass` with:
+         ```python
+         if isinstance(resolved, type) and hasattr(resolved, "__mro__") and issubclass(resolved, Protocol):
+         ```
+       - Follow old `TODO.md` section 2 for others.
+    3. Rerun until no errors.
+
+- [ ] **Refactor Complex Functions**
+  - *What*: Simplify `truncate_literal` and `calculate_importance`.
+  - *Why*: Easier for you to maintain.
+  - *How*:
+    1. In `ast_backend.py`, split `truncate_literal`:
+       ```python
+       def truncate_string(self, s: str) -> str:
+           return s if len(s) <= self.config.truncation.max_string_length else f"{s[:self.config.truncation.max_string_length]}..."
+
+       def truncate_literal(self, node: ast.AST) -> ast.AST:
+           if isinstance(node, ast.Constant) and isinstance(node.value, str):
+               return ast.Constant(value=self.truncate_string(node.value))
+           # ... other cases ...
+       ```
+    2. In `importance.py`, break down `calculate_importance`:
+       ```python
+       def _score_by_name(self, name: str) -> float:
+           score = 1.0
+           for pattern, weight in self.config.patterns.items():
+               if re.search(pattern, name):
+                   score *= weight
+           return score
+
+       def calculate_importance(self, name: str, docstring: str | None = None, ...):
+           file_score = self._get_file_score(extra_info)
+           pattern_score = self._score_by_name(name)
+           # ... combine scores ...
+       ```
+
+- [x] **Remove Redundant Scripts**
+  - *What*: Delete old standalone files DONE
+  - *Why*: Keeps the codebase clean.
+
+## 10. Release Preparation
+
+- [ ] **Finalize 1.0**
+  - *What*: Version it, log it, ship it.
+  - *Why*: Makes it official!
+  - *How*:
+    1. In `src/twat_coding/__version__.py`, set:
+       ```python
+       version = "1.0.0"
+       ```
+    2. Run `./cleanup.py update && ./cleanup.py push`.
+
+## 11. Next Actions
+
+- [!] Integrate file importance fully (step 1.2).
+- [!] Add core tests (step 2.1).
+- [!] Revamp README.md (step 3.1).
+- [!] Fix type errors (step 4.1).
+
+## 12. Notes
+
+- Focus on AST only—MyPy's for later.
+- Test every change with `./cleanup.py status`.
+- You're doing great—let's ship this!
 
 
 

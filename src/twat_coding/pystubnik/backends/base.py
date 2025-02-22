@@ -3,7 +3,7 @@
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Union
+from typing import Any
 
 from .. import _convert_to_stub_gen_config
 from ..config import StubConfig
@@ -14,7 +14,7 @@ from ..core.types import StubResult
 class StubBackend(ABC):
     """Base class for stub generation backends."""
 
-    def __init__(self, config: Union[StubConfig, StubGenConfig] | None = None) -> None:
+    def __init__(self, config: StubConfig | StubGenConfig | None = None) -> None:
         """Initialize the backend.
 
         Args:

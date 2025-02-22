@@ -12,26 +12,22 @@ import weakref
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, ClassVar, cast, Union
+from typing import Any, ClassVar, cast
 
 from loguru import logger
 
-from .. import _convert_to_stub_gen_config
 from ..config import StubConfig
 from ..core.config import (
-    Backend,
     PathConfig,
-    ProcessingConfig,
     RuntimeConfig,
     StubGenConfig,
-    TruncationConfig,
 )
 from ..core.types import StubResult
 from ..errors import ASTError, ErrorCode
 from ..processors import Processor
-from ..utils.ast_utils import attach_parents, truncate_literal
+from ..utils.ast_utils import attach_parents
 from ..utils.display import print_progress
-from ..utils.memory import MemoryMonitor, stream_process_ast
+from ..utils.memory import MemoryMonitor
 from . import StubBackend
 
 
@@ -147,7 +143,7 @@ class ASTBackend(StubBackend):
     _ast_cache_lock: ClassVar[asyncio.Lock] = asyncio.Lock()
     _max_cache_size: ClassVar[int] = 100
 
-    def __init__(self, config: Union[StubConfig, StubGenConfig] | None = None) -> None:
+    def __init__(self, config: StubConfig | StubGenConfig | None = None) -> None:
         """Initialize the backend.
 
         Args:
@@ -155,19 +151,31 @@ class ASTBackend(StubBackend):
         """
         super().__init__(config)
         self.processors: list[Processor] = []  # List of processors to apply to stubs
-        self._node_registry: weakref.WeakValueDictionary[int, ast.AST] = weakref.WeakValueDictionary()
+        self._node_registry: weakref.WeakValueDictionary[int, ast.AST] = (
+            weakref.WeakValueDictionary()
+        )
 
         # Handle different config types
         if isinstance(config, StubConfig):
             self._executor = ThreadPoolExecutor(
-                max_workers=config.max_workers if config.parallel else 1
+                max_workers=config.max_workers if config.parallel else 1,
+                thread_name_prefix="ast_backend",
+                initializer=None,
+                initargs=(),
             )
             self.include_patterns = config.include_patterns
             self.exclude_patterns = config.exclude_patterns
         else:  # StubGenConfig or None
-            stub_config = config or StubGenConfig(paths=PathConfig(), runtime=RuntimeConfig())
+            stub_config = config or StubGenConfig(
+                paths=PathConfig(), runtime=RuntimeConfig()
+            )
             self._executor = ThreadPoolExecutor(
-                max_workers=stub_config.runtime.max_workers if stub_config.runtime.parallel else 1
+                max_workers=stub_config.runtime.max_workers
+                if stub_config.runtime.parallel
+                else 1,
+                thread_name_prefix="ast_backend",
+                initializer=None,
+                initargs=(),
             )
             self.include_patterns = ["*.py"]  # Default patterns
             self.exclude_patterns = ["test_*.py", "*_test.py"]
@@ -175,12 +183,14 @@ class ASTBackend(StubBackend):
         self._memory_monitor = MemoryMonitor()
 
     @property
-    def config(self) -> StubConfig | StubGenConfig:
+    def config(self) -> StubGenConfig:
         """Get the current configuration.
 
         Returns:
             Current configuration
         """
+        if not hasattr(self, "_config"):
+            self._config = StubGenConfig(paths=PathConfig(), runtime=RuntimeConfig())
         return self._config
 
     async def generate_stub(self, source_path: Path) -> StubResult:
@@ -203,7 +213,7 @@ class ASTBackend(StubBackend):
             attach_parents(tree)
 
             # Transform AST
-            transformer = SignatureExtractor(self._config, len(source))
+            transformer = SignatureExtractor(self.config, len(source))
             transformed = transformer.visit(tree)
 
             # Generate stub content
@@ -266,8 +276,9 @@ class ASTBackend(StubBackend):
                     results[path] = result
                 except Exception as e:
                     logger.error(f"Failed to process {path}: {e}")
-                    if not self._config.runtime.ignore_errors:
-                        raise
+                    if self.config.runtime.ignore_errors:
+                        continue
+                    raise
 
             return results
 
@@ -292,6 +303,20 @@ class ASTBackend(StubBackend):
         """
         # TODO: Implement module processing
         raise NotImplementedError
+
+    async def process_package(self, package_path: Path) -> dict[Path, StubResult]:
+        """Process a package directory recursively.
+
+        Args:
+            package_path: Path to the package directory
+
+        Returns:
+            Dictionary mapping output paths to stub results
+
+        Raises:
+            StubGenerationError: If package processing fails
+        """
+        return await self.process_directory(package_path)
 
     def cleanup(self) -> None:
         """Clean up resources."""

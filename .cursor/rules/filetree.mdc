@@ -21,7 +21,7 @@ globs:
 │       ├── [2.0K]  .what-is-this.md
 │       ├── [ 63K]  adjusting-todo-priorities-from-cleanup-status.md
 │       ├── [ 97K]  cleanup-script-execution-and-todo-management-1.md
-│       ├── [172K]  cleanup-script-execution-and-todo-management.md
+│       ├── [322K]  cleanup-script-execution-and-todo-management.md
 │       ├── [333K]  command-execution-and-todo-update.md
 │       ├── [ 248]  detailed-overview-of-python-stubbing-tools.md
 │       ├── [ 25K]  integrating-importance-analysis-modules.md
@@ -45,17 +45,17 @@ globs:
 ├── [ 305]  mypy.ini
 ├── [ 426]  package.toml
 ├── [4.8K]  pyproject.toml
-├── [237K]  repomix-output.txt
+├── [223K]  repomix-output.txt
 ├── [ 128]  src
 │   └── [ 256]  twat_coding
 │       ├── [ 144]  __init__.py
-│       ├── [ 416]  pystubnik
+│       ├── [ 448]  pystubnik
 │       │   ├── [5.3K]  README.md
-│       │   ├── [ 16K]  __init__.py
+│       │   ├── [ 17K]  __init__.py
 │       │   ├── [ 224]  backends
 │       │   │   ├── [1.4K]  __init__.py
-│       │   │   ├── [ 13K]  ast_backend.py
-│       │   │   ├── [2.1K]  base.py
+│       │   │   ├── [ 11K]  ast_backend.py
+│       │   │   ├── [2.4K]  base.py
 │       │   │   └── [1.1K]  mypy_backend.py
 │       │   ├── [8.8K]  config.py
 │       │   ├── [ 224]  core
