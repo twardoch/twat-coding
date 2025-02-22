@@ -13,14 +13,14 @@ this_file: TODO.md
     - [x] Refactor import sorting logic
     - [x] Improve private class exclusion logic
     - [!] Fix remaining test failures
-      - [!] Fix import sorting order to match exact test expectations
+      - [!] Fix function argument default values in stubs
       - [!] Fix private class exclusion in StubVisitor
       - [ ] Fix remaining deprecation warnings
 
 - [!] **Refactor Stub Generation**
   - *Code Quality Improvements*:
     - [!] Split `generate_stub` into smaller functions
-      - [!] Create `_process_imports` for import collection and sorting
+      - [!] Create `_process_function_args` for handling function arguments and defaults
       - [ ] Create `_process_header` for header generation
       - [ ] Create `_process_definitions` for class/function/assignment handling
       - [ ] Create `_format_stub` for final formatting and cleanup
@@ -32,7 +32,7 @@ this_file: TODO.md
 
 ## 2. Near-term Tasks
 
-- [ ] **Improve Test Coverage (Current: 45%)**
+- [ ] **Improve Test Coverage (Current: 46%)**
   - *Critical Modules with 0% Coverage*:
     - [ ] Write tests for `type_inference.py`
       - [ ] Test basic type inference

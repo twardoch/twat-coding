@@ -3,157 +3,176 @@
 
 import ast
 from pathlib import Path
-from typing import ClassVar
 
 from ..config import StubConfig
-from ..core.config import StubGenConfig
-from ..errors import ErrorCode, StubGenerationError
-from ..types.type_system import TypeRegistry
-from ..utils.ast_utils import attach_parents
 
 
 class StubVisitor(ast.NodeVisitor):
     """Visit AST nodes for stub generation."""
 
-    def __init__(self, config: StubConfig):
+    def __init__(self, config: StubConfig) -> None:
+        """Initialize the visitor.
+
+        Args:
+            config: Configuration for stub generation
+        """
         self.config = config
-        self.imports = {
+        self.imports: dict[str, list[ast.Import | ast.ImportFrom]] = {
             "stdlib": [],
             "pathlib": [],
             "typing": [],
             "local": [],
         }
-        self.classes = []
-        self.functions = []
-        self.assignments = []
+        self.classes: list[ast.ClassDef] = []
+        self.functions: list[ast.FunctionDef] = []
+        self.assignments: list[ast.Assign | ast.AnnAssign] = []
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
-        """Visit class definition."""
-        if not self.config.include_private and node.name.startswith("_"):
+        """Visit class definitions."""
+        # Skip private classes unless they are special methods
+        if (
+            not self.config.include_private
+            and node.name.startswith("_")
+            and not node.name.startswith("__")
+        ):
             return
         self.classes.append(node)
+        # Only visit class body if we're keeping the class
         self.generic_visit(node)
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
-        """Visit function definition."""
-        if not self.config.include_private and node.name.startswith("_"):
-            if not (node.name.startswith("__") and node.name.endswith("__")):
-                if node.name != "__init__":
-                    return
+        """Visit function definitions."""
+        # Skip private functions unless they are special methods
+        if (
+            not self.config.include_private
+            and node.name.startswith("_")
+            and not node.name.startswith("__")
+        ):
+            return
         self.functions.append(node)
+        # Only visit function body if we're keeping the function
         self.generic_visit(node)
 
-    def visit_Import(self, node: ast.Import) -> None:
-        """Visit import statement."""
-        names = sorted(n.name for n in node.names)
-        import_str = f"import {', '.join(names)}"
-        if any(name == "Path" for name in names):
-            self.imports["pathlib"].append(import_str)
-        else:
-            self.imports["stdlib"].append(import_str)
-
-    def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
-        """Visit from-import statement."""
-        module = node.module or ""
-        names = sorted(n.name for n in node.names)
-        if module == "typing":
-            self.imports["typing"].append(f"from typing import {', '.join(names)}")
-        elif module == "pathlib":
-            self.imports["pathlib"].append(f"from pathlib import {', '.join(names)}")
-        elif module.startswith("."):
-            self.imports["local"].append(f"from {module} import {', '.join(names)}")
-        else:
-            self.imports["stdlib"].append(f"from {module} import {', '.join(names)}")
-
     def visit_Assign(self, node: ast.Assign) -> None:
-        """Visit assignment."""
+        """Visit assignments."""
         self.assignments.append(node)
 
     def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
-        """Visit annotated assignment."""
+        """Visit annotated assignments."""
         self.assignments.append(node)
 
+    def visit_Import(self, node: ast.Import) -> None:
+        """Visit import statements."""
+        for alias in node.names:
+            if alias.name == "pathlib" or alias.name.startswith("pathlib."):
+                self.imports["pathlib"].append(node)
+                break
+            elif alias.name == "typing" or alias.name.startswith("typing."):
+                self.imports["typing"].append(node)
+                break
+            else:
+                self.imports["stdlib"].append(node)
+                break
+
+    def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
+        """Visit from-import statements."""
+        if node.level > 0:
+            # Preserve relative imports with dots
+            self.imports["local"].append(node)
+        elif node.module == "pathlib":
+            self.imports["pathlib"].append(node)
+        elif node.module == "typing":
+            # Combine all typing imports into one
+            names = sorted(alias.name for alias in node.names)
+            if any(
+                imp
+                for imp in self.imports["typing"]
+                if isinstance(imp, ast.ImportFrom) and imp.module == "typing"
+            ):
+                existing = next(
+                    imp
+                    for imp in self.imports["typing"]
+                    if isinstance(imp, ast.ImportFrom) and imp.module == "typing"
+                )
+                existing_names = {alias.name for alias in existing.names}
+                new_names = [
+                    ast.alias(name=name) for name in sorted(set(names) | existing_names)
+                ]
+                existing.names = new_names
+            else:
+                self.imports["typing"].append(node)
+        else:
+            self.imports["stdlib"].append(node)
+
     def get_sorted_imports(self) -> list[str]:
-        """Get imports sorted in the correct order."""
-        # Sort each category
-        for category in self.imports.values():
-            category.sort()
+        """Get sorted imports in the correct order."""
+        sorted_imports = []
 
-        # Add imports in the correct order
-        result = []
-        if self.imports["stdlib"]:
-            result.extend(self.imports["stdlib"])
-        if self.imports["pathlib"]:
-            if result:
-                result.append("")
-            result.extend(self.imports["pathlib"])
-        if self.imports["typing"]:
-            if result:
-                result.append("")
-            result.extend(self.imports["typing"])
-        if self.imports["local"]:
-            if result:
-                result.append("")
-            result.extend(self.imports["local"])
+        # Standard library imports first
+        stdlib_imports = sorted(
+            self.imports["stdlib"], key=lambda x: self._get_import_name(x)
+        )
+        sorted_imports.extend(self._format_import(imp) for imp in stdlib_imports)
 
-        return result
+        # Pathlib imports next
+        pathlib_imports = sorted(
+            self.imports["pathlib"], key=lambda x: self._get_import_name(x)
+        )
+        if pathlib_imports:
+            if sorted_imports:
+                sorted_imports.append("")
+            sorted_imports.extend(self._format_import(imp) for imp in pathlib_imports)
+
+        # Typing imports
+        typing_imports = sorted(
+            self.imports["typing"], key=lambda x: self._get_import_name(x)
+        )
+        if typing_imports:
+            if sorted_imports:
+                sorted_imports.append("")
+            sorted_imports.extend(self._format_import(imp) for imp in typing_imports)
+
+        # Local imports last
+        local_imports = sorted(
+            self.imports["local"], key=lambda x: self._get_import_name(x)
+        )
+        if local_imports:
+            if sorted_imports:
+                sorted_imports.append("")
+            sorted_imports.extend(self._format_import(imp) for imp in local_imports)
+
+        return [imp for imp in sorted_imports if imp]
+
+    def _get_import_name(self, node: ast.Import | ast.ImportFrom) -> str:
+        """Get the import name for sorting."""
+        if isinstance(node, ast.Import):
+            return node.names[0].name
+        return (
+            f"{node.module}.{node.names[0].name}" if node.module else node.names[0].name
+        )
+
+    def _format_import(self, node: ast.Import | ast.ImportFrom) -> str:
+        """Format an import node as a string."""
+        if isinstance(node, ast.Import):
+            return f"import {node.names[0].name}"
+        module = f"from {node.module} " if node.module else "from "
+        if node.level > 0:
+            module = f"from {'.' * node.level}{node.module if node.module else ''} "
+        names = ", ".join(sorted(alias.name for alias in node.names))
+        return f"{module}import {names}"
 
 
 class StubGenerator:
-    """Generate type stubs from Python source code."""
+    """Generate stubs for Python source files."""
 
-    # Common import patterns to preserve
-    ESSENTIAL_IMPORTS: ClassVar[set[str]] = {
-        "typing",
-        "dataclasses",
-        "enum",
-        "abc",
-        "contextlib",
-        "pathlib",
-        "collections.abc",
-    }
-
-    def __init__(
-        self,
-        config: StubConfig | StubGenConfig | None = None,
-        type_registry: TypeRegistry | None = None,
-    ) -> None:
+    def __init__(self, config: StubConfig | None = None) -> None:
         """Initialize the stub generator.
 
         Args:
-            config: Configuration for stub generation
-            type_registry: Registry for type resolution
+            config: Optional configuration for stub generation
         """
-        if isinstance(config, StubGenConfig):
-            # Create a StubConfig from StubGenConfig
-            self.config = StubConfig(
-                input_path=Path("."),  # Temporary path, will be set per file
-                output_path=None,  # Will be set per file
-                line_length=88,
-                sort_imports=True,
-                add_header=True,
-                include_private=config.processing.include_private,
-                include_type_comments=config.processing.include_type_comments,
-                infer_property_types=config.processing.infer_property_types,
-                export_less=config.processing.export_less,
-                docstring_type_hints=config.processing.include_docstrings,
-                backend="ast",
-                parallel=True,
-                max_workers=None,
-                infer_types=True,
-                preserve_literals=False,
-                no_import=False,
-                inspect=False,
-                doc_dir="",
-                ignore_errors=True,
-                parse_only=False,
-                verbose=False,
-                quiet=True,
-                max_docstring_length=150,
-            )
-        else:
-            # Use provided config or create default
-            self.config = config or StubConfig(
+        if config is None:
+            config = StubConfig(
                 input_path=Path("."),
                 output_path=None,
                 backend="ast",
@@ -178,112 +197,102 @@ class StubGenerator:
                 include_type_comments=True,
                 infer_property_types=True,
             )
-        self.type_registry = type_registry or TypeRegistry()
+        self.config = config
 
-    def generate_stub(self, source_path: Path, tree: ast.AST | None = None) -> str:
-        """Generate a type stub for a Python source file.
+    def generate_stub(
+        self, source_file: Path | str, tree: ast.AST | None = None
+    ) -> str:
+        """Generate a stub for the given source file.
 
         Args:
-            source_path: Path to the source file
+            source_file: Path to the source file
             tree: Optional pre-parsed AST
 
         Returns:
-            Generated stub content
-
-        Raises:
-            StubGenerationError: If stub generation fails
+            Generated stub content as a string
         """
-        try:
-            # Parse source if not provided
-            if tree is None:
-                with source_path.open() as f:
-                    tree = ast.parse(f.read(), filename=str(source_path))
+        if tree is None:
+            with open(source_file, encoding="utf-8") as f:
+                source = f.read()
+            tree = ast.parse(source)
 
-            # Attach parent references for better context
-            attach_parents(tree)
+        # Visit all nodes to collect imports and definitions
+        visitor = StubVisitor(self.config)
+        visitor.visit(tree)
 
-            # Process the AST
-            if not isinstance(tree, ast.Module):
-                raise StubGenerationError(
-                    "Expected Module AST node",
-                    ErrorCode.AST_PARSE_ERROR,
-                    source=str(source_path),
-                )
+        # Generate the stub content
+        lines = []
 
-            # Visit the AST
-            visitor = StubVisitor(self.config)
-            visitor.visit(tree)
+        # Add header if configured
+        if self.config.add_header:
+            lines.append('"""# Generated stub file"""\n')
 
-            # Generate stub content
-            lines = []
+        # Add imports
+        import_lines = visitor.get_sorted_imports()
+        if import_lines:
+            lines.extend(import_lines)
+            lines.append("")
 
-            # Add header if configured
-            if self.config.add_header:
-                lines.extend(
-                    [
-                        '"""# Generated by pystubnik',
-                        "# Do not edit this file directly",
-                        '"""',
-                        "",
-                    ]
-                )
+        # Filter out private classes
+        filtered_classes = []
+        for node in visitor.classes:
+            if (
+                not self.config.include_private
+                and node.name.startswith("_")
+                and not node.name.startswith("__")
+            ):
+                continue
+            filtered_classes.append(node)
 
-            # Add sorted imports
-            import_lines = visitor.get_sorted_imports()
-            if import_lines:
-                lines.extend(import_lines)
+        # Add class definitions
+        for node in filtered_classes:
+            class_lines = self._process_class_to_lines(node)
+            if class_lines:
+                lines.extend(class_lines)
                 lines.append("")
 
-            # Process classes
-            for node in visitor.classes:
-                lines.extend(self._process_class_to_lines(node))
+        # Add function definitions
+        for node in visitor.functions:
+            if (
+                not self.config.include_private
+                and node.name.startswith("_")
+                and not node.name.startswith("__")
+            ):
+                continue
+            func_lines = self._process_function_to_lines(node)
+            if func_lines:
+                lines.extend(func_lines)
+                lines.append("")
 
-            # Process functions
-            for node in visitor.functions:
-                lines.extend(self._process_function_to_lines(node))
+        # Add assignments
+        for node in visitor.assignments:
+            assign_lines = self._process_assignment_to_lines(node)
+            if assign_lines:
+                lines.extend(assign_lines)
+                lines.append("")
 
-            # Process assignments
-            for node in visitor.assignments:
-                if line := self._process_assignment_to_line(node):
-                    lines.append(line)
-
-            # Join lines and return
-            stub = "\n".join(lines)
-            if stub and not stub.endswith("\n"):
-                stub += "\n"
-            return stub
-
-        except Exception as e:
-            raise StubGenerationError(
-                f"Failed to generate stub for {source_path}: {e}",
-                ErrorCode.AST_TRANSFORM_ERROR,
-                source=str(source_path),
-            ) from e
+        return "\n".join(lines).rstrip() + "\n"
 
     def _process_class_to_lines(self, node: ast.ClassDef) -> list[str]:
-        """Process a class definition to lines.
-
-        Args:
-            node: Class definition AST node
-
-        Returns:
-            List of lines for the stub
-        """
-        # Skip private classes if configured
-        if not self.config.include_private and node.name.startswith("_"):
+        """Process a class definition to lines."""
+        if (
+            not self.config.include_private
+            and node.name.startswith("_")
+            and not node.name.startswith("__")
+        ):
             return []
 
         lines = []
 
-        # Extract docstring if present
+        # Add docstring if present
         if (
             node.body
             and isinstance(node.body[0], ast.Expr)
             and isinstance(node.body[0].value, ast.Str | ast.Constant)
-            and isinstance(node.body[0].value.value, str)
         ):
-            docstring = node.body[0].value.value
-            lines.append(f'"""{docstring}"""')
+            docstring = ast.get_docstring(node)
+            if docstring:
+                lines.append(f'"""{docstring}"""')
 
         # Add class definition
         bases = [ast.unparse(base) for base in node.bases]
@@ -294,17 +303,21 @@ class StubGenerator:
 
         # Process class body
         body_lines = []
-        for child in node.body:
-            if isinstance(child, ast.FunctionDef):
-                # Skip private methods (but keep __init__ and special methods)
-                if not self.config.include_private and child.name.startswith("_"):
-                    if not (child.name.startswith("__") and child.name.endswith("__")):
-                        if child.name != "__init__":
-                            continue
-                body_lines.extend(self._process_function_to_lines(child))
-            elif isinstance(child, ast.Assign | ast.AnnAssign):
-                if line := self._process_assignment_to_line(child):
-                    body_lines.append(line)
+        for item in node.body:
+            if isinstance(item, ast.FunctionDef):
+                if (
+                    not self.config.include_private
+                    and item.name.startswith("_")
+                    and not item.name.startswith("__")
+                ):
+                    continue
+                func_lines = self._process_function_to_lines(item)
+                if func_lines:
+                    body_lines.extend(func_lines)
+            elif isinstance(item, ast.Assign | ast.AnnAssign):
+                assign_lines = self._process_assignment_to_lines(item)
+                if assign_lines:
+                    body_lines.extend(assign_lines)
 
         # Add indented body or pass statement
         if body_lines:
@@ -315,14 +328,14 @@ class StubGenerator:
         return lines
 
     def _process_function_to_lines(self, node: ast.FunctionDef) -> list[str]:
-        """Process a function definition to lines.
+        """Process a function definition to lines."""
+        if (
+            not self.config.include_private
+            and node.name.startswith("_")
+            and not node.name.startswith("__")
+        ):
+            return []
 
-        Args:
-            node: Function definition AST node
-
-        Returns:
-            List of lines for the stub
-        """
         lines = []
 
         # Add docstring if present
@@ -330,12 +343,12 @@ class StubGenerator:
             node.body
             and isinstance(node.body[0], ast.Expr)
             and isinstance(node.body[0].value, ast.Str | ast.Constant)
-            and isinstance(node.body[0].value.value, str)
         ):
-            docstring = node.body[0].value.value
-            lines.append(f'"""{docstring}"""')
+            docstring = ast.get_docstring(node)
+            if docstring:
+                lines.append(f'"""{docstring}"""')
 
-        # Build function signature
+        # Add function definition
         args = []
         for arg in node.args.args:
             if arg.annotation:
@@ -343,63 +356,36 @@ class StubGenerator:
             else:
                 args.append(arg.arg)
 
-        # Add default values
-        defaults = node.args.defaults
-        if defaults:
-            offset = len(node.args.args) - len(defaults)
-            for i, default in enumerate(defaults):
-                args[offset + i] += f" = {ast.unparse(default)}"
-
-        # Add return type annotation
-        returns = (
-            " -> None" if node.returns is None else f" -> {ast.unparse(node.returns)}"
-        )
-
-        # Build function definition
-        if args:
-            lines.append(f"def {node.name}({', '.join(args)}){returns}:")
+        if node.returns:
+            returns = f" -> {ast.unparse(node.returns)}"
         else:
-            lines.append(f"def {node.name}(){returns}:")
+            returns = ""
 
-        # Add pass statement for stub
+        lines.append(f"def {node.name}({', '.join(args)}){returns}:")
         lines.append("    pass")
 
         return lines
 
-    def _process_assignment_to_line(
+    def _process_assignment_to_lines(
         self, node: ast.Assign | ast.AnnAssign
-    ) -> str | None:
-        """Process an assignment to a line.
-
-        Args:
-            node: Assignment AST node
-
-        Returns:
-            Formatted assignment line or None if skipped
-        """
-        if isinstance(node, ast.AnnAssign):
-            target = node.target
-            annotation = node.annotation
-            value = node.value
+    ) -> list[str]:
+        """Process an assignment node to lines."""
+        if isinstance(node, ast.Assign):
+            target = node.targets[0]
             if isinstance(target, ast.Name):
-                type_str = ast.unparse(annotation)
-                if value is not None:
-                    value_str = ast.unparse(value)
-                    return f"{target.id}: {type_str} = {value_str}"
-                return f"{target.id}: {type_str}"
-        elif isinstance(node, ast.Assign):
-            if len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
-                target = node.targets[0]
-                value = node.value
-                if isinstance(value, ast.Constant):
-                    value_str = ast.unparse(value)
-                    type_str = type(value.value).__name__
-                    return f"{target.id}: {type_str} = {value_str}"
-                elif isinstance(value, ast.List | ast.Dict | ast.Set):
-                    value_str = ast.unparse(value)
-                    type_str = type(value).__name__.lower()
-                    return f"{target.id}: {type_str} = {value_str}"
-        return None
+                if isinstance(node.value, ast.Constant):
+                    value_str = ast.unparse(node.value)
+                    type_str = type(node.value.value).__name__
+                    return [f"{target.id}: {type_str} = {value_str}"]
+                return [f"{target.id} = ..."]
+        elif isinstance(node, ast.AnnAssign):
+            if isinstance(node.target, ast.Name):
+                annotation = ast.unparse(node.annotation)
+                if node.value is not None:
+                    value_str = ast.unparse(node.value)
+                    return [f"{node.target.id}: {annotation} = {value_str}"]
+                return [f"{node.target.id}: {annotation} = ..."]
+        return []
 
     def _infer_type_from_value(self, value: ast.AST) -> str:
         """Infer type annotation from a value.
