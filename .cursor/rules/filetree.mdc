@@ -27,7 +27,7 @@ globs:
 │       ├── [ 248]  detailed-overview-of-python-stubbing-tools.md
 │       ├── [ 25K]  integrating-importance-analysis-modules.md
 │       ├── [431K]  managing-todo-list-tasks-1.md
-│       ├── [387K]  managing-todo-list-tasks-2.md
+│       ├── [554K]  managing-todo-list-tasks-2.md
 │       ├── [356K]  managing-todo-list-tasks.md
 │       ├── [380K]  managing-todo-md-tasks.md
 │       ├── [3.0K]  overview-of-python-tools-and-their-functions.md
@@ -75,7 +75,7 @@ globs:
 │       │   │   ├── [ 16K]  file_importance.py
 │       │   │   ├── [8.6K]  importance.py
 │       │   │   ├── [6.6K]  imports.py
-│       │   │   ├── [ 23K]  stub_generation.py
+│       │   │   ├── [ 24K]  stub_generation.py
 │       │   │   └── [7.4K]  type_inference.py
 │       │   ├── [1.6K]  read_imports.py
 │       │   ├── [ 160]  types

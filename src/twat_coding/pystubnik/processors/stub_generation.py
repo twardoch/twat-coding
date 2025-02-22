@@ -21,6 +21,7 @@ from ast import (
     Tuple as AstTuple,
     alias,
     get_docstring,
+    iter_child_nodes,
     parse,
     unparse,
 )
@@ -51,27 +52,39 @@ class StubVisitor(NodeVisitor):
         self.functions: list[FunctionDef] = []
         self.assignments: list[Assign | AnnAssign] = []
 
+    def _should_include_member(self, name: str) -> bool:
+        """Check if a member should be included in the stub.
+
+        Args:
+            name: Name of the member
+
+        Returns:
+            True if the member should be included
+        """
+        if self.config.include_private:
+            return True
+        if name.startswith("__") and name.endswith("__"):
+            return True
+        return not name.startswith("_")
+
     def visit_ClassDef(self, node: ClassDef) -> None:
         """Visit class definitions."""
         # Skip private classes unless they are special methods
-        if (
-            not self.config.include_private
-            and node.name.startswith("_")
-            and not node.name.startswith("__")
-        ):
+        if not self._should_include_member(node.name):
             return
         self.classes.append(node)
         # Only visit class body if we're keeping the class
-        self.generic_visit(node)
+        for item in node.body:
+            if isinstance(item, FunctionDef):
+                if self._should_include_member(item.name):
+                    self.visit(item)
+            elif isinstance(item, Assign | AnnAssign):
+                self.visit(item)
 
     def visit_FunctionDef(self, node: FunctionDef) -> None:
         """Visit function definitions."""
         # Skip private functions unless they are special methods
-        if (
-            not self.config.include_private
-            and node.name.startswith("_")
-            and not node.name.startswith("__")
-        ):
+        if not self._should_include_member(node.name):
             return
         self.functions.append(node)
         # Only visit function body if we're keeping the function
@@ -231,6 +244,21 @@ class StubGenerator:
         )
         self.current_file: Path | None = None
 
+    def _should_include_member(self, name: str) -> bool:
+        """Check if a member should be included in the stub.
+
+        Args:
+            name: Name of the member
+
+        Returns:
+            True if the member should be included
+        """
+        if self.config.include_private:
+            return True
+        if name.startswith("__") and name.endswith("__"):
+            return True
+        return not name.startswith("_")
+
     def generate_stub(
         self, source_file: str | Path, ast_tree: AST | None = None
     ) -> str:
@@ -255,52 +283,49 @@ class StubGenerator:
 
         attach_parents(ast_tree)
 
-        # Initialize containers
-        lines: list[str] = []
-        imports: list[Import | ImportFrom] = []
-        classes: list[ClassDef] = []
-        functions: list[FunctionDef] = []
-        assignments: list[Assign | AnnAssign] = []
+        # Initialize visitor
+        visitor = StubVisitor(self.config)
+        visitor.visit(ast_tree)
+
+        # Print debug info
+        print("\nVisitor state after visiting AST:")
+        print("=" * 80)
+        print("Classes:")
+        for class_def in visitor.classes:
+            print(f"- {class_def.name}")
+        print("\nFunctions:")
+        for func_def in visitor.functions:
+            print(f"- {func_def.name}")
+        print("=" * 80)
 
         # Add header if configured
+        lines: list[str] = []
         if self.config.add_header:
             lines.append('"""# Generated stub file"""\n')
 
-        # First pass: collect all nodes
-        for node in ast_tree.body:
-            if isinstance(node, Import | ImportFrom):
-                imports.append(node)
-            elif isinstance(node, ClassDef):
-                if self._should_include_member(node.name):
-                    classes.append(node)
-            elif isinstance(node, FunctionDef):
-                if self._should_include_member(node.name):
-                    functions.append(node)
-            elif isinstance(node, Assign | AnnAssign):
-                assignments.append(node)
-
         # Process imports
-        sorted_imports: list[str] = []
         if not self.config.no_import:
-            sorted_imports = self._sort_imports(imports)
+            sorted_imports = visitor.get_sorted_imports()
             lines.extend(sorted_imports)
             if sorted_imports:
                 lines.append("")
 
         # Process classes
-        for class_def in classes:
-            class_lines = self._process_class_to_lines(class_def)
-            lines.extend(class_lines)
-            lines.append("")
+        for class_def in visitor.classes:
+            if self._should_include_member(class_def.name):
+                class_lines = self._process_class_to_lines(class_def)
+                lines.extend(class_lines)
+                lines.append("")
 
         # Process functions
-        for func_def in functions:
-            func_lines = self._process_function_to_lines(func_def)
-            lines.extend(func_lines)
-            lines.append("")
+        for func_def in visitor.functions:
+            if self._should_include_member(func_def.name):
+                func_lines = self._process_function_to_lines(func_def)
+                lines.extend(func_lines)
+                lines.append("")
 
         # Process assignments
-        for assignment in assignments:
+        for assignment in visitor.assignments:
             assign_lines = self._process_assignment_to_lines(assignment)
             lines.extend(assign_lines)
             lines.append("")
@@ -309,22 +334,13 @@ class StubGenerator:
         while lines and not lines[-1].strip():
             lines.pop()
 
+        # Print debug info
+        print("\nGenerated stub content:")
+        print("=" * 80)
+        print("\n".join(lines))
+        print("=" * 80)
+
         return "\n".join(lines)
-
-    def _should_include_member(self, name: str) -> bool:
-        """Check if a member should be included in the stub.
-
-        Args:
-            name: Name of the member
-
-        Returns:
-            True if the member should be included
-        """
-        if self.config.include_private:
-            return True
-        if name.startswith("__") and name.endswith("__"):
-            return True
-        return not name.startswith("_")
 
     def _process_class_to_lines(self, node: ClassDef) -> list[str]:
         """Process a class definition into lines of code.
@@ -585,7 +601,7 @@ class StubGenerator:
                 setattr(node, attr, default)
 
         # Process child nodes
-        for child in alias.iter_child_nodes(node):
+        for child in iter_child_nodes(node):
             self._ensure_node_attributes(child)
 
     def _generate_content(self, node: Module) -> str:
@@ -605,7 +621,7 @@ class StubGenerator:
         )
 
         # Convert AST to source code
-        source = alias.unparse(node)
+        source = unparse(node)
 
         # Fix spacing in function arguments and assignments
         source = source.replace("=", " = ")
@@ -675,3 +691,28 @@ class StubGenerator:
         imports.extend(("local", imp) for imp in local_imports)
 
         return imports
+
+    def _should_keep_import(self, node: Import | ImportFrom) -> bool:
+        """Check if an import should be kept in the stub.
+
+        Args:
+            node: The import node to check
+
+        Returns:
+            True if the import should be kept
+        """
+        if isinstance(node, Import):
+            return any(
+                name.name in self.ESSENTIAL_IMPORTS or not name.name.startswith("_")
+                for name in node.names
+            )
+        else:
+            if node.level > 0:  # Always keep relative imports
+                return True
+            return bool(
+                node.module
+                and (
+                    node.module in self.ESSENTIAL_IMPORTS
+                    or not node.module.startswith("_")
+                )
+            )
