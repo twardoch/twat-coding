@@ -16,7 +16,8 @@ from typing import Any, ClassVar, cast
 
 from loguru import logger
 
-from ..core.config import StubGenConfig, TruncationConfig
+from ..core.config import StubGenConfig
+from ..core.shared_types import TruncationConfig
 from ..errors import ASTError, ErrorCode
 from ..utils.ast_utils import attach_parents, truncate_literal
 from ..utils.display import print_progress

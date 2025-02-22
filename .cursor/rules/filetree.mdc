@@ -8,7 +8,7 @@ globs:
 │   └── [ 224]  rules
 │       ├── [2.2K]  0project.mdc
 │       ├── [ 632]  cleanup.mdc
-│       ├── [3.7K]  filetree.mdc
+│       ├── [3.8K]  filetree.mdc
 │       └── [2.0K]  quality.mdc
 ├── [  96]  .github
 │   └── [ 128]  workflows
@@ -24,7 +24,7 @@ globs:
 │       ├── [333K]  command-execution-and-todo-update.md
 │       ├── [ 248]  detailed-overview-of-python-stubbing-tools.md
 │       ├── [ 25K]  integrating-importance-analysis-modules.md
-│       ├── [111K]  managing-todo-list-tasks.md
+│       ├── [267K]  managing-todo-list-tasks.md
 │       ├── [3.0K]  overview-of-python-tools-and-their-functions.md
 │       ├── [ 58K]  project-directory-structure-for-python-package.md
 │       ├── [ 64K]  reviewing-and-tracking-todo-progress.md
@@ -53,7 +53,7 @@ globs:
 │       │   ├── [ 14K]  __init__.py
 │       │   ├── [ 224]  backends
 │       │   │   ├── [1.4K]  __init__.py
-│       │   │   ├── [ 10K]  ast_backend.py
+│       │   │   ├── [ 11K]  ast_backend.py
 │       │   │   ├── [2.1K]  base.py
 │       │   │   └── [1019]  mypy_backend.py
 │       │   ├── [8.0K]  config.py
@@ -76,11 +76,11 @@ globs:
 │       │   │   ├── [8.4K]  docstring.py
 │       │   │   └── [8.2K]  type_system.py
 │       │   └── [ 192]  utils
-│       │       ├── [5.8K]  ast_utils.py
+│       │       ├── [5.6K]  ast_utils.py
 │       │       ├── [1.8K]  display.py
 │       │       └── [5.2K]  memory.py
 │       └── [1.6K]  twat_coding.py
 └── [ 128]  tests
-    └── [2.1K]  test_package.py
+    └── [2.0K]  test_package.py
 
 20 directories, 60 files

@@ -6,29 +6,23 @@ this_file: TODO.md
 
 ## 1. Immediate Priorities
 
-- [!] **Fix StubConfig Definition**
-  - *Problem*: `StubConfig` is not fully defined, causing test failures
+- [!] **Fix Import and Type Errors**
+  - *Problem*: Import errors with `TruncationConfig` and type compatibility issues
   - *Solution*: 
-    1. Move `StubGenConfig` definition before `StubConfig`
-    2. Fix circular imports between config files
-    3. Update test files to use correct configuration
-
-- [!] **Fix Type Errors**
-  - *Critical Issues*:
-    - `src/twat_coding/pystubnik/config.py`: Undefined `StubGenConfig`
-    - `src/twat_coding/pystubnik/backends/ast_backend.py`: Incompatible type for `truncate_literal`
-    - `src/twat_coding/pystubnik/types/type_system.py`: Invalid `issubclass` usage
-  - *Solution*:
-    1. Fix type hints in `config.py`
-    2. Update type definitions in backend classes
-    3. Correct `issubclass` usage with proper type checking
+    1. Update imports to use `shared_types.TruncationConfig` instead of `types.TruncationConfig`
+    2. Fix type compatibility in `ast_utils.py` and `config.py`
+    3. Resolve remaining type errors in `__init__.py`
 
 - [!] **Improve Test Coverage**
-  - *Current*: 42% (target: 50%)
+  - *Current*: 10% (target: 50%)
   - *Focus Areas*:
-    1. `src/twat_coding/pystubnik/backends/ast_backend.py` (27% coverage)
+    1. `src/twat_coding/pystubnik/backends/ast_backend.py` (8% coverage)
     2. `src/twat_coding/pystubnik/processors/stub_generation.py` (0% coverage)
     3. `src/twat_coding/pystubnik/processors/type_inference.py` (0% coverage)
+  - *Next Steps*:
+    1. Fix failing test imports first
+    2. Add core tests for AST backend
+    3. Add tests for processors
 
 ## 2. Future Tasks
 
@@ -59,9 +53,14 @@ this_file: TODO.md
   - Module organization
   - Package configuration
 
+- [x] **Type System Improvements**
+  - Created `shared_types.py` for common types
+  - Defined `TruncationConfig` as a shared type
+  - Implemented Protocol for type compatibility
+
 ## 4. Notes
 
-- Focus on fixing the `StubConfig` issue first as it's blocking tests
+- Focus on fixing the import errors first as they're blocking tests
 - Prioritize type error fixes to ensure code reliability
 - Improve test coverage incrementally, focusing on core functionality first
 

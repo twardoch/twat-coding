@@ -2,21 +2,13 @@
 """AST manipulation utilities."""
 
 import ast
-from typing import Protocol, cast
+from typing import cast
 from weakref import WeakKeyDictionary
+
+from ..core.shared_types import TruncationConfig
 
 # Global dict to store parent references
 _parent_refs: WeakKeyDictionary[ast.AST, ast.AST] = WeakKeyDictionary()
-
-
-class TruncationConfig(Protocol):
-    """Protocol for truncation configuration."""
-
-    max_sequence_length: int
-    max_string_length: int
-    max_docstring_length: int
-    max_file_size: int
-    truncation_marker: str
 
 
 def _get_parent(node: ast.AST) -> ast.AST | None:

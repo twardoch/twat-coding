@@ -8,7 +8,7 @@ from enum import Enum, auto
 from pathlib import Path
 from typing import Any
 
-from .types import TruncationConfig
+from .shared_types import TruncationConfig
 
 
 class Backend(Enum):
