@@ -8,7 +8,7 @@ globs:
 │   └── [ 224]  rules
 │       ├── [2.2K]  0project.mdc
 │       ├── [ 516]  cleanup.mdc
-│       ├── [3.4K]  filetree.mdc
+│       ├── [3.5K]  filetree.mdc
 │       └── [2.0K]  quality.mdc
 ├── [  96]  .github
 │   └── [ 128]  workflows
@@ -17,18 +17,20 @@ globs:
 ├── [3.5K]  .gitignore
 ├── [ 532]  .pre-commit-config.yaml
 ├── [  96]  .specstory
-│   └── [ 288]  history
+│   └── [ 352]  history
 │       ├── [2.0K]  .what-is-this.md
 │       ├── [ 63K]  adjusting-todo-priorities-from-cleanup-status.md
-│       ├── [268K]  command-execution-and-todo-update.md
+│       ├── [ 79K]  cleanup-script-execution-and-todo-management.md
+│       ├── [333K]  command-execution-and-todo-update.md
 │       ├── [ 248]  detailed-overview-of-python-stubbing-tools.md
 │       ├── [3.0K]  overview-of-python-tools-and-their-functions.md
 │       ├── [ 58K]  project-directory-structure-for-python-package.md
-│       └── [ 64K]  reviewing-and-tracking-todo-progress.md
+│       ├── [ 64K]  reviewing-and-tracking-todo-progress.md
+│       └── [4.9K]  task-organization-and-cleanup-process.md
 ├── [1.0K]  LICENSE
 ├── [ 173]  MANIFEST.in
 ├── [1.4K]  README.md
-├── [ 13K]  TODO.md
+├── [5.5K]  TODO.md
 ├── [ 12K]  cleanup.py
 ├── [  96]  cursor
 │   └── [  96]  rules
@@ -38,13 +40,13 @@ globs:
 ├── [ 305]  mypy.ini
 ├── [ 426]  package.toml
 ├── [4.3K]  pyproject.toml
-├── [288K]  repomix-output.txt
+├── [215K]  repomix-output.txt
 ├── [ 128]  src
 │   └── [ 256]  twat_coding
 │       ├── [ 144]  __init__.py
 │       ├── [ 480]  pystubnik
 │       │   ├── [5.3K]  README.md
-│       │   ├── [ 10K]  __init__.py
+│       │   ├── [ 14K]  __init__.py
 │       │   ├── [ 192]  backends
 │       │   │   ├── [1.4K]  __init__.py
 │       │   │   ├── [ 12K]  ast_backend.py
@@ -57,11 +59,12 @@ globs:
 │       │   │   └── [8.2K]  utils.py
 │       │   ├── [5.1K]  errors.py
 │       │   ├── [ 14K]  make_stubs_ast.py
-│       │   ├── [8.9K]  make_stubs_mypy.py
-│       │   ├── [ 256]  processors
+│       │   ├── [ 11K]  make_stubs_mypy.py
+│       │   ├── [ 288]  processors
 │       │   │   ├── [1.2K]  __init__.py
 │       │   │   ├── [5.0K]  docstring.py
-│       │   │   ├── [4.4K]  importance.py
+│       │   │   ├── [4.9K]  importance.py
+│       │   │   ├── [ 16K]  importance_helper.py
 │       │   │   ├── [6.6K]  imports.py
 │       │   │   ├── [ 11K]  stub_generation.py
 │       │   │   └── [7.4K]  type_inference.py
@@ -71,11 +74,11 @@ globs:
 │       │   │   ├── [8.5K]  docstring.py
 │       │   │   └── [8.2K]  type_system.py
 │       │   └── [ 160]  utils
-│       │       ├── [4.0K]  ast_utils.py
+│       │       ├── [5.3K]  ast_utils.py
 │       │       ├── [1.8K]  display.py
 │       │       └── [5.2K]  memory.py
 │       └── [1.6K]  twat_coding.py
 └── [ 128]  tests
     └── [ 165]  test_package.py
 
-20 directories, 55 files
+20 directories, 58 files

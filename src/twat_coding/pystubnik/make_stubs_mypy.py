@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""Enhanced MyPy-based stub generator that combines the best of MyPy's stubgen with smart stub generation.
+"""Enhanced MyPy-based stub generator.
+
+Combines MyPy's stubgen with smart stub generation to provide better type information.
 
 This module provides a more sophisticated approach to stub generation by:
 1. Using MyPy's stubgen for basic stub generation
@@ -12,11 +14,12 @@ import sys
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any, NamedTuple, cast
 
-import fire
 from loguru import logger
 from mypy import stubgen
 from mypy.stubdoc import (
+    ArgSig,
     FunctionSig,
     infer_sig_from_docstring,
     parse_all_signatures,
@@ -24,6 +27,20 @@ from mypy.stubdoc import (
 
 # Current Python version
 pyversion_current = (sys.version_info.major, sys.version_info.minor)
+
+# Optional fire import for CLI
+try:
+    import fire  # type: ignore
+except ImportError:
+    fire = None  # type: ignore
+
+
+class DocSignature(NamedTuple):
+    """Signature information extracted from docstring."""
+
+    name: str
+    args: list[tuple[str, str | None, str | None]]  # (name, type, default)
+    ret_type: str | None
 
 
 @dataclass
@@ -82,10 +99,64 @@ class SmartStubGenerator:
         self.config = config
         self.logger = logger.opt(colors=True)
 
+    def _convert_function_sig(self, sig: FunctionSig | tuple[str, str]) -> DocSignature:
+        """Convert FunctionSig to DocSignature.
+
+        Args:
+            sig: Function signature from mypy.stubdoc
+
+        Returns:
+            Converted signature
+        """
+        if not isinstance(sig, FunctionSig):
+            # Handle tuple format from parse_all_signatures
+            name, ret_type = sig
+            return DocSignature(name=name, args=[], ret_type=ret_type)
+
+        # Handle FunctionSig format from infer_sig_from_docstring
+        args: list[tuple[str, str | None, str | None]] = []
+        for arg in sig.args:
+            if isinstance(arg, ArgSig):
+                # ArgSig attributes are dynamically added by mypy
+                arg_dict = cast(dict[str, Any], arg.__dict__)
+                type_str = arg_dict.get("type_str")
+                type_str = None if type_str == "Any" else type_str
+                default = arg_dict.get("default")
+                default = None if default == "..." else default
+                args.append(
+                    (
+                        arg_dict.get("name", ""),
+                        type_str,
+                        default,
+                    )
+                )
+            elif isinstance(arg, tuple):
+                name, type_str, default = cast(tuple[str, str, str], arg)
+                args.append(
+                    (
+                        name,
+                        type_str if type_str != "Any" else None,
+                        default if default != "..." else None,
+                    )
+                )
+
+        return DocSignature(
+            name=sig.name,
+            args=args,
+            ret_type=sig.ret_type if sig.ret_type != "Any" else None,
+        )
+
     def process_docstring(
         self, docstring: str | None
-    ) -> tuple[str | None, list[FunctionSig]]:
-        """Process docstring to extract type information and signatures."""
+    ) -> tuple[str | None, list[DocSignature]]:
+        """Process docstring to extract type information and signatures.
+
+        Args:
+            docstring: The docstring to process
+
+        Returns:
+            Tuple of (processed docstring, list of extracted signatures)
+        """
         if not docstring:
             return None, []
 
@@ -94,16 +165,18 @@ class SmartStubGenerator:
             docstring = docstring[: self.config.max_docstring_length] + "..."
 
         # Try to infer signatures
-        sigs = infer_sig_from_docstring(docstring, "") or []
+        sigs: list[DocSignature] = []
+        try:
+            inferred_sigs = infer_sig_from_docstring(docstring, "") or []
+            sigs.extend(self._convert_function_sig(sig) for sig in inferred_sigs)
+        except Exception as e:
+            self.logger.debug(f"Failed to infer signatures from docstring: {e}")
 
         # If doc_dir is specified, try to find additional signatures
         if self.config.doc_dir:
             try:
                 doc_sigs, _ = parse_all_signatures([docstring])
-                sigs.extend(
-                    FunctionSig(name=s.name, args=s.args, ret_type=s.ret_type)
-                    for s in doc_sigs
-                )
+                sigs.extend(self._convert_function_sig(sig) for sig in doc_sigs)
             except Exception as e:
                 self.logger.debug(f"Failed to parse doc signatures: {e}")
 
@@ -246,4 +319,7 @@ def generate_stubs(
 
 
 if __name__ == "__main__":
+    if fire is None:
+        print("Error: python-fire package is required to run this script directly")
+        sys.exit(1)
     fire.Fire(generate_stubs)

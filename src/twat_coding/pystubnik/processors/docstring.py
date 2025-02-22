@@ -15,6 +15,7 @@ from ..core.types import (
 )
 from ..errors import StubGenerationError
 from ..types.type_system import TypeInfo
+from . import Processor
 
 
 class TypeInferenceError(StubGenerationError):
@@ -36,7 +37,7 @@ class DocstringResult:
     raises: list[tuple[TypeInfo, str]]  # (exception_type, description)
 
 
-class DocstringProcessor:
+class DocstringProcessor(Processor):
     """Processes docstrings to extract type information and signatures."""
 
     def __init__(

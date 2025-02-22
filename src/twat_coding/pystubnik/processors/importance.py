@@ -3,9 +3,14 @@
 
 import re
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 from loguru import logger
+
+from ..core.types import StubResult
+from . import Processor
+from .file_importance import FileImportanceConfig, prioritize_files
 
 
 @dataclass
@@ -27,8 +32,11 @@ class ImportanceConfig:
     public_weight: float = 1.1
     special_weight: float = 1.2
 
+    # File-level importance settings
+    file_importance: FileImportanceConfig = field(default_factory=FileImportanceConfig)
 
-class ImportanceProcessor:
+
+class ImportanceProcessor(Processor):
     """Calculate importance scores for code elements."""
 
     def __init__(self, config: ImportanceConfig | None = None) -> None:
@@ -38,6 +46,41 @@ class ImportanceProcessor:
             config: Configuration for importance scoring
         """
         self.config = config or ImportanceConfig()
+        self._file_scores: dict[str, float] = {}
+
+    def process(self, stub_result: StubResult) -> StubResult:
+        """Process a stub result to calculate importance scores.
+
+        This method combines both symbol-level and file-level importance scoring:
+        1. First, it calculates file-level importance if not already done
+        2. Then, it adjusts symbol scores based on their containing file's importance
+        3. Finally, it applies symbol-specific scoring rules
+
+        Args:
+            stub_result: The stub generation result to process
+
+        Returns:
+            The processed stub result with importance scores
+        """
+        # Calculate file-level importance if needed
+        if not self._file_scores:
+            try:
+                package_dir = str(stub_result.source_path.parent)
+                prioritize_files(package_dir, self.config.file_importance)
+            except Exception as e:
+                logger.warning(f"Failed to calculate file importance: {e}")
+
+        # Get file importance score
+        file_score = self._file_scores.get(str(stub_result.source_path), 0.5)
+
+        # Adjust stub result's importance score
+        stub_result.importance_score = file_score
+
+        # Process each symbol in the stub result
+        # TODO: Traverse AST to find and score individual symbols
+        # For now, we'll just use the file score as a base
+
+        return stub_result
 
     def calculate_importance(
         self,
@@ -61,6 +104,11 @@ class ImportanceProcessor:
         """
         try:
             score = 1.0
+
+            # Get file-level base score if available
+            if extra_info and "file_path" in extra_info:
+                file_path = extra_info["file_path"]
+                score *= self._file_scores.get(str(file_path), 1.0)
 
             # Check against importance patterns
             for pattern, weight in self.config.patterns.items():

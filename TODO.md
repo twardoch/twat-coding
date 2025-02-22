@@ -1,358 +1,141 @@
+### 0.1. Step 1: Understand the Current State
+
+The `pystubnik` package generates "smart stubs" for Python code, an intermediate representation optimized for large language model (LLM) understanding. The current TODO.md reflects a mix of completed and pending tasks, but it's not aligned with the specific goal of eliminating the standalone scripts. The thinking trace provides a detailed analysis of `@make_stubs_ast.py` (AST-based stub generation) and `@make_stubs_mypy.py` (MyPy-based stub generation), suggesting their functionalities be integrated into `backends/ast_backend.py`, `backends/mypy_backend.py`, and supporting modules like `processors` and `config`.
+
+### 0.2. Step 2: Identify Key Functionalities to Port
+
+- **From `@make_stubs_ast.py`:**
+  - AST parsing with `SignatureExtractor` for signature preservation.
+  - Literal truncation (`truncate_literal`).
+  - Docstring handling with size constraints.
+  - Parallel processing with `ThreadPoolExecutor`.
+- **From `@make_stubs_mypy.py`:**
+  - MyPy stubgen integration via `SmartStubGenerator`.
+  - Docstring processing for type inference.
+  - Importance-based filtering.
+  - Configuration mapping to MyPy options.
+
+### 0.3. Step 4: Define the New TODO Structure
+
+To achieve a functioning library ASAP:
+1. **Configuration:** Update the config system to support all settings from the old scripts.
+2. **Backends:** Port all functionality into `ast_backend.py` and `mypy_backend.py`.
+3. **Processors:** Enhance processors to handle backend outputs.
+4. **Entry Points:** Update `__init__.py` for immediate usability.
+5. **Testing:** Add basic tests to verify functionality.
+6. **Cleanup:** Deprecate and remove old scripts.
+
 # TODO
 
-## 1. Foundation Improvements (High Priority)
+This TODO.md is a detailed development specification to make `pystubnik` functional ASAP, eliminating `@make_stubs_ast.py` and `@make_stubs_mypy.py` by porting their functionality into the new structure. Tasks are ordered for rapid progress with early validation, including specific instructions for immediate implementation.
 
-### 1.1. Error Handling & Validation (Completed)
-- [x] Create unified error handling system:
-  - [x] Add `StubGenerationError` base class:
-    ```python
-    class StubGenerationError(Exception):
-        """Base class for all stub generation errors."""
-        def __init__(self, message: str, code: str, details: dict[str, str] | None = None):
-            self.code = code
-            self.details = details or {}
-            super().__init__(message)
-    ```
-  - [x] Create backend-specific errors:
-    ```python
-    class ASTError(StubGenerationError):
-        """AST processing errors."""
-        pass
+---
 
-    class MyPyError(StubGenerationError):
-        """MyPy backend errors."""
-        pass
-    ```
-  - [x] Add error code taxonomy in `error_codes.py`:
-    ```python
-    from enum import Enum, auto
-    
-    class ErrorCode(str, Enum):
-        """Error codes for stub generation."""
-        AST_PARSE_ERROR = "AST001"
-        TYPE_INFERENCE_ERROR = "TYPE001"
-        CONFIG_ERROR = "CFG001"
-    ```
-  - [x] Implement error recovery strategies using context managers
+## 1. Code Quality Fixes (URGENT)
 
-- [x] Add configuration validation:
-  - [x] Define JSON Schema for TOML config in `config_schema.json`
-  - [x] Add runtime validation using Pydantic models
-  - [x] Create config migration system with version tracking
-  - [x] Add config diffing for changes using `deepdiff`
+- [ ] **Fix Ruff Errors:**
+  - [x] Fix deprecated typing imports (UP035) in ast_utils.py
+  - [x] Remove unused imports (F401) in ast_utils.py
+  - [x] Fix line length issues (E501) in ast_utils.py
+  - [x] Address complex functions (C901) in ast_utils.py
+  - [x] Fix remaining issues in __init__.py
+  - [!] Fix remaining issues in other files
 
-### 1.2. Core Architecture Improvements (Completed)
-- [x] Enhance AST backend with advanced concurrency:
-  - [x] Implement asyncio-based processing with `asyncio.gather`
-  - [x] Add LRU cache using `functools.lru_cache`
-  - [x] Create AST node registry using weak references
-  - [x] Add incremental parsing support with file checksums
-- [x] Optimize memory usage for large codebases:
-  - [x] Profile memory usage with `memory_profiler`
-  - [x] Implement memory-efficient AST traversal using generators
-  - [x] Add streaming processing for large files
-  - [x] Set up memory usage monitoring with `psutil`
+- [ ] **Fix Type Checking Errors:**
+  - [x] Fix bytes/str type mismatches in ast_utils.py
+  - [x] Fix AST.parent attribute errors in ast_utils.py
+  - [x] Fix type system and docstring type errors in __init__.py
+  - [x] Address object.process attribute error in __init__.py
+  - [!] Fix tuple attribute errors in make_stubs_mypy.py
 
-### 1.3. Type System Enhancements (Completed)
-- [x] Improve type preservation:
-  - [x] Handle PEP 593 Annotated types with full metadata
-  - [x] Support TypeVar and generic types with bounds
-  - [x] Add type alias resolution with dependency tracking
-  - [x] Preserve typing.Protocol definitions with docstrings
-- [x] Integrate type hint extraction from docstrings:
-  - [x] Parse docstring type hints using `docstring_parser`
-  - [x] Merge with explicit annotations using precedence rules
-  - [x] Handle conflicting type information with warnings
-  - [x] Support multiple docstring formats (Google, NumPy, reST)
+- [ ] **Improve Test Coverage:**
+  - [!] Add basic unit tests for ast_utils.py
+  - [!] Add basic unit tests for __init__.py
+  - [ ] Add tests for other core functionality
+  - [ ] Focus on critical paths in backends and processors
 
-### 1.4. Development Infrastructure (High Priority, Next)
-- [ ] Create automated testing infrastructure:
-  - [ ] Set up differential testing system using `pytest-golden`
-  - [ ] Add performance benchmark suite with `pytest-benchmark`
-  - [ ] Create comparative benchmarks against other stub generators
-  - [ ] Track memory usage patterns with `pytest-memray`
-- [ ] Create pre-configured CI/CD pipelines:
-  - [ ] Add GitHub Actions workflows:
-    ```yaml
-    name: CI
-    on: [push, pull_request]
-    jobs:
-      test:
-        runs-on: ubuntu-latest
-        steps:
-          - uses: actions/checkout@v4
-          - uses: actions/setup-python@v5
-          - run: pip install -e .[test,dev]
-          - run: pytest
-    ```
-  - [ ] Support pre-commit hooks with `.pre-commit-config.yaml`
-  - [ ] Add release automation using `python-semantic-release`
-  - [ ] Set up dependency updates with `dependabot`
+## 2. Update Configuration
 
-### 1.5. Documentation & Usability (Medium Priority, Next)
-- [ ] Enhance documentation system:
-  - [ ] Generate API reference using `mkdocs-material`:
-    ```yaml
-    # mkdocs.yml
-    site_name: Stub Generator
-    theme:
-      name: material
-      features:
-        - content.code.annotate
-    plugins:
-      - mkdocstrings
-      - mkdocs-jupyter
-    ```
-  - [ ] Convert docstrings to Markdown using `docstring-to-markdown`
-  - [ ] Create usage examples from tests using `pytest-examples`
-  - [ ] Add architecture diagrams with `diagrams` package
-- [ ] Develop interactive CLI mode:
-  - [ ] Add guided configuration using `questionary`
-  - [ ] Implement progress visualization with `rich.progress`
-  - [ ] Add error recovery suggestions using fuzzy matching
-  - [ ] Create interactive debugging mode with `ipdb`
+- [!] **Extend `StubGenConfig` in `src/twat_coding/pystubnik/core/config.py`:**
+  - Add AST fields: `max_sequence_length`, `max_string_length`, `max_docstring_length`, `max_file_size`, `truncation_marker`
+  - Add MyPy fields: `include_docstrings`, `importance_patterns`, `max_docstring_length`, `infer_property_types`
+  - Document and type all fields
 
-### 1.6. Analysis & Visualization (Medium)
-- [ ] Implement dependency graph visualizer:
-  - [ ] Generate visual import maps using `graphviz`:
-    ```python
-    from graphviz import Digraph
-    
-    def create_import_graph(modules: list[str]) -> Digraph:
-        """Create a visual representation of module dependencies."""
-        dot = Digraph(comment='Module Dependencies')
-        # Add nodes and edges
-        return dot
-    ```
-  - [ ] Add interactive navigation with `networkx`
-  - [ ] Support export formats (PNG, SVG, PDF)
-  - [ ] Add impact analysis for changes
-- [ ] Add custom importance scoring:
-  - [ ] Support rule-based scoring with configurable weights
-  - [ ] Add pattern matching using `fnmatch`
-  - [ ] Enable weight customization via TOML config
-  - [ ] Provide scoring templates for common use cases
+- [ ] **Update `config.py` in `src/twat_coding/pystubnik/config.py`:**
+  - Sync `StubConfig` with new `StubGenConfig` fields
+  - Add Pydantic validation
+  - Update `get_file_locations` for relative path logic
 
-## 2. Implementation Plan
+---
 
-### 2.1. Critical Priority (In Progress)
-- [x] Add `__version__` to the package
-- [x] Fix type compatibility issues
-- [x] Fix boolean parameter warnings
-- [x] Move `SmartStubGenerator` to `mypy_backend.py`
-- [x] Move AST utilities to `utils/ast.py`
-- [x] Move display functions to `utils/display.py`
-- [x] Move docstring processor to `processors/docstring.py`
-- [x] Move importance processor to `processors/importance.py`
-- [x] Move type inference to `processors/type_inference.py`
-- [x] Move stub generation to `processors/stub_generation.py`
-- [x] Fix build system issues:
-  - [x] Fix hatchling vcs build hook error in pyproject.toml
-  - [x] Ensure package installs correctly with all dependencies
-  - [x] Verify development environment setup
-- [ ] Fix remaining linter errors:
-  - [ ] Fix import resolution errors
-  - [ ] Clean up remaining code quality issues
-  - [ ] Address type issues in stub_generation.py
-- [ ] Set up basic test infrastructure:
-  - [ ] Configure pytest with basic settings
-  - [ ] Add unit tests for core components
-  - [ ] Set up test coverage reporting
-- [ ] Complete legacy code migration
+## 3. Port AST-based Stub Generation
 
-### 2.2. AST Backend Implementation (In Progress)
-- [x] Port `SignatureExtractor` from `make_stubs_ast.py`:
-  - [x] Add parent reference tracking for docstrings
-  - [x] Implement literal truncation with configuration
-  - [x] Add support for Python 3.12+ type parameters
-  - [x] Preserve class-level assignments
-- [ ] Add parallel processing support:
-  - [ ] Use `ThreadPoolExecutor` for file processing:
-    ```python
-    from concurrent.futures import ThreadPoolExecutor
-    from pathlib import Path
-    
-    def process_files(files: list[Path]) -> None:
-        with ThreadPoolExecutor() as executor:
-            executor.map(process_single_file, files)
-    ```
-  - [ ] Add progress reporting with `rich.progress`
-  - [ ] Implement error handling and logging with `loguru`
-- [ ] Enhance docstring handling:
-  - [ ] Add size-based truncation with configurable limits
-  - [ ] Support format conversion between styles
-  - [ ] Preserve important docstrings based on scoring
+- [x] **Move `truncate_literal` into `src/twat_coding/pystubnik/utils/ast_utils.py`:**
+  - [x] Update to use `StubGenConfig.truncation`
+  - [x] Split into smaller functions
+  - [x] Add proper type hints
+  - [x] Add error handling
 
-### 2.3. MyPy Backend Implementation (Completed)
-- [x] Port smart features from `make_stubs_mypy.py`:
-  - [x] Add docstring-based type inference using `docstring_parser`
-  - [x] Implement property type inference with static analysis
-  - [x] Support type comment extraction with `ast` module
-- [x] Enhance MyPy integration:
-  - [x] Add configuration mapping:
-    ```python
-    from dataclasses import dataclass
-    from typing import Any
-    
-    @dataclass
-    class MyPyConfig:
-        """Configuration for MyPy backend."""
-        python_version: tuple[int, int]
-        platform: str
-        custom_typeshed_dir: Path | None
-        follow_imports: str = "silent"
-    ```
-  - [x] Support custom search paths with environment variables
-  - [x] Handle special cases (dataclasses, protocols, etc.)
-- [x] Add result post-processing:
-  - [x] Clean up generated stubs using `black`
-  - [x] Add missing imports with import sorting
-  - [x] Format output consistently with configurable style
+- [!] **Move `SignatureExtractor` to `src/twat_coding/pystubnik/backends/ast_backend.py`:**
+  - Use `StubGenConfig` for settings
+  - Keep all methods intact
 
-### 2.4. Testing and Documentation (High Priority, Next)
-- [ ] Add test suite:
-  - [ ] Unit tests for each component using `pytest`:
-    ```python
-    def test_stub_generation(tmp_path: Path) -> None:
-        """Test basic stub generation functionality."""
-        source = tmp_path / "example.py"
-        source.write_text("def example() -> int: return 42")
-        
-        generator = StubGenerator()
-        stub = generator.generate_stub(source)
-        
-        assert "def example() -> int" in stub
-    ```
-  - [ ] Integration tests with real-world examples
-  - [ ] Performance tests with benchmarking
-- [ ] Create documentation:
-  - [ ] API reference with docstring examples
-  - [ ] Usage examples with code snippets
-  - [ ] Configuration guide with all options
-- [ ] Add examples:
-  - [ ] Basic usage patterns
-  - [ ] Advanced features demonstration
-  - [ ] Common patterns and solutions
+- [ ] **Enhance `ASTBackend.generate_stub`:**
+  - Implement AST parsing, transformation, and writing as shown above
+  - Use `ASTError` for exceptions
 
-### 2.5. Import Processing Enhancement (Medium Priority)
-- [ ] Improve import analysis:
-  - [ ] Add import graph visualization using `graphviz`
-  - [ ] Detect unused imports with static analysis
-  - [ ] Support `__all__` declarations with AST parsing
-- [ ] Add import organization:
-  - [ ] Group imports using `isort`:
-    ```python
-    from isort import Config, sort_code_string
-    
-    def organize_imports(code: str) -> str:
-        """Organize imports in the generated stub."""
-        config = Config(
-            profile="black",
-            src_paths=["src"],
-            known_first_party=["mypackage"],
-        )
-        return sort_code_string(code, config)
-    ```
-  - [ ] Sort within groups by convention
-  - [ ] Handle relative imports correctly
-- [ ] Implement import optimization:
-  - [ ] Remove duplicate imports automatically
-  - [ ] Combine related imports intelligently
-  - [ ] Minimize import statements where possible
+- [ ] **Add Smoke Test in `tests/test_ast_backend.py`:**
+  - Test basic stub generation with a simple function
 
-### 2.6. Docstring Processing Enhancement (Medium Priority)
-- [ ] Add format detection:
-  - [ ] Identify docstring style using heuristics
-  - [ ] Parse structured sections with regular expressions
-  - [ ] Extract type information from all formats
-- [ ] Implement format conversion:
-  - [ ] Convert between styles preserving semantics
-  - [ ] Preserve important information during conversion
-  - [ ] Handle edge cases and special formats
-- [ ] Add docstring optimization:
-  - [ ] Remove redundant information automatically
-  - [ ] Normalize formatting across project
-  - [ ] Preserve type hints with validation
+- [ ] **Add Parallel Processing to `ASTBackend.process_directory`:**
+  - Implement with `asyncio` and `ThreadPoolExecutor`
 
-### 2.7. Importance Scoring Enhancement (Low Priority)
-- [ ] Improve scoring algorithm:
-  - [ ] Add usage analysis with static parsing
-  - [ ] Consider inheritance relationships
-  - [ ] Weight public vs private members
-- [ ] Add pattern matching:
-  - [ ] Support regex patterns for matching
-  - [ ] Add keyword scoring with weights
-  - [ ] Consider context in scoring
-- [ ] Implement filtering:
-  - [ ] Add threshold-based filtering options
-  - [ ] Preserve dependencies in filtered output
-  - [ ] Handle special cases with rules
+---
 
-### 2.8. CLI and Configuration (Low Priority)
-- [ ] Create unified CLI:
-  - [ ] Add command groups using `click`:
-    ```python
-    import click
-    
-    @click.group()
-    def cli() -> None:
-        """Stub generator command line interface."""
-        pass
-    
-    @cli.command()
-    @click.argument('source', type=click.Path(exists=True))
-    @click.option('--output', '-o', help='Output directory')
-    def generate(source: str, output: str | None) -> None:
-        """Generate stubs for Python source files."""
-        pass
-    ```
-  - [ ] Support configuration files with validation
-  - [ ] Add validation with error messages
-- [ ] Add configuration management:
-  - [ ] Support TOML/YAML with schema validation
-  - [ ] Add schema validation using Pydantic
-  - [ ] Provide sensible defaults
-- [ ] Implement logging:
-  - [ ] Add levels and formatting with `loguru`
-  - [ ] Support output redirection to files
-  - [ ] Add progress indicators with `rich`
+## 4. Port MyPy-based Stub Generation
 
-### 2.9. Performance Optimization (Low Priority)
-- [ ] Add caching:
-  - [ ] Cache parsed ASTs with LRU cache
-  - [ ] Cache import analysis results
-  - [ ] Cache docstring processing output
-- [ ] Optimize processing:
-  - [ ] Improve parallel execution with asyncio
-  - [ ] Reduce memory usage with generators
-  - [ ] Add incremental processing support
-- [ ] Profile and optimize:
-  - [ ] Identify bottlenecks with cProfile
-  - [ ] Optimize critical paths with profiling
-  - [ ] Add benchmarks for comparison
+- [ ] **Move `SmartStubGenerator` to `src/twat_coding/pystubnik/backends/mypy_backend.py`:**
+  - Rename to `MypyBackend`, inherit from `StubBackend`.
 
-### 2.10. Integration Features (Low Priority)
-- [ ] Add IDE integration:
-  - [ ] Create VS Code extension with LSP
-  - [ ] Add editor commands for common tasks
-  - [ ] Support live preview of stubs
-- [ ] Add CI/CD support:
-  - [ ] Add GitHub Actions for automation
-  - [ ] Support pre-commit hooks for quality
-  - [ ] Add release workflow with versioning
-- [ ] Add monitoring:
-  - [ ] Track usage metrics with telemetry
-  - [ ] Monitor performance with metrics
-  - [ ] Report errors with proper context
+- [ ] **Implement `MypyBackend.generate_stub`:**
+  - Use `stubgen.generate_stubs` with enhanced post-processing.
 
-# Future Improvements
+- [ ] **Port `process_docstring` and `calculate_importance`:**
+  - Integrate into `MypyBackend`.
 
-- [ ] Add support for more docstring formats
-- [ ] Improve type inference accuracy
-- [ ] Add more configuration options
-- [ ] Optimize performance
-- [ ] Add more test cases
-- [ ] Improve error handling
-- [ ] Add documentation
-- [ ] Add examples
-- [ ] Add CI/CD pipeline
+- [ ] **Add Smoke Test in `tests/test_mypy_backend.py`:**
+  - Test basic stub generation with type hints.
+
+---
+
+## 5. Enhance Processors
+
+- [ ] **Update `processors/docstring.py`, `processors/importance.py`, `processors/imports.py`:**
+  - Align with new backend outputs as described.
+
+---
+
+## 6. Update Main Entry Points
+
+- [ ] **Update `generate_stub` and `SmartStubGenerator.generate` in `src/twat_coding/pystubnik/__init__.py`:**
+  - Integrate new backends and processors.
+
+---
+
+## 7. Comprehensive Testing
+
+- [ ] **Expand Unit Tests:**
+  - Full coverage for `ASTBackend` and `MypyBackend`.
+
+- [ ] **Add Integration Tests in `tests/test_integration.py`:**
+  - Test end-to-end stub generation.
+
+---
+
+## 8. Deprecate Old Scripts
+
+- [ ] **Mark as Deprecated, Update Docs, Remove Scripts:**
+  - Final cleanup steps.
+
+---
+

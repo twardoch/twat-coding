@@ -9,12 +9,12 @@ docstrings, and code importance.
 from collections.abc import Mapping, Sequence
 from importlib.metadata import version
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Protocol
 
 from loguru import logger
 
 from .backends import StubBackend
-from .backends.ast_backend import AstBackend
+from .backends.ast_backend import ASTBackend
 from .backends.mypy_backend import MypyBackend
 from .config import StubConfig
 from .core.config import (
@@ -37,8 +37,66 @@ from .core.types import (
 from .core.utils import setup_logging
 from .errors import ASTError, ConfigError, ErrorCode, MyPyError, StubGenerationError
 from .processors.docstring import DocstringProcessor
-from .processors.importance import ImportanceProcessor
+from .processors.importance import ImportanceConfig, ImportanceProcessor
 from .processors.imports import ImportProcessor
+
+
+def _convert_to_stub_config(config: StubGenConfig) -> StubConfig:
+    """Convert StubGenConfig to StubConfig.
+
+    Args:
+        config: Source configuration
+
+    Returns:
+        Converted configuration
+    """
+    return StubConfig(
+        input_path=config.paths.files[0] if config.paths.files else Path("."),
+        output_path=config.paths.output_dir,
+        backend="ast",  # Default to AST backend
+        parallel=config.runtime.parallel,
+        max_workers=config.runtime.max_workers,
+        infer_types=config.processing.infer_property_types,
+        preserve_literals=True,  # We handle this in the AST backend
+        docstring_type_hints=config.processing.include_docstrings,
+        python_version=config.runtime.python_version,
+        no_import=config.runtime.no_import,
+        inspect=config.runtime.inspect,
+        doc_dir=str(config.paths.doc_dir) if config.paths.doc_dir else "",
+        search_paths=config.paths.search_paths,
+        interpreter=config.runtime.interpreter,
+        ignore_errors=config.runtime.ignore_errors,
+        parse_only=config.runtime.parse_only,
+        include_private=config.processing.include_private,
+        modules=config.paths.modules,
+        packages=config.paths.packages,
+        files=config.paths.files,
+        verbose=config.runtime.verbose,
+        quiet=config.runtime.quiet,
+        export_less=config.processing.export_less,
+        importance_patterns=dict(config.processing.importance_patterns),
+        max_docstring_length=config.truncation.max_docstring_length,
+        include_type_comments=config.processing.include_type_comments,
+        infer_property_types=config.processing.infer_property_types,
+        line_length=88,  # Default line length
+        sort_imports=True,  # Default to sorting imports
+        add_header=True,  # Default to adding header
+    )
+
+
+class Processor(Protocol):
+    """Protocol for stub processors."""
+
+    def process(self, stub: StubResult) -> StubResult:
+        """Process a stub result.
+
+        Args:
+            stub: Input stub result
+
+        Returns:
+            Processed stub result
+        """
+        ...
 
 
 class SmartStubGenerator:
@@ -168,6 +226,68 @@ class SmartStubGenerator:
             catch=True,
         )
 
+        # Initialize processors
+        self.processors: list[Processor] = [
+            DocstringProcessor(
+                style="google",
+                max_length=self.config.truncation.max_docstring_length,
+                preserve_sections=["Args", "Returns", "Yields", "Raises"],
+            ),
+            ImportanceProcessor(
+                config=ImportanceConfig(
+                    patterns=dict(self.config.processing.importance_patterns),
+                    keywords=self.config.processing.importance_keywords,
+                )
+            ),
+            ImportProcessor(),
+        ]
+
+    def _initialize_backend(self) -> StubBackend:
+        """Initialize the appropriate backend based on configuration.
+
+        Returns:
+            Initialized backend
+        """
+        match self.config.runtime.backend:
+            case Backend.AST:
+                return ASTBackend(_convert_to_stub_config(self.config))
+            case Backend.MYPY:
+                return MypyBackend(_convert_to_stub_config(self.config))
+            case Backend.HYBRID:
+                # TODO: Implement hybrid backend
+                logger.warning("Hybrid backend not implemented, falling back to AST")
+                return ASTBackend(_convert_to_stub_config(self.config))
+            case _:
+                raise ValueError(f"Unknown backend: {self.config.runtime.backend}")
+
+    def _process_file(self, backend: StubBackend, file_path: Path) -> None:
+        """Process a single file.
+
+        Args:
+            backend: Backend to use for stub generation
+            file_path: Path to the file to process
+        """
+        try:
+            # Generate stub
+            result = backend.generate_stub(file_path)
+            if isinstance(result, StubResult):
+                # Apply processors
+                for processor in self.processors:
+                    result = processor.process(result)
+
+                # Write stub
+                output_path = (
+                    self.config.paths.output_dir / file_path.with_suffix(".pyi").name
+                )
+                output_path.write_text(result.stub_content)
+            else:
+                logger.error(f"Invalid result type for {file_path}")
+
+        except Exception as e:
+            logger.error(f"Failed to process {file_path}: {e}")
+            if not self.config.runtime.ignore_errors:
+                raise
+
     def generate(self) -> None:
         """Generate stubs according to configuration."""
         try:
@@ -176,9 +296,15 @@ class SmartStubGenerator:
             )
             logger.info(f"Output directory: {self.config.paths.output_dir}")
 
-            # TODO: Implement stub generation logic
-            # This will be implemented in subsequent commits as we
-            # reorganize the existing code into the new structure
+            # Create output directory
+            self.config.paths.output_dir.mkdir(parents=True, exist_ok=True)
+
+            # Initialize backend
+            backend = self._initialize_backend()
+
+            # Process files
+            for file_path in self.config.paths.files:
+                self._process_file(backend, file_path)
 
             logger.info("Stub generation completed successfully")
 
@@ -191,32 +317,32 @@ class SmartStubGenerator:
             if not self.config.runtime.ignore_errors:
                 raise
 
-    def generate_for_file(self, file_path: str | Path) -> str:
+    def generate_for_file(self, file_path: str | Path) -> StubResult:
         """Generate stub for a single file.
 
         Args:
             file_path: Path to the Python file
 
         Returns:
-            Generated stub content
+            Generated stub result
         """
         # TODO: Implement single file stub generation
         raise NotImplementedError
 
-    def generate_for_module(self, module_name: str) -> str:
+    def generate_for_module(self, module_name: str) -> StubResult:
         """Generate stub for a module by name.
 
         Args:
             module_name: Fully qualified module name
 
         Returns:
-            Generated stub content
+            Generated stub result
         """
         # TODO: Implement module stub generation
         raise NotImplementedError
 
 
-def generate_stub(
+async def generate_stub(
     source_path: PathLike,
     output_path: PathLike | None = None,
     backend: str = "ast",
@@ -241,37 +367,28 @@ def generate_stub(
 
     config = config or StubGenConfig(paths=PathConfig())
 
+    # Convert StubGenConfig to StubConfig
+    stub_config = _convert_to_stub_config(config)
+    stub_config.input_path = source_path
+    stub_config.output_path = output_path_obj
+    stub_config.backend = "ast" if backend == "ast" else "mypy"  # Convert to Literal
+
     # Initialize backend
+    backend_obj: StubBackend
     if backend == "ast":
-        backend_impl = AstBackend(config)
+        backend_obj = ASTBackend(stub_config)
     elif backend == "mypy":
-        backend_impl = MypyBackend(config)
+        backend_obj = MypyBackend(stub_config)
     else:
-        msg = f"Unsupported backend: {backend}"
-        raise ValueError(msg)
+        raise ValueError(f"Unsupported backend: {backend}")
 
-    # Generate initial stub
-    result = backend_impl.generate_stub(source_path, output_path_obj)
+    # Generate stub
+    result = await backend_obj.generate_stub(source_path)
+    if not isinstance(result, StubResult):
+        raise TypeError(f"Expected StubResult, got {type(result)}")
 
-    # Apply processors
-    processors = [
-        ImportProcessor(),
-        DocstringProcessor(
-            include_docstrings=config.processing.include_docstrings,
-            doc_format="plain",  # TODO: Add to config
-        ),
-        ImportanceProcessor(
-            min_importance=0.5,  # TODO: Add to config
-            importance_patterns=dict(config.processing.importance_patterns),
-        ),
-    ]
-
-    for processor in processors:
-        result = processor.process(result)
-
-    # Write output if path specified
+    # Write stub if output path is specified
     if output_path_obj:
-        output_path_obj.parent.mkdir(parents=True, exist_ok=True)
         output_path_obj.write_text(result.stub_content)
 
     return result
@@ -287,7 +404,7 @@ __license__ = "MIT"
 
 __all__ = [
     "ArgInfo",
-    "AstBackend",
+    "ASTBackend",
     "Backend",
     "ClassInfo",
     "FunctionInfo",
