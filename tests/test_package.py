@@ -3,19 +3,13 @@
 from pathlib import Path
 
 import pytest
-
 from twat_coding.pystubnik.backends.ast_backend import ASTBackend
 from twat_coding.pystubnik.backends.mypy_backend import MypyBackend
 from twat_coding.pystubnik.config import StubConfig
-from twat_coding.pystubnik.core.config import (
-    Backend,
-    PathConfig,
-    StubGenConfig,
-)
+from twat_coding.pystubnik.core.config import (Backend, PathConfig,
+                                               StubGenConfig)
 from twat_coding.pystubnik.core.conversion import convert_to_stub_gen_config
-from twat_coding.pystubnik.processors.stub_generation import (
-    StubGenerator,
-)
+from twat_coding.pystubnik.processors.stub_generation import StubGenerator
 from twat_coding.pystubnik.types.docstring import DocstringTypeExtractor
 from twat_coding.pystubnik.types.type_system import TypeRegistry
 

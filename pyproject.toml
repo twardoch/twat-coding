@@ -64,6 +64,8 @@ dev = [
     "mypy>=1.8.0",
     "pre-commit>=3.6.0",
     "python-semantic-release>=8.7.0",
+    "vulture>=2.10",  # Added vulture dependency
+
 ]
 
 [build-system]
@@ -79,15 +81,61 @@ output-format = "github"
 
 [tool.ruff.lint]
 select = [
-    "E",   # pycodestyle errors
-    "W",   # pycodestyle warnings
-    "F",   # pyflakes
-    "I",   # isort
-    "C",   # flake8-comprehensions
-    "B",   # flake8-bugbear
-    "UP",  # pyupgrade
+    "A",
+    "ANN",
+    "ARG",
+    "ASYNC",
+    "B",
+    "C",
+    "C4",
+    "C90",
+    "COM",
+    "D",
+    "DOC",
+    "DTZ",
+    "E",
+    "ERA",
+    "EXE",
+    "F",
+    "FA",
+    "FBT",
+    "FIX",
+    "FLY",
+    "FURB",
+    "I",
+    "ICN",
+    "INP",
+    "ISC",
+    "N",
+    "NPY",
+    "PD",
+    "PERF",
+    "PIE",
+    "PL",
+    "PLC",
+    "PLE",
+    "PLR",
+    "PLW",
+    "PT",
+    "PTH",
+    "PYI",
+    "Q",
+    "RET",
+    "RSE",
+    "RUF",
+    "S",
+    "SIM",
+    "SLF",
+    "T",
+    "TC",
+    "TD",
+    "TID",
+    "TRY",
+    "UP",
+    "W",
+    "YTT",
 ]
-ignore = []
+ignore = ["ARG001", "COM812", "D203", "D213", "E501", "I001", "RUF001", "PLR2004", "EXE003", "ISC001"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["twat_coding"]
@@ -175,8 +223,8 @@ dependencies = [
 
 [tool.hatch.envs.lint.scripts]
 typing = "mypy --install-types --non-interactive {args:src/twat_coding tests}"
-style = ["ruff check {args:.}", "ruff format --check {args:.}"]
-fmt = ["ruff format --respect-gitignore {args:.}", "ruff check --fix {args:.}"]
+style = ["ruff check {args:.}", "ruff format --check {args:.}", "vulture src"]
+fmt = ["ruff format --respect-gitignore {args:.}", "ruff check --fix {args:.}", "vulture src"]
 all = ["style", "typing"]
 
 [tool.hatch.envs.test]
