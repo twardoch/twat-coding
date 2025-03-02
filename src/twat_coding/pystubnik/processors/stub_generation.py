@@ -28,7 +28,7 @@ from ast import (
 from pathlib import Path
 
 from ..config import StubConfig
-from ..utils.ast_utils import attach_parents
+from ..utils.ast_utils import attach_parents, should_include_member
 
 
 class StubVisitor(NodeVisitor):
@@ -61,30 +61,20 @@ class StubVisitor(NodeVisitor):
         Returns:
             True if the member should be included
         """
-        # If include_private is True, include everything
-        if self.config.include_private:
-            return True
-
-        # Always include special methods (dunder methods)
-        if name.startswith("__") and name.endswith("__"):
-            return True
-
-        # Exclude anything that starts with underscore
-        if name.startswith("_"):
-            return False
-
-        return True
+        return should_include_member(name, self.config.include_private)
 
     def visit_ClassDef(self, node: ClassDef) -> None:
         """Visit class definitions."""
-        if not self._should_include_member(node.name):
+        # Skip private classes
+        if not should_include_member(node.name, self.config.include_private):
             return
 
         self.classes.append(node)
+
         # Visit class body for methods and assignments
         for item in node.body:
             if isinstance(item, FunctionDef):
-                if self._should_include_member(item.name):
+                if should_include_member(item.name, self.config.include_private):
                     self.visit(item)
             elif isinstance(item, Assign | AnnAssign):
                 self.visit(item)
@@ -260,19 +250,7 @@ class StubGenerator:
         Returns:
             True if the member should be included
         """
-        # If include_private is True, include everything
-        if self.config.include_private:
-            return True
-
-        # Always include special methods (dunder methods)
-        if name.startswith("__") and name.endswith("__"):
-            return True
-
-        # Exclude anything that starts with underscore
-        if name.startswith("_"):
-            return False
-
-        return True
+        return should_include_member(name, self.config.include_private)
 
     def generate_stub(
         self, source_file: str | Path, ast_tree: AST | None = None
@@ -350,6 +328,10 @@ class StubGenerator:
         Returns:
             List of lines for the stub
         """
+        # Check if class should be included
+        if not self._should_include_member(node.name):
+            return []
+
         lines: list[str] = []
 
         # Add docstring if present

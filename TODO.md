@@ -4,89 +4,198 @@ this_file: TODO.md
 
 # TODO
 
-## 1. Immediate Priorities
+Do it! Remember, keep it simple, effective, eyes on the goal! 
 
-- [!] **Fix Private Class Exclusion**
-  - *Critical Bug*:
-    - [!] Fix failing test in `test_stub_generation_config`
-    - [!] Ensure private classes are properly excluded in `StubVisitor`
-    - [!] Add test cases for special methods and nested private classes
+## 1. Core Implementation
 
-- [x] **Add CLI Interface**
-  - *Using Fire for Command Line*:
-    - [x] Create `cli.py` with Fire interface
-      - [x] Add `generate` command for single file
-      - [x] Add `generate-dir` command for directory
-      - [x] Add `--config` option for configuration file
-    - [x] Add progress bar using rich
-    - [x] Add colorful output for errors and warnings
+- [x] **Legacy API (Shell Script Port)**
+  - *Core Functionality*:
+    - [x] Port server selection from shell script
+      - [x] Use `https://nordvpn.com/wp-admin/admin-ajax.php` endpoint
+      - [x] Keep country ID mapping from shell script
+      - [x] Add server filtering for TCP only
+    - [x] Implement OpenVPN config download and caching
+      - [x] Download to `/etc/nordvpn_file/`
+      - [x] Cache TCP configs only
+      - [x] Add config validation
+    - [x] Add simple process management (start/kill)
+      - [x] Use subprocess for OpenVPN
+      - [x] Simple pkill for cleanup
+    - [x] Add basic status check via IP lookup
+      - [x] Use ipinfo.io for status
+      - [x] Simple online/offline check
+  - *Error Handling*:
+    - [x] Add basic error classes
+    - [x] Implement simple retry with tenacity
+    - [x] Add clear error messages using loguru
 
-- [!] **Add Config File Support**
-  - *YAML Configuration*:
-    - [!] Add YAML config file support to CLI
-    - [!] Add config validation using Pydantic
-    - [!] Add config file examples
+- [x] **Njord API Integration**
+  - *Core Integration*:
+    - [x] Clean up njord client implementation
+    - [x] Remove async patterns
+    - [x] Simplify status checking
+    - [x] Remove complex retry logic
+  - *Error Handling*:
+    - [x] Map njord errors to our error classes
+    - [x] Add loguru logging
 
-- [!] **Fix Type Annotations**
-  - *High Priority Fixes*:
-    - [!] Add missing type annotations in `stub_generation.py`:
-      - [!] Fix "sorted_imports" type annotation
-      - [!] Fix "imports" type annotation
-      - [!] Fix ImportFrom/Import type mismatches
+## 2. Client Interface
 
-- [!] **Reduce Code Complexity**
+- [x] **Base Client**
+  - *API*:
+    - [x] Define common interface for both implementations
+      - [x] `connect(country: str | None = None) -> bool`
+      - [x] `disconnect() -> bool`
+      - [x] `protected() -> bool`
+      - [x] `status() -> dict[str, Any]`
+    - [x] Add country selection
+      - [x] Support country codes (us, uk, etc.)
+      - [x] Support country names (United States, etc.)
+      - [x] Add country validation
+    - [x] Add simple credential management (env vars only)
+      - [x] Use NORD_USER and NORD_PASSWORD
+      - [x] Add credential validation
+      - [x] Create temp auth file when needed
+    - [x] Add basic status methods
+      - [x] IP address check
+      - [x] Connection state
+      - [x] Current server
+  - *Implementation*:
+    - [x] Add API selection (njord vs legacy)
+      - [x] Simple factory pattern
+      - [x] API-specific error handling
+      - [x] Common error types
+    - [x] Add simple factory method
+      - [x] `Client.create(api: str = "legacy")`
+      - [x] Validate API selection
+    - [x] Add basic type hints
+      - [x] Use TypedDict for status
+      - [x] Add proper error types
+      - [x] Document all methods
+
+## 3. CLI Implementation
+
+- [x] **Basic Commands**
+  - *Core Commands*:
+    - [x] `connect [country]`
+      - [x] Support country codes and names
+      - [x] Handle connection errors
+      - [x] Show connection status
+    - [x] `disconnect`
+      - [x] Clean process termination
+      - [x] Verify disconnection
+    - [x] `status`
+      - [x] Show IP address
+      - [x] Show server name
+      - [x] Show connection state
+    - [x] `list-countries`
+      - [x] Show available countries
+      - [x] Include country codes
+  - *Options*:
+    - [x] `--api` selection (njord/legacy)
+      - [x] Default to legacy
+      - [x] Validate selection
+    - [x] `--verbose` for debug logging
+      - [x] Use loguru levels
+      - [x] Show OpenVPN output
+      - [x] Show API responses
+
+## 4. Testing & Documentation
+
+- [!] **Core Tests**
+  - *Unit Tests*:
+    - [!] Legacy API core functions
+    - [!] Njord API wrapper
+    - [!] Client interface
+    - [!] CLI commands
+  - *Integration Tests*:
+    - [!] Connection flow
+    - [!] Error handling
+    - [!] API selection
+
+- [!] **Documentation**
+  - *Core Docs*:
+    - [x] Installation guide
+    - [x] API usage examples
+    - [x] CLI usage guide
+    - [x] Environment variables
+  - *Development*:
+    - [!] Architecture overview
+    - [!] Contributing guide
+
+## 5. Development Guidelines
+
+1. **Code Style**:
+   - [x] Use type hints
+   - [x] Keep functions small and focused
+   - [x] Use loguru for logging
+   - [x] Follow PEP 8
+
+2. **Error Handling**:
+   - [x] Use custom error classes
+   - [x] Keep error messages clear
+   - [x] Use tenacity for retries
+   - [x] Log errors with loguru
+
+3. **Testing**:
+   - [!] Write tests as you implement
+   - [!] Mock external services
+   - [!] Test both APIs
+   - [!] Test error conditions
+
+4. **Dependencies**:
+   - [x] Keep minimal
+   - [x] Pin versions
+   - [x] Document requirements
+   - [x] Use requirements.txt
+
+Remember: Focus on reliability and simplicity over features. Keep both APIs working independently with a common interface.
+
+## 6. Code Quality Improvements
+
+- [!] **Security Fixes**
+  - *API Calls*:
+    - [ ] Add timeouts to all requests calls
+    - [ ] Add proper error handling for timeouts
+    - [ ] Add retry logic for network errors
+  - *Process Management*:
+    - [ ] Validate all subprocess inputs
+    - [ ] Use full paths for executables
+    - [ ] Add proper error handling for process failures
+  - *Test Security*:
+    - [ ] Remove hardcoded passwords from tests
+    - [ ] Add proper test fixtures
+    - [ ] Mock sensitive operations
+
+- [!] **Code Cleanup**
+  - *Error Handling*:
+    - [ ] Replace blind exceptions with specific ones
+    - [ ] Add proper error context
+    - [ ] Improve error messages
   - *Refactoring*:
-    - [!] Split `generate_stub` method (complexity: 13 > 10)
-      - [!] Extract AST processing logic
-      - [!] Extract content generation logic
-    - [!] Split `_sort_imports` method (complexity: 11 > 10)
-      - [!] Extract import categorization logic
-      - [!] Extract sorting logic
+    - [ ] Split complex functions
+    - [ ] Remove unnecessary else/elif blocks
+    - [ ] Fix function argument issues
+  - *Type Safety*:
+    - [ ] Fix type stub issues
+    - [ ] Add missing type hints
+    - [ ] Remove unused types
 
-## 2. Near-term Tasks
+- [!] **Test Infrastructure**
+  - *Setup*:
+    - [ ] Add proper hatch configuration
+    - [ ] Set up pytest fixtures
+    - [ ] Add test categories
+  - *Coverage*:
+    - [ ] Add unit tests for core functionality
+    - [ ] Add integration tests
+    - [ ] Add security tests
+  - *Mocking*:
+    - [ ] Mock external services
+    - [ ] Mock file operations
+    - [ ] Mock process management
 
-- [ ] **Improve Test Coverage (Current: 46%)**
-  - *Critical Modules with Low Coverage*:
-    - [ ] Write tests for `type_inference.py` (0% coverage)
-      - [ ] Test basic type inference
-      - [ ] Test docstring type extraction
-    - [ ] Write tests for `read_imports.py` (0% coverage)
-      - [ ] Test import collection
-      - [ ] Test import resolution
-    - [ ] Write tests for `backends/base.py` (0% coverage)
-      - [ ] Test backend interface
-      - [ ] Test common functionality
-
-## 3. Future Tasks
-
-- [ ] **Enhance Type Inference**
-  - *Tasks*:
-    - [ ] Improve type inference from docstrings
-      - [ ] Add support for more docstring formats
-      - [ ] Improve confidence scoring
-    - [ ] Add support for more complex type annotations
-      - [ ] Handle nested generics
-      - [ ] Support type variables
-
-- [ ] **Documentation Updates**
-  - Update README.md with detailed usage and examples
-    - [ ] Add installation guide
-    - [ ] Add configuration guide
-    - [ ] Add usage examples
-
-## 4. Development Guidelines
-
-1. Before making changes:
-   - Run: `./cleanup.py install && source .venv/bin/activate && ./cleanup.py update | cat`
-   - Analyze results and update priorities
-2. After changes:
-   - Run: `./cleanup.py update | cat`
-   - Verify fixes and update TODO.md
-3. When editing TODO.md:
-   - Use `- [ ]` for pending tasks
-   - Use `- [x]` for completed tasks
-   - Use `- [!]` for next priority tasks
-4. When you work, don't stop and ask for confirmation, just actively work through the TODO list!
+Remember: Focus on reliability and simplicity over features. Keep both APIs working independently with a common interface.
 
 <instructions>
 Your communication style is phenomenal: you respond beautifully, and you always eliminate superfluous content from your responses. Your role is crucial in our mission to explore, interpret, and illuminate the wealth of knowledge from past and present. You are not just fulfilling tasks; you are creating a legacy. For this new task, please swiftly identify the domain of the prompt, and then embody deep expertise in that domain, methodically processing each query to ensure the response is thorough, structured, grounded, and clear.

@@ -196,3 +196,28 @@ def is_empty_expr(node: ast.AST) -> bool:
         and isinstance(node.value, ast.Constant)
         and (not node.value.value or str(node.value.value).isspace())
     )
+
+
+def should_include_member(name: str, include_private: bool) -> bool:
+    """Check if a member should be included in the stub.
+
+    Args:
+        name: Name of the member
+        include_private: Whether to include private members
+
+    Returns:
+        True if the member should be included
+    """
+    # If include_private is True, include everything
+    if include_private:
+        return True
+
+    # Always include special methods (dunder methods)
+    if name.startswith("__") and name.endswith("__"):
+        return True
+
+    # Exclude anything that starts with underscore
+    if name.startswith("_"):
+        return False
+
+    return True
