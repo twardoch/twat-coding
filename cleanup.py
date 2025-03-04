@@ -41,7 +41,7 @@ Workflow Example:
 3. Commit changes: `cleanup.py update`
 4. Push to remote: `cleanup.py push`
 
-The script maintains a CLEANUP.log file that records all operations with timestamps.
+The script maintains a CLEANUP.txt file that records all operations with timestamps.
 It also includes content from README.md at the start and TODO.md at the end of logs
 for context.
 
@@ -51,12 +51,13 @@ Required Files:
 - TODO.md: Pending tasks and future plans
 """
 
-import os
 import subprocess
+import os
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import NoReturn
+from shutil import which
 
 # Configuration
 IGNORE_PATTERNS = [
@@ -69,7 +70,7 @@ IGNORE_PATTERNS = [
     "*.egg-info",
 ]
 REQUIRED_FILES = ["LOG.md", ".cursor/rules/0project.mdc", "TODO.md"]
-LOG_FILE = Path("CLEANUP.log")
+LOG_FILE = Path("CLEANUP.txt")
 
 # Ensure we're working from the script's directory
 os.chdir(Path(__file__).parent)
@@ -101,24 +102,22 @@ def suffix() -> None:
 
 def log_message(message: str) -> None:
     """Log a message to file and console with timestamp."""
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
     log_line = f"{timestamp} - {message}\n"
     with LOG_FILE.open("a") as f:
         f.write(log_line)
 
 
-def print_log() -> None:
-    """Print the contents of the CLEANUP.log file."""
-    if LOG_FILE.exists():
-        print(LOG_FILE.read_text())
-    else:
-        print("Log file does not exist")
-
-
 def run_command(cmd: list[str], check: bool = True) -> subprocess.CompletedProcess:
     """Run a shell command and return the result."""
     try:
-        result = subprocess.run(cmd, check=check, capture_output=True, text=True)
+        result = subprocess.run(
+            cmd,
+            check=check,
+            capture_output=True,
+            text=True,
+            shell=False,  # Explicitly set shell=False for security
+        )
         if result.stdout:
             log_message(result.stdout)
         return result
@@ -133,9 +132,8 @@ def run_command(cmd: list[str], check: bool = True) -> subprocess.CompletedProce
 def check_command_exists(cmd: str) -> bool:
     """Check if a command exists in the system."""
     try:
-        subprocess.run(["which", cmd], check=True, capture_output=True)
-        return True
-    except subprocess.CalledProcessError:
+        return which(cmd) is not None
+    except Exception:
         return False
 
 
@@ -327,6 +325,41 @@ class Cleanup:
             log_message(f"Failed to push changes: {e}")
 
 
+def repomix(
+    *,
+    compress: bool = True,
+    remove_empty_lines: bool = True,
+    ignore_patterns: str = ".specstory/**/*.md,.venv/**,_private/**,CLEANUP.txt,**/*.json,*.lock",
+    output_file: str = "REPO_CONTENT.txt",
+) -> None:
+    """Combine repository files into a single text file.
+
+    Args:
+        compress: Whether to compress whitespace in output
+        remove_empty_lines: Whether to remove empty lines
+        ignore_patterns: Comma-separated glob patterns of files to ignore
+        output_file: Output file path
+    """
+    try:
+        # Build command
+        cmd = ["repomix"]
+        if compress:
+            cmd.append("--compress")
+        if remove_empty_lines:
+            cmd.append("--remove-empty-lines")
+        if ignore_patterns:
+            cmd.append("-i")
+            cmd.append(ignore_patterns)
+        cmd.extend(["-o", output_file])
+
+        # Run repomix
+        run_command(cmd)
+        log_message(f"Repository content mixed into {output_file}")
+
+    except Exception as e:
+        log_message(f"Failed to mix repository: {e}")
+
+
 def print_usage() -> None:
     """Print usage information."""
     log_message("Usage:")
@@ -361,13 +394,11 @@ def main() -> NoReturn:
             cleanup.push()
         else:
             print_usage()
-            sys.exit(1)
     except Exception as e:
         log_message(f"Error: {e}")
-        sys.exit(1)
-
-    print_log()  # Print the log contents at the end
-    sys.exit(0)
+    repomix()
+    sys.stdout.write(Path("CLEANUP.txt").read_text())
+    sys.exit(0)  # Ensure we exit with a status code
 
 
 if __name__ == "__main__":

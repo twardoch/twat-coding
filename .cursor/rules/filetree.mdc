@@ -2,20 +2,19 @@
 description: File tree of the project
 globs: 
 ---
-[ 960]  .
-├── [  64]  .benchmarks
+[1.0K]  .
 ├── [  96]  .cursor
 │   └── [ 224]  rules
 │       ├── [2.2K]  0project.mdc
 │       ├── [ 632]  cleanup.mdc
-│       ├── [4.2K]  filetree.mdc
+│       ├── [4.3K]  filetree.mdc
 │       └── [2.0K]  quality.mdc
 ├── [  96]  .github
 │   └── [ 128]  workflows
 │       ├── [2.7K]  push.yml
 │       └── [1.4K]  release.yml
 ├── [3.5K]  .gitignore
-├── [ 532]  .pre-commit-config.yaml
+├── [ 470]  .pre-commit-config.yaml
 ├── [  96]  .specstory
 │   └── [ 672]  history
 │       ├── [2.0K]  .what-is-this.md
@@ -23,7 +22,7 @@ globs:
 │       ├── [ 97K]  cleanup-script-execution-and-todo-management-1.md
 │       ├── [ 85K]  cleanup-script-execution-and-todo-management-2.md
 │       ├── [322K]  cleanup-script-execution-and-todo-management.md
-│       ├── [241K]  code-cleanup-and-todo-update-process.md
+│       ├── [319K]  code-cleanup-and-todo-update-process.md
 │       ├── [333K]  command-execution-and-todo-update.md
 │       ├── [ 248]  detailed-overview-of-python-stubbing-tools.md
 │       ├── [ 25K]  integrating-importance-analysis-modules.md
@@ -37,22 +36,28 @@ globs:
 │       ├── [ 56K]  task-management-from-todo-md.md
 │       ├── [4.9K]  task-organization-and-cleanup-process.md
 │       └── [165K]  todo-list-cleanup-and-review.md
+├── [2.4K]  CLEANUP.txt
 ├── [1.0K]  LICENSE
 ├── [ 173]  MANIFEST.in
 ├── [1.4K]  README.md
-├── [4.5K]  TODO.md
-├── [ 12K]  cleanup.py
+├── [7.4K]  TODO.md
+├── [   7]  VERSION.txt
+├── [ 13K]  cleanup.py
 ├── [  96]  cursor
 │   └── [  96]  rules
 │       └── [  31]  0project.mdc
-├── [  96]  dist
+├── [ 160]  dev
+│   ├── [ 94K]  RESEARCH.md
+│   ├── [5.7K]  TODO.md
+│   └── [ 84K]  python-minifier.md
+├── [ 128]  dist
 │   └── [   1]  .gitkeep
 ├── [ 305]  mypy.ini
 ├── [ 426]  package.toml
-├── [4.8K]  pyproject.toml
+├── [5.3K]  pyproject.toml
 ├── [223K]  repomix-output.txt
 ├── [ 128]  src
-│   └── [ 256]  twat_coding
+│   └── [ 288]  twat_coding
 │       ├── [ 144]  __init__.py
 │       ├── [ 480]  pystubnik
 │       │   ├── [5.3K]  README.md
@@ -62,7 +67,7 @@ globs:
 │       │   │   ├── [ 12K]  ast_backend.py
 │       │   │   ├── [2.4K]  base.py
 │       │   │   └── [ 982]  mypy_backend.py
-│       │   ├── [5.9K]  cli.py
+│       │   ├── [5.8K]  cli.py
 │       │   ├── [8.8K]  config.py
 │       │   ├── [ 256]  core
 │       │   │   ├── [6.1K]  config.py
@@ -84,11 +89,11 @@ globs:
 │       │   │   ├── [ 10K]  docstring.py
 │       │   │   └── [9.7K]  type_system.py
 │       │   └── [ 192]  utils
-│       │       ├── [5.6K]  ast_utils.py
+│       │       ├── [6.2K]  ast_utils.py
 │       │       ├── [1.8K]  display.py
 │       │       └── [5.2K]  memory.py
 │       └── [1.6K]  twat_coding.py
 └── [ 128]  tests
-    └── [ 11K]  test_package.py
+    └── [ 12K]  test_package.py
 
-20 directories, 68 files
+20 directories, 73 files
