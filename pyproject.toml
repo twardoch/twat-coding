@@ -1,77 +1,140 @@
-# this_file: pyproject.toml
-# this_project: twat-coding
-
+# this_file: repos/twat_coding/pyproject.toml
+#==============================================================================
+# TWAT_CODING PACKAGE CONFIGURATION
+# This pyproject.toml defines the package metadata, dependencies, build system,
+# and development environment for the twat-coding package.
+#==============================================================================
+#------------------------------------------------------------------------------
+# PROJECT METADATA
+# Core package information used by PyPI and package managers.
+#------------------------------------------------------------------------------
 [project]
-name = "twat_coding"
-dynamic = ["version"]
-description = "A Python package for generating type stubs"
-authors = [
-    { name = "Adam Twardoch", email = "adam@twardoch.com" }
-]
-dependencies = [
-    "pydantic>=2.6.1",
-    "pydantic-settings>=2.1.0",
-    "loguru>=0.7.2",
-    "rich>=13.7.0",
-    "fire>=0.5.0",
-    "click>=8.1.7",
-    "psutil>=5.9.8",
-    "memory-profiler>=0.61.0",
-    "docstring-parser>=0.15",
-    "mypy>=1.8.0",
-    "black>=24.1.1",
-    "isort>=5.13.2",
-    # File importance analysis dependencies
-    "networkx>=3.2.1",     # For import graph analysis
-    "radon>=6.0.1",       # For code complexity metrics
-    "coverage>=7.4.1",    # For test coverage analysis
-    "pydocstyle>=6.3.0", # For docstring quality checks
-    "importlab>=0.8",    # For import graph building
-    "toml>=0.10.2",      # For pyproject.toml parsing
-    "types-toml>=0.10.8.7",    # Type stubs for toml
-    "mypy-extensions>=1.0.0",  # Additional type system features
-]
-requires-python = ">=3.12"
-readme = "README.md"
-license = { text = "Apache-2.0" }
+name = "twat-coding" # Package name on PyPI
+dynamic = ["version"] # Fields set dynamically at build time
+description = "A Python package for generating type stubs" # Short description
+readme = "README.md" # Path to README file
+requires-python = ">=3.12" # Minimum Python version
+license = { text = "Apache-2.0" } # License type
 keywords = [
-    "twat",
-    "coding",
+    "twat", # Main package family
+    "coding", # Package focus
     "development"
+    # Target audience
 ]
+# PyPI classifiers for package categorization
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 4 - Beta", # Package maturity level
     "Programming Language :: Python",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
+    "Operating System :: OS Independent",
+    "License :: OSI Approved :: Apache Software License",
+    "Intended Audience :: Developers",
 ]
 
+# Author information
+[[project.authors]]
+name = "Adam Twardoch"
+email = "adam@twardoch.com"
+# Core dependencies
+dependencies = [
+    "pydantic>=2.6.1", # Data validation
+    "pydantic-settings>=2.1.0", # Settings management
+    "loguru>=0.7.2", # Logging
+    "rich>=13.7.0", # Terminal formatting
+    "fire>=0.5.0", # CLI framework
+    "click>=8.1.7", # CLI utilities
+    "psutil>=5.9.8", # System monitoring
+    "memory-profiler>=0.61.0", # Memory profiling
+    "docstring-parser>=0.15", # Parse docstrings
+    "mypy>=1.8.0", # Type checking
+    "black>=24.1.1", # Code formatting
+    "isort>=5.13.2", # Import sorting
+    # File importance analysis dependencies
+    "networkx>=3.2.1", # Import graph analysis
+    "radon>=6.0.1", # Code complexity metrics
+    "coverage>=7.4.1", # Test coverage analysis
+    "pydocstyle>=6.3.0", # Docstring quality checks
+    "importlab>=0.8", # Import graph building
+    "toml>=0.10.2", # TOML parsing
+    "types-toml>=0.10.8.7", # TOML type stubs
+    "mypy-extensions>=1.0.0", # Type system features
+
+]
+
+# Project URLs
+[project.urls]
+Homepage = "https://github.com/twardoch/twat-coding"
+Documentation = "https://github.com/twardoch/twat-coding#readme"
+Issues = "https://github.com/twardoch/twat-coding/issues"
+Source = "https://github.com/twardoch/twat-coding"
+
+#------------------------------------------------------------------------------
+# OPTIONAL DEPENDENCIES
+# Additional dependencies for development, testing and documentation.
+#------------------------------------------------------------------------------
 [project.optional-dependencies]
 test = [
+    "pytest>=8.0.0", # Testing framework
+    "pytest-cov>=4.1.0", # Coverage reporting
+    "pytest-asyncio>=0.23.5", # Async test support
+    "pytest-benchmark>=4.0.0", # Benchmarking
+    "pytest-golden>=0.2.2", # Golden test files
+    "pytest-memray>=1.5.0", # Memory profiling
+
+]
+dev = [
+    "black>=24.1.1", # Code formatting
+    "ruff>=0.2.1", # Fast linting
+    "mypy>=1.8.0", # Type checking
+    "pre-commit>=3.6.0", # Git hooks
+    "python-semantic-release>=8.7.0", # Version management
+    "vulture>=2.10", # Dead code detection
+
+]
+docs = [
+    "sphinx>=7.2.6", # Documentation generator
+    "sphinx-rtd-theme>=2.0.0", # Documentation theme
+    "sphinx-autodoc-typehints>=2.0.0", # Type hints in docs
+    "myst-parser>=3.0.0", # Markdown support
+
+]
+# All optional dependencies combined
+all = [
+    "black>=24.1.1",
+    "ruff>=0.2.1",
+    "mypy>=1.8.0",
+    "pre-commit>=3.6.0",
+    "python-semantic-release>=8.7.0",
+    "vulture>=2.10",
     "pytest>=8.0.0",
     "pytest-cov>=4.1.0",
     "pytest-asyncio>=0.23.5",
     "pytest-benchmark>=4.0.0",
     "pytest-golden>=0.2.2",
     "pytest-memray>=1.5.0",
-]
-dev = [
-    "black>=24.1.1",
-    "ruff>=0.2.1",
-    "mypy>=1.8.0",
-    "pre-commit>=3.6.0",
-    "python-semantic-release>=8.7.0",
-    "vulture>=2.10",  # Added vulture dependency
-
+    "sphinx>=7.2.6",
+    "sphinx-rtd-theme>=2.0.0",
+    "sphinx-autodoc-typehints>=2.0.0",
+    "myst-parser>=3.0.0"
 ]
 
+#------------------------------------------------------------------------------
+# BUILD SYSTEM CONFIGURATION
+# Defines the tools required to build the package.
+#------------------------------------------------------------------------------
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+#------------------------------------------------------------------------------
+# TOOL CONFIGURATIONS
+# Settings for various development tools.
+#------------------------------------------------------------------------------
+# Ruff configuration
 [tool.ruff]
 target-version = "py312"
 line-length = 88
@@ -135,17 +198,36 @@ select = [
     "W",
     "YTT",
 ]
-ignore = ["ARG001", "COM812", "D203", "D213", "E501", "I001", "RUF001", "PLR2004", "EXE003", "ISC001"]
+ignore = [
+    "ARG001",
+    "COM812",
+    "D203",
+    "D213",
+    "E501",
+    "I001",
+    "RUF001",
+    "PLR2004",
+    "EXE003",
+    "ISC001"
+]
 
 [tool.ruff.lint.isort]
 known-first-party = ["twat_coding"]
 combine-as-imports = true
 
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*" = ["PLR2004", "S101", "TID252"]
+
+# Black configuration
 [tool.black]
 line-length = 88
 target-version = ["py312"]
 include = '\.pyi?$'
 
+# MyPy configuration
 [tool.mypy]
 python_version = "3.12"
 warn_return_any = true
@@ -160,20 +242,21 @@ warn_unused_ignores = true
 warn_no_return = true
 warn_unreachable = true
 
+# Pytest configuration
 [tool.pytest.ini_options]
 minversion = "8.0"
 addopts = "-ra -q --cov=twat_coding"
 testpaths = ["tests"]
 
+# CLI entry points
 [project.scripts]
 twat-coding = "twat_coding.pystubnik.cli:main"
 
-[project.urls]
-Homepage = "https://github.com/twardoch/twat-coding"
-Documentation = "https://github.com/twardoch/twat-coding#readme"
-Issues = "https://github.com/twardoch/twat-coding/issues"
-Source = "https://github.com/twardoch/twat-coding"
+# Plugin entry points
+[project.entry-points."twat.plugins"]
+coding = "twat_coding"
 
+# Coverage configuration
 [tool.coverage.paths]
 twat_coding = ["src/twat_coding", "*/twat-coding/src/twat_coding"]
 tests = ["tests", "*/twat-coding/tests"]
@@ -188,56 +271,47 @@ exclude_lines = [
     "if TYPE_CHECKING:",
 ]
 ignore_errors = true
-omit = [
-    "tests/*",
-    "setup.py",
-    "src/twat_coding/__about__.py",
-]
+omit = ["tests/*", "setup.py", "src/twat_coding/__about__.py"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/twat_coding"]
-artifacts = [
-    "src/twat_coding/py.typed"
-]
+artifacts = ["src/twat_coding/py.typed"]
 
 [tool.hatch.envs.default]
-dependencies = [
-    "pytest>=8.0.0",
-    "pytest-cov>=4.1.0",
-]
+dependencies = ["pytest>=8.0.0", "pytest-cov>=4.1.0"]
 
 [tool.hatch.envs.default.scripts]
 test = "pytest {args:tests}"
 test-cov = "pytest --cov {args:tests}"
 cov-report = ["- coverage combine", "coverage report"]
 cov = ["test-cov", "cov-report"]
-lint = ["ruff check src/twat_coding tests", "ruff format --respect-gitignore src/twat_coding tests"]
-fix = ["ruff check  --fix --unsafe-fixes src/twat_coding tests", "ruff format --respect-gitignore src/twat_coding tests"]
+lint = [
+    "ruff check src/twat_coding tests",
+    "ruff format --respect-gitignore src/twat_coding tests"
+]
+fix = [
+    "ruff check  --fix --unsafe-fixes src/twat_coding tests",
+    "ruff format --respect-gitignore src/twat_coding tests"
+]
 
 [tool.hatch.envs.lint]
-dependencies = [
-    "black>=24.1.1",
-    "mypy>=1.8.0",
-    "ruff>=0.2.1",
-]
+dependencies = ["black>=24.1.1", "mypy>=1.8.0", "ruff>=0.2.1"]
 
 [tool.hatch.envs.lint.scripts]
 typing = "mypy --install-types --non-interactive {args:src/twat_coding tests}"
 style = ["ruff check {args:.}", "ruff format --check {args:.}", "vulture src"]
-fmt = ["ruff format --respect-gitignore {args:.}", "ruff check --fix {args:.}", "vulture src"]
+fmt = [
+    "ruff format --respect-gitignore {args:.}",
+    "ruff check --fix {args:.}",
+    "vulture src"
+]
 all = ["style", "typing"]
 
 [tool.hatch.envs.test]
-dependencies = [
-    "pytest>=8.0.0",
-    "pytest-cov>=4.1.0",
-]
+dependencies = ["pytest>=8.0.0", "pytest-cov>=4.1.0"]
 
 [tool.hatch.version]
 path = "src/twat_coding/__version__.py"
 
 [tool.pytest-benchmark]
 warmup = true
-
-[project.entry-points."twat.plugins"]
-coding = "twat_coding" 
