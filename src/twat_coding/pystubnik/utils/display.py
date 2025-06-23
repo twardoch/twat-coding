@@ -1,4 +1,3 @@
-#!/usr/bin/env -S uv run
 """Display utilities for file trees and progress indicators."""
 
 from pathlib import Path
@@ -15,6 +14,7 @@ def print_file_tree(paths: list[Path]) -> None:
 
     Args:
         paths: List of paths to display
+
     """
     tree: dict[str, Any] = {}
     for path in sorted(paths):
@@ -31,6 +31,7 @@ def add_to_tree(tree: dict[str, Any], components: list[str] | tuple[str, ...]) -
     Args:
         tree: Tree dictionary to update
         components: Path components
+
     """
     current = tree
     for component in components:
@@ -46,6 +47,7 @@ def build_rich_tree(tree: Tree, data: dict[str, Any], prefix: str = "") -> None:
         tree: Rich Tree to update
         data: Tree dictionary
         prefix: Current path prefix
+
     """
     for name, subtree in sorted(data.items()):
         icon = "📁" if subtree else "📄"
@@ -61,6 +63,7 @@ def print_progress(message: str, current: int, total: int) -> None:
         message: Progress message
         current: Current progress value
         total: Total progress value
+
     """
     percentage = (current / total) * 100 if total > 0 else 0
     console.print(f"{message}: [{current}/{total}] {percentage:.1f}%")

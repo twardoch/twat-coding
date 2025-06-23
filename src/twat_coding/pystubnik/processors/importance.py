@@ -1,4 +1,3 @@
-#!/usr/bin/env -S uv run
 """Importance scoring for symbols and code elements."""
 
 import ast
@@ -8,10 +7,13 @@ from typing import Any
 
 from loguru import logger
 
-from ..core.config import ImportanceLevel
-from ..core.types import StubResult
-from . import Processor
-from .file_importance import FileImportanceConfig, prioritize_files
+from twat_coding.pystubnik.core.config import ImportanceLevel
+from twat_coding.pystubnik.core.types import StubResult
+from twat_coding.pystubnik.processors import Processor
+from twat_coding.pystubnik.processors.file_importance import (
+    FileImportanceConfig,
+    prioritize_files,
+)
 
 
 @dataclass
@@ -45,6 +47,7 @@ class ImportanceProcessor(Processor):
 
         Args:
             config: Configuration for importance scoring
+
         """
         self.config = config or ImportanceConfig()
         self._file_scores: dict[str, float] = {}
@@ -62,6 +65,7 @@ class ImportanceProcessor(Processor):
 
         Returns:
             The processed stub result with importance scores
+
         """
         try:
             # Calculate file-level importance if needed
@@ -127,17 +131,17 @@ class ImportanceProcessor(Processor):
 
         Returns:
             String representation of importance level
+
         """
         if score >= ImportanceLevel.CRITICAL.value:
             return "CRITICAL"
-        elif score >= ImportanceLevel.HIGH.value:
+        if score >= ImportanceLevel.HIGH.value:
             return "HIGH"
-        elif score >= ImportanceLevel.NORMAL.value:
+        if score >= ImportanceLevel.NORMAL.value:
             return "NORMAL"
-        elif score >= ImportanceLevel.LOW.value:
+        if score >= ImportanceLevel.LOW.value:
             return "LOW"
-        else:
-            return "IGNORE"
+        return "IGNORE"
 
     def _calculate_pattern_score(self, name: str) -> float:
         """Calculate score based on importance patterns."""
@@ -191,6 +195,7 @@ class ImportanceProcessor(Processor):
 
         Returns:
             Importance score between 0 and 1
+
         """
         try:
             # Calculate component scores
@@ -239,6 +244,7 @@ class ImportanceProcessor(Processor):
 
         Returns:
             True if the symbol should be included
+
         """
         if score is None:
             score = self.calculate_importance(

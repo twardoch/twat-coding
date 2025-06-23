@@ -1,4 +1,3 @@
-#!/usr/bin/env -S uv run
 """Error handling system for stub generation."""
 
 from enum import Enum
@@ -59,6 +58,7 @@ class StubGenerationError(Exception):
             details: Additional error details
             source: Source code or file where error occurred
             line_number: Line number where error occurred
+
         """
         self.code = ErrorCode(code) if isinstance(code, str) else code
         self.details = details or {}
@@ -98,6 +98,7 @@ class ASTError(StubGenerationError):
             source: Source code or file
             line_number: Line number
             node_type: Type of AST node where error occurred
+
         """
         if node_type:
             details = details or {}
@@ -127,6 +128,7 @@ class MyPyError(StubGenerationError):
             source: Source code or file
             line_number: Line number
             mypy_error_code: Original MyPy error code
+
         """
         if mypy_error_code:
             details = details or {}
@@ -154,6 +156,7 @@ class ConfigError(StubGenerationError):
             details: Additional details
             source: Configuration file path
             config_key: Key in configuration that caused error
+
         """
         if config_key:
             details = details or {}

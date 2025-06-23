@@ -1,20 +1,22 @@
 """Test package functionality."""
 
 from pathlib import Path
+from inspect import signature  # Added import
 
 import pytest
 from twat_coding.pystubnik.backends.ast_backend import ASTBackend
 from twat_coding.pystubnik.backends.mypy_backend import MypyBackend
 from twat_coding.pystubnik.config import StubConfig
-from twat_coding.pystubnik.core.config import (Backend, PathConfig,
-                                               StubGenConfig)
+from twat_coding.pystubnik.core.config import Backend, PathConfig, StubGenConfig
 from twat_coding.pystubnik.core.conversion import convert_to_stub_gen_config
+from twat_coding.pystubnik.core.shared_types import TruncationConfig # Added
 from twat_coding.pystubnik.processors.stub_generation import StubGenerator
 from twat_coding.pystubnik.types.docstring import DocstringTypeExtractor
 from twat_coding.pystubnik.types.type_system import TypeRegistry
+from twat_coding.pystubnik.utils.ast_utils import truncate_literal # Added
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio  # type: ignore[misc]
 async def test_ast_backend(tmp_path: Path) -> None:
     """Test AST stub generation."""
     test_file = tmp_path / "test.py"
@@ -30,7 +32,7 @@ def hello(name: str) -> str:
     assert "Important function" in result.stub_content
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio  # type: ignore[misc]
 async def test_docstring_preservation(tmp_path: Path) -> None:
     """Test docstring handling based on importance."""
     test_file = tmp_path / "important.py"
@@ -49,7 +51,7 @@ def minor_function():
     assert "This is a very important function" in result.stub_content
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio  # type: ignore[misc]
 async def test_type_hints(tmp_path: Path) -> None:
     """Test type hint preservation."""
     test_file = tmp_path / "types.py"
@@ -74,6 +76,7 @@ def process_data(items: List[str], config: Optional[Dict[str, int]] = None) -> b
     assert "->bool" in result_no_spaces
 
 
+# This test doesn't use asyncio, so no ignore needed here.
 def test_config_conversion() -> None:
     """Test conversion between StubConfig and StubGenConfig."""
     # Create a StubConfig with various settings
@@ -125,7 +128,7 @@ def test_config_conversion() -> None:
     assert stub_gen_config.processing.importance_patterns == {"critical": 1.0}
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio  # type: ignore[misc]
 async def test_backend_type_compatibility() -> None:
     """Test type compatibility between different backends."""
     test_file = Path("test.py")
@@ -143,7 +146,6 @@ async def test_backend_type_compatibility() -> None:
     assert hasattr(mypy_backend, "generate_stub")
 
     # Verify return type annotations
-    from inspect import signature
 
     ast_sig = signature(ast_backend.generate_stub)
     mypy_sig = signature(mypy_backend.generate_stub)
@@ -158,9 +160,8 @@ def test_docstring_type_extraction() -> None:
 
     # Test basic type parsing
     type_info = extractor._parse_type_string("str")
-    assert isinstance(type_info.annotation, type) and issubclass(
-        type_info.annotation, str
-    )
+    assert isinstance(type_info.annotation, type)
+    assert issubclass(type_info.annotation, str)
     assert type_info.confidence == 0.8
 
     # Test union type parsing
@@ -176,8 +177,50 @@ def test_docstring_type_extraction() -> None:
     # Test dict type parsing
     type_info = extractor._parse_type_string("Dict[str, int]")
     assert type_info.confidence == 0.7
+    # Test union type parsing
     assert "key_type" in type_info.metadata
     assert "value_type" in type_info.metadata
+
+    # Test malformed or ambiguous union type strings
+    import pytest
+
+    # Missing types
+    with pytest.raises(Exception):
+        extractor._parse_type_string("Union[]")
+
+    # Extra delimiters
+    with pytest.raises(Exception):
+        extractor._parse_type_string("Union[int,,str]")
+
+    # Invalid syntax: no closing bracket
+    with pytest.raises(Exception):
+        extractor._parse_type_string("Union[int, str")
+
+    # Invalid syntax: no opening bracket
+    with pytest.raises(Exception):
+        extractor._parse_type_string("Unionint, str]")
+
+    # Only delimiter, no types
+    with pytest.raises(Exception):
+        extractor._parse_type_string("Union[ , ]")
+
+    # Non-type in union
+    with pytest.raises(Exception):
+        extractor._parse_type_string("Union[int, 123]")
+
+    # Test more complex types
+    type_info = extractor._parse_type_string("List[Dict[str, Optional[int]]]")
+    assert type_info.confidence == 0.7
+    assert type_info.metadata["container"] == "List"
+    # Further inspection of nested types would require deeper mocking or more complex assertions
+
+    type_info = extractor._parse_type_string("Callable[[int, str], bool]")
+    # Assuming Callable is treated as Any or a custom object for now if not fully resolved
+    assert type_info.annotation is not None # Basic check
+
+    type_info = extractor._parse_type_string("ForwardRef('MyClass')")
+    # Check how forward references are handled (likely as unresolved or Any by current simple parser)
+    assert type_info.annotation is not None
 
 
 def test_stub_generation_basic(tmp_path: Path) -> None:
@@ -359,3 +402,82 @@ FLAG = True
     # Verify regular assignments are preserved with inferred types
     assert "CONSTANT: str = 'value'" in stub_content
     assert "FLAG: bool = True" in stub_content
+
+
+def test_truncate_literal_string() -> None:
+    """Test string truncation."""
+    import ast
+    config = TruncationConfig(max_string_length=5, truncation_marker="...")
+    node = ast.Constant(value="HelloWorld")
+    truncated_node = truncate_literal(node, config)
+    assert isinstance(truncated_node, ast.Constant)
+    assert truncated_node.value == "Hello..."
+
+    node_short = ast.Constant(value="Hi")
+    truncated_node_short = truncate_literal(node_short, config)
+    assert isinstance(truncated_node_short, ast.Constant)
+    assert truncated_node_short.value == "Hi"
+
+
+def test_truncate_literal_bytes() -> None:
+    """Test bytes truncation."""
+    import ast
+    config = TruncationConfig(max_string_length=5, truncation_marker="...") # marker not used for bytes
+    node = ast.Constant(value=b"HelloWorld")
+    truncated_node = truncate_literal(node, config)
+    assert isinstance(truncated_node, ast.Constant)
+    assert truncated_node.value == b"Hello..."
+
+    node_short = ast.Constant(value=b"Hi")
+    truncated_node_short = truncate_literal(node_short, config)
+    assert isinstance(truncated_node_short, ast.Constant)
+    assert truncated_node_short.value == b"Hi"
+
+
+def test_truncate_literal_list() -> None:
+    """Test list truncation."""
+    import ast
+    config = TruncationConfig(max_sequence_length=2, truncation_marker="...")
+    elements = [ast.Constant(value=i) for i in range(5)]
+    node = ast.List(elts=elements)
+    truncated_node = truncate_literal(node, config) # truncate_literal expects ast.AST
+
+    assert isinstance(truncated_node, ast.List)
+    assert len(truncated_node.elts) == 3
+    assert isinstance(truncated_node.elts[0], ast.Constant) and truncated_node.elts[0].value == 0
+    assert isinstance(truncated_node.elts[1], ast.Constant) and truncated_node.elts[1].value == 1
+    assert isinstance(truncated_node.elts[2], ast.Constant) and truncated_node.elts[2].value == "..."
+
+    short_elements = [ast.Constant(value=i) for i in range(2)]
+    node_short = ast.List(elts=short_elements)
+    truncated_node_short = truncate_literal(node_short, config)
+    assert isinstance(truncated_node_short, ast.List)
+    assert len(truncated_node_short.elts) == 2
+
+
+def test_truncate_literal_dict() -> None:
+    """Test dict truncation."""
+    import ast
+    config = TruncationConfig(max_sequence_length=1, truncation_marker="...")
+    keys = [ast.Constant(value=f"key{i}") for i in range(3)]
+    values = [ast.Constant(value=i) for i in range(3)]
+    node = ast.Dict(keys=keys, values=values)
+
+    # The truncate_literal function for dicts modifies the node in-place for elts > max_sequence_length
+    # and returns it.
+    truncated_node = truncate_literal(node, config)
+
+    assert isinstance(truncated_node, ast.Dict)
+    assert len(truncated_node.keys) == 2 # key0, "..."
+    assert isinstance(truncated_node.keys[0], ast.Constant) and truncated_node.keys[0].value == "key0"
+    assert isinstance(truncated_node.values[0], ast.Constant) and truncated_node.values[0].value == 0
+    assert isinstance(truncated_node.keys[1], ast.Constant) and truncated_node.keys[1].value == "..."
+    assert isinstance(truncated_node.values[1], ast.Constant) and truncated_node.values[1].value == "..."
+
+    # Test dict that doesn't need truncation
+    keys_short = [ast.Constant(value="key0")]
+    values_short = [ast.Constant(value=0)]
+    node_short = ast.Dict(keys=keys_short, values=values_short)
+    truncated_node_short = truncate_literal(node_short, config)
+    assert isinstance(truncated_node_short, ast.Dict)
+    assert len(truncated_node_short.keys) == 1

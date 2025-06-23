@@ -7,15 +7,15 @@ from docstring_parser import parse
 from docstring_parser.common import DocstringStyle
 from loguru import logger
 
-from ..core.types import (
+from twat_coding.pystubnik.core.types import (
     ClassInfo,
     FunctionInfo,
     ModuleInfo,
     StubResult,
 )
-from ..errors import StubGenerationError
-from ..types.type_system import TypeInfo
-from . import Processor
+from twat_coding.pystubnik.errors import StubGenerationError
+from twat_coding.pystubnik.types.type_system import TypeInfo
+from twat_coding.pystubnik.processors import Processor
 
 
 class TypeInferenceError(StubGenerationError):
@@ -52,6 +52,7 @@ class DocstringProcessor(Processor):
             style: Docstring style to use for parsing
             max_length: Maximum length for docstrings before truncation
             preserve_sections: List of section names to always preserve
+
         """
         self.style = DocstringStyle.GOOGLE
         if style == "numpy":
@@ -75,6 +76,7 @@ class DocstringProcessor(Processor):
 
         Returns:
             The processed stub result
+
         """
         logger.debug(f"Processing docstrings for {stub_result.source_path}")
 
@@ -107,6 +109,7 @@ class DocstringProcessor(Processor):
 
         Returns:
             The processed module info
+
         """
         logger.debug("Processing module docstring")
         # TODO: Implement module docstring processing
@@ -117,6 +120,7 @@ class DocstringProcessor(Processor):
 
         Args:
             function: The function info to process
+
         """
         if not function.docstring:
             return
@@ -148,6 +152,7 @@ class DocstringProcessor(Processor):
 
         Args:
             class_info: The class info to process
+
         """
         if not class_info.docstring:
             return

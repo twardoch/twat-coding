@@ -25,11 +25,11 @@ from radon.complexity import cc_visit
 T = TypeVar("T")
 
 
-def _cast_or_default(value: Any, default: T) -> T:
+def _cast_or_default[T](value: Any, default: T) -> T:
     """Cast a value to the type of the default or return the default if casting fails."""
     try:
         if isinstance(value, type(default)):
-            return cast(T, value)
+            return cast("T", value)
         return default
     except Exception:
         return default
@@ -50,6 +50,7 @@ def _check_optional_dependencies() -> dict[str, bool]:
 
     Returns:
         Dictionary mapping dependency names to their availability status
+
     """
     available = {
         "coverage": True,
@@ -59,15 +60,12 @@ def _check_optional_dependencies() -> dict[str, bool]:
 
     if not importlib.util.find_spec("coverage"):
         available["coverage"] = False
-        print(COVERAGE_MISSING)
 
     if not importlib.util.find_spec("pydocstyle"):
         available["pydocstyle"] = False
-        print(PYDOCSTYLE_MISSING)
 
     if not importlib.util.find_spec("radon"):
         available["radon"] = False
-        print(RADON_MISSING)
 
     return available
 
@@ -102,6 +100,7 @@ def find_py_files(package_dir: str, exclude_dirs: list[str] | None = None) -> li
 
     Returns:
         List of Python file paths
+
     """
     py_files = []
     exclude_dirs = exclude_dirs or []
@@ -166,6 +165,7 @@ def _parse_import_node(
 
     Returns:
         List of (source, target) tuples representing import edges
+
     """
     edges = []
     if isinstance(node, ast.Import):
@@ -191,6 +191,7 @@ def _parse_imports_from_file(file: str, py_files: list[str]) -> list[tuple[str, 
 
     Returns:
         List of (source, target) tuples representing import edges
+
     """
     edges = []
     try:
@@ -214,6 +215,7 @@ def build_import_graph(package_dir: str, py_files: list[str]) -> nx.DiGraph:
 
     Returns:
         A networkx DiGraph representing the import dependencies
+
     """
     # Create networkx graph
     G = nx.DiGraph()
@@ -243,8 +245,7 @@ def calculate_complexity(file_path: str) -> float:
             _cast_or_default(c.complexity, 0.0) for c in complexities
         )
         return total_complexity / len(complexities)
-    except Exception as e:
-        print(f"Warning: Failed to calculate complexity for {file_path}: {e}")
+    except Exception:
         return 0.0
 
 
@@ -257,6 +258,7 @@ def calculate_coverage(file_path: str, coverage_data: str | None) -> float:
 
     Returns:
         Coverage percentage between 0 and 100
+
     """
     if not AVAILABLE_DEPS["coverage"]:
         return 0.0
@@ -270,8 +272,7 @@ def calculate_coverage(file_path: str, coverage_data: str | None) -> float:
         total_lines = _cast_or_default(analysis.numbers.n_statements, 0)
         covered_lines = _cast_or_default(analysis.numbers.n_executed, 0)
         return (covered_lines / total_lines * 100) if total_lines > 0 else 0.0
-    except Exception as e:
-        print(f"Warning: Failed to calculate coverage for {file_path}: {e}")
+    except Exception:
         return 0.0
 
 
@@ -283,8 +284,7 @@ def calculate_doc_quality(file_path: str) -> float:
     try:
         violations = list(pydocstyle_check([file_path], ignore=["D100", "D101"]))
         return max(0.0, 1.0 - (len(violations) / 10))
-    except Exception as e:
-        print(f"Warning: Failed to assess documentation quality for {file_path}: {e}")
+    except Exception:
         return 0.0
 
 
@@ -304,6 +304,7 @@ def _calculate_centrality(
 
     Returns:
         Dictionary mapping files to their centrality scores
+
     """
     personalization_dict = {
         file: 1.0 if entry_points[file] else 0.0 for file in py_files
@@ -312,23 +313,19 @@ def _calculate_centrality(
     if centrality_measure == "pagerank":
         # If all values are 0, use uniform personalization
         if sum(personalization_dict.values()) == 0:
-            personalization_dict = {file: 1.0 for file in py_files}
+            personalization_dict = dict.fromkeys(py_files, 1.0)
         result = nx.pagerank(G, personalization=personalization_dict)
         return {k: float(v) for k, v in result.items()}
-    elif centrality_measure == "betweenness":
+    if centrality_measure == "betweenness":
         result = nx.betweenness_centrality(G)
         return {k: float(v) for k, v in result.items()}
-    elif centrality_measure == "eigenvector":
+    if centrality_measure == "eigenvector":
         try:
             result = nx.eigenvector_centrality(G, max_iter=500)
             return {k: float(v) for k, v in result.items()}
         except nx.PowerIterationFailedConvergence:
-            return {file: 0.0 for file in py_files}
+            return dict.fromkeys(py_files, 0.0)
     else:
-        print(
-            f"Warning: Unsupported centrality measure '{centrality_measure}'. "
-            "Using PageRank."
-        )
         result = nx.pagerank(G)
         return {k: float(v) for k, v in result.items()}
 
@@ -352,28 +349,14 @@ def _print_results(
         complexity_scores: Dict mapping files to their complexity scores
         coverage_scores: Dict mapping files to their coverage scores
         doc_scores: Dict mapping files to their documentation quality scores
-    """
-    header = (
-        f"{'File Path':<50} {'Composite':<10} {'Centrality':<10} "
-        f"{'Complexity':<10} {'Coverage':<10} {'Doc':<10} {'Entry':<6} {'Init'}"
-    )
-    print(header)
-    print("-" * len(header))
 
-    for file, score in sorted_files:
-        is_entry = "Yes" if entry_points.get(file, False) else "No"
-        is_init = "Yes" if os.path.basename(file) == "__init__.py" else "No"
-        rel_path = os.path.relpath(file, package_dir)
+    """
+    for file, _score in sorted_files:
+        "Yes" if entry_points.get(file, False) else "No"
+        "Yes" if os.path.basename(file) == "__init__.py" else "No"
+        os.path.relpath(file, package_dir)
 
         # Split long line into multiple lines for readability
-        print(
-            f"{rel_path:<50} {score:<10.3f} "
-            f"{centrality.get(file, 0):<10.3f} "
-            f"{complexity_scores.get(file, 0):<10.1f} "
-            f"{coverage_scores.get(file, 0):<10.1f} "
-            f"{doc_scores.get(file, 0):<10.2f} "
-            f"{is_entry:<6} {is_init}"
-        )
 
 
 def prioritize_files(
@@ -387,11 +370,11 @@ def prioritize_files(
 
     Returns:
         Dictionary mapping file paths to their composite importance scores
+
     """
     # Step 1: Collect .py files
     py_files = find_py_files(package_dir, config.exclude_dirs)
     if not py_files:
-        print("No Python files found in the package directory.")
         return {}
 
     # Step 2: Build import graph and identify entry points
@@ -449,12 +432,9 @@ def load_config(config_file: str | None) -> dict[str, Any]:
         try:
             with open(config_file) as f:
                 config = json.load(f)
-                return cast(dict[str, Any], config)
-        except Exception as e:
-            print(
-                "Warning: Failed to load config file "
-                f"'{config_file}': {e}. Using defaults."
-            )
+                return cast("dict[str, Any]", config)
+        except Exception:
+            pass
     return {}
 
 

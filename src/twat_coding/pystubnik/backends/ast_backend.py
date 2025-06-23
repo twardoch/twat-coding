@@ -1,4 +1,3 @@
-#!/usr/bin/env -S uv run
 """AST-based stub generation backend.
 
 This module implements stub generation using Python's ast module,
@@ -12,24 +11,22 @@ import weakref
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, ClassVar
+from typing import Any, ClassVar, TYPE_CHECKING
 
 from loguru import logger
 
-from ..config import StubConfig
-from ..core.config import (
-    PathConfig,
-    RuntimeConfig,
-    StubGenConfig,
-)
-from ..core.conversion import convert_to_stub_gen_config
-from ..core.types import StubResult
-from ..errors import ASTError, ErrorCode
-from ..processors import Processor
-from ..utils.ast_utils import attach_parents
-from ..utils.display import print_progress
-from ..utils.memory import MemoryMonitor
-from . import StubBackend
+from twat_coding.pystubnik.config import StubConfig
+from twat_coding.pystubnik.core.config import PathConfig, RuntimeConfig, StubGenConfig
+from twat_coding.pystubnik.core.conversion import convert_to_stub_gen_config
+from twat_coding.pystubnik.core.types import StubResult
+from twat_coding.pystubnik.errors import ASTError, ErrorCode
+from twat_coding.pystubnik.utils.ast_utils import attach_parents
+from twat_coding.pystubnik.utils.display import print_progress
+from twat_coding.pystubnik.utils.memory import MemoryMonitor
+from twat_coding.pystubnik.backends import StubBackend
+
+if TYPE_CHECKING:
+    from twat_coding.pystubnik.processors import Processor
 
 
 @dataclass
@@ -46,13 +43,14 @@ class SignatureExtractor(ast.NodeTransformer):
 
     def __init__(
         self, config: StubGenConfig, file_size: int = 0, importance_score: float = 1.0
-    ):
+    ) -> None:
         """Initialize the extractor.
 
         Args:
             config: Configuration for stub generation
             file_size: Size of the source file in bytes
             importance_score: Base importance score for the file
+
         """
         super().__init__()
         self.config = config
@@ -67,6 +65,7 @@ class SignatureExtractor(ast.NodeTransformer):
 
         Returns:
             List with only docstring preserved
+
         """
         if not body:
             return []
@@ -89,6 +88,7 @@ class SignatureExtractor(ast.NodeTransformer):
 
         Returns:
             Processed module node
+
         """
         # Keep imports and docstring
         new_body: list[ast.stmt] = []
@@ -118,6 +118,7 @@ class SignatureExtractor(ast.NodeTransformer):
 
         Returns:
             Processed function node
+
         """
         # Keep signature and docstring
         node.body = self._preserve_docstring(node.body) or [ast.Pass()]
@@ -131,6 +132,7 @@ class SignatureExtractor(ast.NodeTransformer):
 
         Returns:
             Processed class node
+
         """
         # Keep class signature, docstring, and method signatures
         node.body = [self.visit(stmt) for stmt in node.body]
@@ -150,6 +152,7 @@ class ASTBackend(StubBackend):
 
         Args:
             config: Configuration for stub generation
+
         """
         super().__init__()  # Object doesn't take any arguments
         self._config = config  # Store config for later use
@@ -191,6 +194,7 @@ class ASTBackend(StubBackend):
 
         Returns:
             Current configuration
+
         """
         if not hasattr(self, "_config"):
             return StubGenConfig(paths=PathConfig(), runtime=RuntimeConfig())
@@ -198,10 +202,10 @@ class ASTBackend(StubBackend):
         # Convert StubConfig to StubGenConfig if needed
         if isinstance(self._config, StubConfig):
             return convert_to_stub_gen_config(self._config)
-        elif isinstance(self._config, StubGenConfig):
+        if isinstance(self._config, StubGenConfig):
             return self._config
-        else:  # None
-            return StubGenConfig(paths=PathConfig(), runtime=RuntimeConfig())
+        # None
+        return StubGenConfig(paths=PathConfig(), runtime=RuntimeConfig())
 
     async def generate_stub(self, source_path: Path) -> StubResult:
         """Generate a stub for a Python source file.
@@ -211,6 +215,7 @@ class ASTBackend(StubBackend):
 
         Returns:
             Generated stub result
+
         """
         return await self._generate_stub_internal(source_path)
 
@@ -222,6 +227,7 @@ class ASTBackend(StubBackend):
 
         Returns:
             Generated stub result
+
         """
         try:
             # Read source file
@@ -294,6 +300,7 @@ class ASTBackend(StubBackend):
 
         Raises:
             ASTError: If directory processing fails
+
         """
         try:
             # Find all Python files matching patterns
@@ -339,6 +346,7 @@ class ASTBackend(StubBackend):
 
         Raises:
             StubGenerationError: If module processing fails
+
         """
         # TODO: Implement module processing
         raise NotImplementedError
@@ -354,6 +362,7 @@ class ASTBackend(StubBackend):
 
         Raises:
             StubGenerationError: If package processing fails
+
         """
         return await self.process_directory(package_path)
 
@@ -373,6 +382,7 @@ class ASTBackend(StubBackend):
 
         Returns:
             Result of the function
+
         """
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(self._executor, func, *args)

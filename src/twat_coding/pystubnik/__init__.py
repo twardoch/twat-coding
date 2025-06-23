@@ -1,10 +1,12 @@
-#!/usr/bin/env python3
 """Smart stub generation for Python code.
 
 This package provides tools for generating high-quality type stubs for Python code,
 with support for multiple backends and intelligent processing of imports,
 docstrings, and code importance.
 """
+
+import traceback  # Moved to top level
+import sys  # For stderr logging
 
 import asyncio
 from collections.abc import Mapping, Sequence
@@ -14,11 +16,11 @@ from typing import Literal, Protocol
 
 from loguru import logger
 
-from .backends import StubBackend
-from .backends.ast_backend import ASTBackend
-from .backends.mypy_backend import MypyBackend
-from .config import StubConfig
-from .core.config import (
+from twat_coding.pystubnik.backends import StubBackend
+from twat_coding.pystubnik.backends.ast_backend import ASTBackend
+from twat_coding.pystubnik.backends.mypy_backend import MypyBackend
+from twat_coding.pystubnik.config import StubConfig
+from twat_coding.pystubnik.core.config import (
     Backend,
     ImportanceLevel,
     PathConfig,
@@ -27,7 +29,7 @@ from .core.config import (
     StubGenConfig,
     TruncationConfig,
 )
-from .core.types import (
+from twat_coding.pystubnik.core.types import (
     ArgInfo,
     ClassInfo,
     FunctionInfo,
@@ -35,11 +37,20 @@ from .core.types import (
     PathLike,
     StubResult,
 )
-from .core.utils import setup_logging
-from .errors import ASTError, ConfigError, ErrorCode, MyPyError, StubGenerationError
-from .processors.docstring import DocstringProcessor
-from .processors.importance import ImportanceConfig, ImportanceProcessor
-from .processors.imports import ImportProcessor
+from twat_coding.pystubnik.core.utils import setup_logging
+from twat_coding.pystubnik.errors import (
+    ASTError,
+    ConfigError,
+    ErrorCode,
+    MyPyError,
+    StubGenerationError,
+)
+from twat_coding.pystubnik.processors.docstring import DocstringProcessor
+from twat_coding.pystubnik.processors.importance import (
+    ImportanceConfig,
+    ImportanceProcessor,
+)
+from twat_coding.pystubnik.processors.imports import ImportProcessor
 
 
 def _convert_to_stub_config(config: StubGenConfig) -> StubConfig:
@@ -50,6 +61,7 @@ def _convert_to_stub_config(config: StubGenConfig) -> StubConfig:
 
     Returns:
         Converted configuration
+
     """
     # Convert paths to strings for search_paths
     search_paths = [str(p) for p in config.paths.search_paths]
@@ -58,7 +70,7 @@ def _convert_to_stub_config(config: StubGenConfig) -> StubConfig:
     files = list(config.paths.files)  # Convert Sequence to list
 
     return StubConfig(
-        input_path=config.paths.files[0] if config.paths.files else Path("."),
+        input_path=config.paths.files[0] if config.paths.files else Path(),
         output_path=config.paths.output_dir,
         backend="ast",  # Default to AST backend
         parallel=config.runtime.parallel,
@@ -99,6 +111,7 @@ def _convert_to_stub_gen_config(config: StubConfig) -> StubGenConfig:
 
     Returns:
         Converted configuration
+
     """
     return StubGenConfig(
         paths=PathConfig(
@@ -147,6 +160,7 @@ class Processor(Protocol):
 
         Returns:
             Processed stub result
+
         """
         ...
 
@@ -190,7 +204,7 @@ class SmartStubGenerator:
         max_docstring_length: int | None = None,
         max_file_size: int | None = None,
         truncation_marker: str | None = None,
-    ):
+    ) -> None:
         """Initialize the stub generator with configuration.
 
         Args:
@@ -223,6 +237,7 @@ class SmartStubGenerator:
             max_docstring_length: Maximum docstring length
             max_file_size: Maximum file size
             truncation_marker: Marker for truncated content
+
         """
         # Convert backend string to enum
         if isinstance(backend, str):
@@ -270,13 +285,23 @@ class SmartStubGenerator:
         )
 
         # Configure logging
-        logger.remove()
-        logger.add(
-            lambda msg: print(msg, end=""),
-            format="<blue>{time:HH:mm:ss}</blue> | {message}",
-            level="DEBUG" if verbose else "INFO",
-            catch=True,
-        )
+        if verbose:  # Conditional logging based on verbosity
+            logger.remove()
+            logger.add(
+                sys.stderr,
+                format="<blue>{time:HH:mm:ss}</blue> | {message}",
+                level="DEBUG",
+                catch=True,
+            )
+        elif not quiet:  # Log INFO if not quiet and not verbose
+            logger.remove()
+            logger.add(
+                sys.stderr,
+                format="<blue>{time:HH:mm:ss}</blue> | {message}",
+                level="INFO",
+                catch=True,
+            )
+        # No logging if quiet and not verbose
 
         # Initialize processors
         self.processors: list[Processor] = [
@@ -299,6 +324,7 @@ class SmartStubGenerator:
 
         Returns:
             Initialized backend
+
         """
         # Convert StubGenConfig to StubConfig for the backend
         stub_config = _convert_to_stub_config(self.config)
@@ -306,13 +332,12 @@ class SmartStubGenerator:
 
         if self.config.runtime.backend == Backend.AST:
             return ASTBackend(stub_config)
-        elif self.config.runtime.backend == Backend.MYPY:
+        if self.config.runtime.backend == Backend.MYPY:
             return MypyBackend(stub_gen_config)
-        else:
-            raise ConfigError(
-                f"Unknown backend: {self.config.runtime.backend}",
-                ErrorCode.CONFIG_VALIDATION_ERROR,
-            )
+        raise ConfigError(
+            f"Unknown backend: {self.config.runtime.backend}",
+            ErrorCode.CONFIG_VALIDATION_ERROR,
+        )
 
     def _process_file(self, backend: StubBackend, file_path: Path) -> None:
         """Process a single file."""
@@ -370,8 +395,6 @@ class SmartStubGenerator:
         except Exception as e:
             logger.error(f"Failed to generate stubs: {e}")
             if self.config.runtime.verbose:
-                import traceback
-
                 logger.debug(traceback.format_exc())
             if not self.config.runtime.ignore_errors:
                 raise
@@ -384,6 +407,7 @@ class SmartStubGenerator:
 
         Returns:
             Generated stub result
+
         """
         # TODO: Implement single file stub generation
         raise NotImplementedError
@@ -396,6 +420,7 @@ class SmartStubGenerator:
 
         Returns:
             Generated stub result
+
         """
         # TODO: Implement module stub generation
         raise NotImplementedError
@@ -420,6 +445,7 @@ async def generate_stub(
 
     Raises:
         ValueError: If the specified backend is not supported
+
     """
     source_path = Path(source_path)
     output_path_obj = Path(output_path) if output_path else None
@@ -461,24 +487,24 @@ __author__ = "Adam Twardoch"
 __license__ = "MIT"
 
 __all__ = [
-    "ArgInfo",
     "ASTBackend",
+    "ASTError",
+    "ArgInfo",
     "Backend",
     "ClassInfo",
+    "ConfigError",
+    "ErrorCode",
     "FunctionInfo",
     "ImportanceLevel",
     "ModuleInfo",
+    "MyPyError",
     "MypyBackend",
+    "RuntimeConfig",
     "SmartStubGenerator",
     "StubBackend",
+    "StubConfig",
     "StubGenConfig",
+    "StubGenerationError",
     "StubResult",
     "generate_stub",
-    "RuntimeConfig",
-    "StubConfig",
-    "ASTError",
-    "ConfigError",
-    "ErrorCode",
-    "MyPyError",
-    "StubGenerationError",
 ]

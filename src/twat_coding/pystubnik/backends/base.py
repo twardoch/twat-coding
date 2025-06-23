@@ -1,14 +1,13 @@
-#!/usr/bin/env -S uv run
 """Base interface for stub generation backends."""
 
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any
 
-from .. import _convert_to_stub_gen_config
-from ..config import StubConfig
-from ..core.config import PathConfig, StubGenConfig
-from ..core.types import StubResult
+from twat_coding.pystubnik import _convert_to_stub_gen_config
+from twat_coding.pystubnik.config import StubConfig
+from twat_coding.pystubnik.core.config import PathConfig, StubGenConfig
+from twat_coding.pystubnik.core.types import StubResult
 
 
 class StubBackend(ABC):
@@ -19,6 +18,7 @@ class StubBackend(ABC):
 
         Args:
             config: Configuration for stub generation
+
         """
         # Convert StubConfig to StubGenConfig if needed
         if isinstance(config, StubConfig):
@@ -35,6 +35,7 @@ class StubBackend(ABC):
 
         Returns:
             Generated stub result
+
         """
         raise NotImplementedError
 
@@ -50,6 +51,7 @@ class StubBackend(ABC):
 
         Raises:
             StubGenerationError: If module processing fails
+
         """
         raise NotImplementedError
 
@@ -65,6 +67,7 @@ class StubBackend(ABC):
 
         Raises:
             StubGenerationError: If package processing fails
+
         """
         raise NotImplementedError
 
@@ -74,7 +77,6 @@ class StubBackend(ABC):
 
         This method should be called when the backend is no longer needed.
         """
-        pass
 
     def __enter__(self) -> "StubBackend":
         """Enter the context manager."""

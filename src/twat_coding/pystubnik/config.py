@@ -1,4 +1,3 @@
-#!/usr/bin/env -S uv run
 """Configuration system for stub generation."""
 
 import os
@@ -10,8 +9,8 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from .core.config import PathConfig, StubGenConfig
-from .errors import ConfigError, ErrorCode
+from twat_coding.pystubnik.core.config import PathConfig, StubGenConfig
+from twat_coding.pystubnik.errors import ConfigError, ErrorCode
 
 
 class FileLocations(BaseModel):
@@ -26,7 +25,7 @@ class FileLocations(BaseModel):
         validate_assignment=True,
     )
 
-    @field_validator("source_path")
+    @field_validator("source_path")  # type: ignore[misc]
     @classmethod
     def validate_source_path(cls, v: Path) -> Path:
         """Validate source file exists."""
@@ -38,7 +37,7 @@ class FileLocations(BaseModel):
             )
         return v
 
-    @field_validator("input_dir")
+    @field_validator("input_dir")  # type: ignore[misc]
     @classmethod
     def validate_input_dir(cls, v: Path) -> Path:
         """Validate input directory exists."""
@@ -50,7 +49,7 @@ class FileLocations(BaseModel):
             )
         return v
 
-    @field_validator("output_dir")
+    @field_validator("output_dir")  # type: ignore[misc]
     @classmethod
     def validate_output_dir(cls, v: Path) -> Path:
         """Validate and create output directory."""
@@ -93,6 +92,7 @@ def _default_stub_gen_config() -> StubGenConfig:
 
     Returns:
         Default StubGenConfig instance
+
     """
     return StubGenConfig(paths=PathConfig())
 
@@ -260,6 +260,7 @@ class StubConfig(BaseModel):
 
         Returns:
             FileLocations object
+
         """
         return FileLocations(
             source_path=source_path,
@@ -290,7 +291,7 @@ class RuntimeConfig(BaseSettings):
     debug: bool = False
     profile: bool = False
 
-    @field_validator("cache_dir", mode="before")
+    @field_validator("cache_dir", mode="before")  # type: ignore[misc]
     @classmethod
     def validate_cache_dir(cls, v: Any) -> Path:
         """Validate and create cache directory."""

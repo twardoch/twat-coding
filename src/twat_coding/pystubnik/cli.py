@@ -1,4 +1,3 @@
-#!/usr/bin/env -S uv run
 # /// script
 # dependencies = ["fire", "rich"]
 # ///
@@ -11,8 +10,8 @@ import fire
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 
-from .config import StubConfig
-from .processors.stub_generation import StubGenerator
+from twat_coding.pystubnik.config import StubConfig
+from twat_coding.pystubnik.processors.stub_generation import StubGenerator
 
 
 class PystubnikCLI:
@@ -42,6 +41,7 @@ class PystubnikCLI:
             output_path: Optional path to write the stub file to
             config_file: Optional path to a configuration file
             **config_kwargs: Additional configuration options
+
         """
         input_file = Path(input_path)
         if not input_file.exists():
@@ -106,6 +106,7 @@ class PystubnikCLI:
             output_dir: Optional path to write the stub files to
             config_file: Optional path to a configuration file
             **config_kwargs: Additional configuration options
+
         """
         input_path = Path(input_dir)
         if not input_path.exists():

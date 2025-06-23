@@ -3,8 +3,8 @@
 import ast
 from pathlib import Path
 
-from ..core.types import ImportInfo, ImportType, StubResult
-from . import Processor
+from twat_coding.pystubnik.core.types import ImportInfo, ImportType, StubResult
+from twat_coding.pystubnik.processors import Processor
 
 
 class ImportProcessor(Processor):
@@ -21,6 +21,7 @@ class ImportProcessor(Processor):
 
         Returns:
             The processed stub result with organized imports
+
         """
         tree = ast.parse(stub_result.stub_content)
         imports = self._analyze_imports(tree)
@@ -61,6 +62,7 @@ class ImportProcessor(Processor):
 
         Returns:
             Dictionary mapping module names to ImportInfo
+
         """
         imports: dict[str, ImportInfo] = {}
 
@@ -98,6 +100,7 @@ class ImportProcessor(Processor):
 
         Returns:
             The ImportType of the module
+
         """
         if not module_name:
             return ImportType.RELATIVE
@@ -105,10 +108,9 @@ class ImportProcessor(Processor):
         base_module = module_name.split(".")[0]
         if base_module in self.stdlib_modules:
             return ImportType.STANDARD_LIB
-        elif "." in module_name:
+        if "." in module_name:
             return ImportType.LOCAL
-        else:
-            return ImportType.THIRD_PARTY
+        return ImportType.THIRD_PARTY
 
     def _group_imports(
         self, imports: dict[str, ImportInfo]
@@ -120,6 +122,7 @@ class ImportProcessor(Processor):
 
         Returns:
             Dictionary mapping import types to lists of imports
+
         """
         grouped: dict[ImportType, list[ImportInfo]] = {
             ImportType.STANDARD_LIB: [],
@@ -147,6 +150,7 @@ class ImportProcessor(Processor):
 
         Returns:
             Formatted import section as a string
+
         """
         sections = []
 
@@ -180,6 +184,7 @@ class ImportProcessor(Processor):
 
         Returns:
             Modified source code as a string
+
         """
         # Find the last import node
         last_import = None

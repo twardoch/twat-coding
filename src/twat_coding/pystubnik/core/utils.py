@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Utility functions for pystubnik."""
 
 import ast
@@ -32,6 +31,7 @@ def process_parallel(
 
     Returns:
         List of processed results
+
     """
     if max_workers is None:
         max_workers = os.cpu_count() or 1
@@ -67,6 +67,7 @@ def find_python_files(
 
     Returns:
         List of Python file paths
+
     """
     path = Path(path)
     if not path.exists():
@@ -99,6 +100,7 @@ def normalize_docstring(docstring: str | None) -> str | None:
 
     Returns:
         Normalized docstring or None if input is None
+
     """
     if not docstring:
         return None
@@ -135,10 +137,11 @@ def get_qualified_name(node: ast.AST) -> str:
 
     Returns:
         Qualified name as string
+
     """
     if isinstance(node, ast.Name):
         return node.id
-    elif isinstance(node, ast.Attribute):
+    if isinstance(node, ast.Attribute):
         return f"{get_qualified_name(node.value)}.{node.attr}"
     return ""
 
@@ -151,6 +154,7 @@ def parse_type_string(type_str: str) -> str:
 
     Returns:
         Normalized type string
+
     """
     # Remove redundant spaces
     type_str = re.sub(r"\s+", " ", type_str.strip())
@@ -253,6 +257,7 @@ def read_source_file(path: str | Path) -> tuple[str, str | None]:
 
     Returns:
         Tuple of (source_code, encoding)
+
     """
     path = Path(path)
     try:
@@ -280,6 +285,7 @@ def parse_source(source: str) -> ast.AST | None:
 
     Returns:
         AST if parsing successful, None otherwise
+
     """
     try:
         return ast.parse(source)
@@ -296,5 +302,6 @@ def normalize_path(path: str | Path) -> Path:
 
     Returns:
         Normalized absolute Path
+
     """
     return Path(path).resolve()

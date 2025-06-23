@@ -15,18 +15,18 @@ def ast_to_source(node: ast.Import | ast.ImportFrom) -> str:
 
     Returns:
         The source code representation of the import
+
     """
     if isinstance(node, ast.Import):
         names = [alias.name for alias in node.names]
         return f"import {', '.join(names)}"
-    elif isinstance(node, ast.ImportFrom):
+    if isinstance(node, ast.ImportFrom):
         names = [alias.name for alias in node.names]
         module = node.module or ""
         level = "." * node.level
         return f"from {level}{module} import {', '.join(names)}"
-    else:
-        msg = f"Unexpected node type: {type(node)}"
-        raise ValueError(msg)
+    msg = f"Unexpected node type: {type(node)}"
+    raise ValueError(msg)
 
 
 def extract_imports(source: str) -> list[ast.Import | ast.ImportFrom]:
@@ -37,6 +37,7 @@ def extract_imports(source: str) -> list[ast.Import | ast.ImportFrom]:
 
     Returns:
         List of import nodes
+
     """
     tree = ast.parse(source)
     imports: list[ast.Import | ast.ImportFrom] = []
@@ -53,6 +54,7 @@ def process_py_file(file_path: str | Path) -> None:
 
     Args:
         file_path: Path to the Python file
+
     """
     file_path = Path(file_path)
     source = file_path.read_text()

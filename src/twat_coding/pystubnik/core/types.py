@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Core type definitions for pystubnik."""
 
 from collections.abc import Sequence

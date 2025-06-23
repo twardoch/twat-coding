@@ -15,4 +15,16 @@ repos:
       - id: debug-statements
       - id: check-case-conflict
       - id: mixed-line-ending
-        args: [--fix=lf] 
+        args: [--fix=lf]
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.10.0 # Use a recent version of mypy
+    hooks:
+      - id: mypy
+        args: [--strict] # Enforce strict checking
+        additional_dependencies:
+          - pydantic>=2.0
+          - pydantic-settings>=2.0
+          # Add other dependencies that mypy needs to understand your code,
+          # especially those with plugins or complex type interactions.
+          # types-toml is usually picked up if in pyproject.toml's main deps.
+          - types-toml
