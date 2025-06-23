@@ -177,8 +177,36 @@ def test_docstring_type_extraction() -> None:
     # Test dict type parsing
     type_info = extractor._parse_type_string("Dict[str, int]")
     assert type_info.confidence == 0.7
+    # Test union type parsing
     assert "key_type" in type_info.metadata
     assert "value_type" in type_info.metadata
+
+    # Test malformed or ambiguous union type strings
+    import pytest
+
+    # Missing types
+    with pytest.raises(Exception):
+        extractor._parse_type_string("Union[]")
+
+    # Extra delimiters
+    with pytest.raises(Exception):
+        extractor._parse_type_string("Union[int,,str]")
+
+    # Invalid syntax: no closing bracket
+    with pytest.raises(Exception):
+        extractor._parse_type_string("Union[int, str")
+
+    # Invalid syntax: no opening bracket
+    with pytest.raises(Exception):
+        extractor._parse_type_string("Unionint, str]")
+
+    # Only delimiter, no types
+    with pytest.raises(Exception):
+        extractor._parse_type_string("Union[ , ]")
+
+    # Non-type in union
+    with pytest.raises(Exception):
+        extractor._parse_type_string("Union[int, 123]")
 
     # Test more complex types
     type_info = extractor._parse_type_string("List[Dict[str, Optional[int]]]")
