@@ -1,11 +1,16 @@
-#!/usr/bin/env python3
 """Conversion utilities for configuration types."""
 
 from pathlib import Path
 
-from ..config import StubConfig
-from .config import Backend, PathConfig, ProcessingConfig, RuntimeConfig, StubGenConfig
-from .shared_types import TruncationConfig
+from twat_coding.pystubnik.config import StubConfig
+from twat_coding.pystubnik.core.config import (
+    Backend,
+    PathConfig,
+    ProcessingConfig,
+    RuntimeConfig,
+    StubGenConfig,
+)
+from twat_coding.pystubnik.core.shared_types import TruncationConfig
 
 
 def convert_to_stub_gen_config(config: StubConfig | None = None) -> StubGenConfig:
@@ -16,6 +21,7 @@ def convert_to_stub_gen_config(config: StubConfig | None = None) -> StubGenConfi
 
     Returns:
         A StubGenConfig instance with equivalent settings.
+
     """
     if config is None:
         return StubGenConfig(

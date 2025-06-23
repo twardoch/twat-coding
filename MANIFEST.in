@@ -1,3 +1,0 @@
-# This MANIFEST.in file ensures that all necessary files are included in the package distribution.
-recursive-include src/twat_coding/data *
-include src/twat_coding/py.typed 

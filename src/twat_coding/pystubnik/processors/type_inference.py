@@ -1,4 +1,3 @@
-#!/usr/bin/env -S uv run
 """Type inference processor for stub generation."""
 
 import ast
@@ -7,7 +6,11 @@ from typing import Any, ClassVar
 
 from loguru import logger
 
-from ..types.type_system import TypeInferenceError, TypeInfo, TypeRegistry
+from twat_coding.pystubnik.types.type_system import (
+    TypeInferenceError,
+    TypeInfo,
+    TypeRegistry,
+)
 
 
 class TypeInferenceProcessor:
@@ -43,6 +46,7 @@ class TypeInferenceProcessor:
             infer_from_assignments: Whether to infer types from assignments
             infer_from_returns: Whether to infer types from return statements
             infer_from_defaults: Whether to infer types from default values
+
         """
         self.type_registry = type_registry or TypeRegistry()
         self.confidence_threshold = confidence_threshold
@@ -62,6 +66,7 @@ class TypeInferenceProcessor:
 
         Raises:
             TypeInferenceError: If type inference fails
+
         """
         try:
             inferred_types: dict[str, TypeInfo] = {}
@@ -95,6 +100,7 @@ class TypeInferenceProcessor:
         Args:
             node: AST node to analyze
             types: Dictionary to update with inferred types
+
         """
         for child in ast.walk(node):
             match child:
@@ -137,6 +143,7 @@ class TypeInferenceProcessor:
         Args:
             node: AST node to analyze
             types: Dictionary to update with inferred types
+
         """
         # Track attribute access
         for child in ast.walk(node):
@@ -162,6 +169,7 @@ class TypeInferenceProcessor:
         Args:
             node: AST node to analyze
             types: Dictionary to update with inferred types
+
         """
         for child in ast.walk(node):
             if isinstance(child, ast.FunctionDef | ast.AsyncFunctionDef):

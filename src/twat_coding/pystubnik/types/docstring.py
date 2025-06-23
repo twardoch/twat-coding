@@ -1,4 +1,3 @@
-#!/usr/bin/env -S uv run
 """Docstring type extraction and processing."""
 
 import ast
@@ -10,8 +9,12 @@ from typing import Any, ClassVar
 from docstring_parser import parse as parse_docstring
 from loguru import logger
 
-from ..core.types import ArgInfo
-from ..types.type_system import TypeInferenceError, TypeInfo, TypeRegistry
+from twat_coding.pystubnik.core.types import ArgInfo
+from twat_coding.pystubnik.types.type_system import (
+    TypeInferenceError,
+    TypeInfo,
+    TypeRegistry,
+)
 
 
 class DocstringStyle(Enum):
@@ -78,6 +81,7 @@ class DocstringTypeExtractor:
 
         Args:
             type_registry: Type registry for resolving types
+
         """
         self.type_registry = type_registry
         self._param_pattern = re.compile(
@@ -149,6 +153,7 @@ class DocstringTypeExtractor:
 
         Raises:
             TypeInferenceError: If docstring parsing fails
+
         """
         docstring = ast.get_docstring(node)
         if not docstring:
@@ -172,6 +177,7 @@ class DocstringTypeExtractor:
 
         Returns:
             TypeInfo if the type is found in TYPE_MAPPINGS, None otherwise
+
         """
         if type_str in self.TYPE_MAPPINGS:
             return TypeInfo(
@@ -193,6 +199,7 @@ class DocstringTypeExtractor:
 
         Raises:
             TypeInferenceError: If union type parsing fails
+
         """
         if " or " not in type_str:
             return None
@@ -223,6 +230,7 @@ class DocstringTypeExtractor:
 
         Returns:
             TypeInfo for the container type if valid, None otherwise
+
         """
         if container.lower() in ("list", "set", "tuple"):
             elem_type = self._parse_type_string(content)
@@ -237,7 +245,7 @@ class DocstringTypeExtractor:
                     "element_type": elem_type,
                 },
             )
-        elif container.lower() == "dict":
+        if container.lower() == "dict":
             key_type, value_type = map(str.strip, content.split(","))
             key_info = self._parse_type_string(key_type)
             value_info = self._parse_type_string(value_type)
@@ -264,6 +272,7 @@ class DocstringTypeExtractor:
 
         Raises:
             TypeInferenceError: If type string parsing fails
+
         """
         try:
             type_str = type_str.strip()

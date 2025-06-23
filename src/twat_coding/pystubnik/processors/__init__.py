@@ -7,7 +7,7 @@ processors that can be used during stub generation.
 from abc import abstractmethod
 from typing import Protocol
 
-from ..core.types import StubResult
+from twat_coding.pystubnik.core.types import StubResult
 
 
 class Processor(Protocol):
@@ -22,6 +22,7 @@ class Processor(Protocol):
 
         Returns:
             The processed stub result
+
         """
         ...
 

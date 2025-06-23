@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Configuration for pystubnik stub generation."""
 
 import sys
@@ -8,7 +7,7 @@ from enum import Enum, auto
 from pathlib import Path
 from typing import Any
 
-from .shared_types import TruncationConfig
+from twat_coding.pystubnik.core.shared_types import TruncationConfig
 
 
 class Backend(Enum):
@@ -34,6 +33,7 @@ def _default_importance_keywords() -> set[str]:
 
     Returns:
         Set of default importance keywords
+
     """
     return {"important", "critical", "essential", "main", "key"}
 
@@ -56,6 +56,7 @@ def _default_include_patterns() -> list[str]:
 
     Returns:
         List of default include patterns
+
     """
     return ["*.py"]
 
@@ -65,6 +66,7 @@ def _default_exclude_patterns() -> list[str]:
 
     Returns:
         List of default exclude patterns
+
     """
     return ["test_*.py", "*_test.py"]
 
@@ -118,6 +120,7 @@ class RuntimeConfig:
 
         Returns:
             RuntimeConfig instance
+
         """
         if python_version is None:
             python_version = sys.version_info[:2]
@@ -167,6 +170,7 @@ class StubGenConfig:
 
         Returns:
             Tuple of (input_path, output_path)
+
         """
         try:
             rel_path = source_path.relative_to(self.paths.output_dir)

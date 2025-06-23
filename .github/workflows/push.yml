@@ -38,6 +38,25 @@ jobs:
           version: "latest"
           args: "format --check --respect-gitignore"
 
+      - name: Set up Python for MyPy
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12" # Use a specific version for MyPy consistency
+
+      - name: Install UV for MyPy
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+          python-version: "3.12"
+          enable-cache: true
+          cache-suffix: mypy-3.12
+
+      - name: Install all dependencies for MyPy
+        run: uv pip install --system -e ".[all]"
+
+      - name: Run MyPy
+        run: uv run mypy src/twat_coding tests
+
   test:
     name: Run Tests
     needs: quality
@@ -64,10 +83,10 @@ jobs:
           enable-cache: true
           cache-suffix: ${{ matrix.os }}-${{ matrix.python-version }}
 
-      - name: Install test dependencies
+      - name: Install all dependencies for testing
         run: |
           uv pip install --system --upgrade pip
-          uv pip install --system ".[test]"
+          uv pip install --system -e ".[all]" # Use 'all' to ensure all tools are available
 
       - name: Run tests with Pytest
         run: uv run pytest -n auto --maxfail=1 --disable-warnings --cov-report=xml --cov-config=pyproject.toml --cov=src/twat_coding --cov=tests tests/

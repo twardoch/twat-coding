@@ -1,11 +1,10 @@
-#!/usr/bin/env -S uv run
 """AST manipulation utilities."""
 
 import ast
 from typing import cast
 from weakref import WeakKeyDictionary
 
-from ..core.shared_types import TruncationConfig
+from twat_coding.pystubnik.core.shared_types import TruncationConfig
 
 # Global dict to store parent references
 _parent_refs: WeakKeyDictionary[ast.AST, ast.AST] = WeakKeyDictionary()
@@ -19,6 +18,7 @@ def _get_parent(node: ast.AST) -> ast.AST | None:
 
     Returns:
         Parent node if it exists, None otherwise
+
     """
     return _parent_refs.get(node)
 
@@ -32,6 +32,7 @@ def _truncate_string(s: str, config: TruncationConfig) -> str:
 
     Returns:
         Truncated string
+
     """
     if len(s) <= config.max_string_length:
         return s
@@ -47,6 +48,7 @@ def _truncate_bytes(b: bytes, config: TruncationConfig) -> bytes:
 
     Returns:
         Truncated bytes
+
     """
     if len(b) <= config.max_string_length:
         return b
@@ -64,11 +66,12 @@ def _truncate_sequence(
 
     Returns:
         Truncated AST node
+
     """
     truncated_elts = []
     for i, e in enumerate(node.elts):
         if i < config.max_sequence_length:
-            truncated_elts.append(cast(ast.expr, truncate_literal(e, config)))
+            truncated_elts.append(cast("ast.expr", truncate_literal(e, config)))
         else:
             truncated_elts.append(ast.Constant(value=config.truncation_marker))
             break
@@ -84,11 +87,12 @@ def _truncate_dict(node: ast.Dict, config: TruncationConfig) -> ast.Dict:
 
     Returns:
         Truncated AST node
+
     """
     pairs = []
     for i, (k, v) in enumerate(zip(node.keys, node.values, strict=False)):
         if i < config.max_sequence_length:
-            new_v = cast(ast.expr, truncate_literal(v, config))
+            new_v = cast("ast.expr", truncate_literal(v, config))
             pairs.append((k, new_v))
         else:
             pairs.append(
@@ -100,7 +104,7 @@ def _truncate_dict(node: ast.Dict, config: TruncationConfig) -> ast.Dict:
             break
     return ast.Dict(
         keys=[k for k, _ in pairs],
-        values=[cast(ast.expr, v) for _, v in pairs],
+        values=[cast("ast.expr", v) for _, v in pairs],
     )
 
 
@@ -113,6 +117,7 @@ def truncate_literal(node: ast.AST, config: TruncationConfig) -> ast.AST:
 
     Returns:
         Processed AST node
+
     """
     result = node  # Default to returning the original node
     match node:
@@ -126,17 +131,20 @@ def truncate_literal(node: ast.AST, config: TruncationConfig) -> ast.AST:
 
         case ast.List() | ast.Set() | ast.Tuple():
             if len(node.elts) > config.max_sequence_length:
-                node.elts = node.elts[: config.max_sequence_length] + [
-                    ast.Constant(value=config.truncation_marker)
+                node.elts = [
+                    *node.elts[: config.max_sequence_length],
+                    ast.Constant(value=config.truncation_marker),
                 ]
                 result = node
         case ast.Dict():
             if len(node.keys) > config.max_sequence_length:
-                node.keys = node.keys[: config.max_sequence_length] + [
-                    ast.Constant(value=config.truncation_marker)
+                node.keys = [
+                    *node.keys[: config.max_sequence_length],
+                    ast.Constant(value=config.truncation_marker),
                 ]
-                node.values = node.values[: config.max_sequence_length] + [
-                    ast.Constant(value=config.truncation_marker)
+                node.values = [
+                    *node.values[: config.max_sequence_length],
+                    ast.Constant(value=config.truncation_marker),
                 ]
                 result = node
         case _:
@@ -150,6 +158,7 @@ def attach_parents(node: ast.AST) -> None:
 
     Args:
         node: AST node to process
+
     """
     for child in ast.walk(node):
         for _field, value in ast.iter_fields(child):
@@ -169,6 +178,7 @@ def get_docstring(node: ast.AST) -> str | None:
 
     Returns:
         Docstring if found, None otherwise
+
     """
     match node:
         case ast.Module() | ast.ClassDef() | ast.FunctionDef():
@@ -190,6 +200,7 @@ def is_empty_expr(node: ast.AST) -> bool:
 
     Returns:
         True if node is an empty expression
+
     """
     return (
         isinstance(node, ast.Expr)
@@ -207,6 +218,7 @@ def should_include_member(name: str, include_private: bool) -> bool:
 
     Returns:
         True if the member should be included
+
     """
     # If include_private is True, include everything
     if include_private:
@@ -217,7 +229,4 @@ def should_include_member(name: str, include_private: bool) -> bool:
         return True
 
     # Exclude anything that starts with underscore
-    if name.startswith("_"):
-        return False
-
-    return True
+    return not name.startswith("_")

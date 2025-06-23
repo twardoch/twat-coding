@@ -1,0 +1,3 @@
+# This marker file indicates that the 'twat_coding' package
+# supports type checking and provides inline type hints or stubs.
+# See PEP 561 for more details.

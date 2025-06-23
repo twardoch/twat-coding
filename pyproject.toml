@@ -62,6 +62,7 @@ dependencies = [
     "toml>=0.10.2", # TOML parsing
     "types-toml>=0.10.8.7", # TOML type stubs
     "mypy-extensions>=1.0.0", # Type system features
+    "types-toml>=0.10.8.7", # Ensure types-toml is in core dependencies for mypy
 
 ]
 
@@ -127,126 +128,142 @@ all = [
 # Defines the tools required to build the package.
 #------------------------------------------------------------------------------
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 #------------------------------------------------------------------------------
-# TOOL CONFIGURATIONS
-# Settings for various development tools.
+# HATCH CONFIGURATION
+# Hatch-specific settings for building and versioning.
 #------------------------------------------------------------------------------
-# Ruff configuration
+[tool.hatch.version]
+source = "vcs"
+path = "src/twat_coding/_version.py" # hatch-vcs will manage this file
+
+[tool.hatch.build]
+# Define what to include in the sdist explicitly for clarity
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+    "/tests",
+    "/docs", # Include docs if they exist
+    "pyproject.toml",
+    "README.md",
+    "LICENSE",
+    ".pre-commit-config.yaml",
+    ".gitignore"
+]
+
+[tool.hatch.build.targets.wheel]
+# For an src-layout, Hatchling typically auto-detects `src/twat_coding`
+# or you can specify it via `packages` in this target or globally.
+# Files within src/twat_coding (like py.typed and data/) are included by default.
+packages = ["src/twat_coding"]
+
+[tool.hatch.envs.default]
+dependencies = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.1.0",
+    "uv", # Add uv for environment management if desired within hatch
+]
+
+[tool.hatch.envs.default.scripts]
+test = "pytest {args:tests}"
+test-cov = "pytest --cov=src/twat_coding --cov-report=term-missing {args:tests}"
+cov-report = ["- coverage combine", "coverage report html xml"] # Generate HTML and XML reports
+cov = ["test-cov", "cov-report"]
+
+#------------------------------------------------------------------------------
+# DEVELOPMENT TOOL CONFIGURATIONS
+# Settings for various development tools like Ruff, MyPy, Pytest.
+#------------------------------------------------------------------------------
+# Ruff configuration (linter and formatter)
 [tool.ruff]
 target-version = "py312"
 line-length = 88
 fix = true
 unsafe-fixes = true
-output-format = "github"
+output-format = "github" # For GitHub Actions annotations
 
 [tool.ruff.lint]
 select = [
-    "A",
-    "ANN",
-    "ARG",
-    "ASYNC",
-    "B",
-    "C",
-    "C4",
-    "C90",
-    "COM",
-    "D",
-    "DOC",
-    "DTZ",
-    "E",
-    "ERA",
-    "EXE",
-    "F",
-    "FA",
-    "FBT",
-    "FIX",
-    "FLY",
-    "FURB",
-    "I",
-    "ICN",
-    "INP",
-    "ISC",
-    "N",
-    "NPY",
-    "PD",
-    "PERF",
-    "PIE",
-    "PL",
-    "PLC",
-    "PLE",
-    "PLR",
-    "PLW",
-    "PT",
-    "PTH",
-    "PYI",
-    "Q",
-    "RET",
-    "RSE",
-    "RUF",
-    "S",
-    "SIM",
-    "SLF",
-    "T",
-    "TC",
-    "TD",
-    "TID",
-    "TRY",
-    "UP",
-    "W",
-    "YTT",
+    "A", "ANN", "ARG", "ASYNC", "B", "C4", "C90", "COM", "D", "DTZ", "E", "ERA", "EXE",
+    "F", "FA", "FBT", "FIX", "FLY", "FURB", "I", "ICN", "INP", "ISC", "N", "NPY",
+    "PD", "PERF", "PIE", "PL", "PLC", "PLE", "PLR", "PLW", "PT", "PTH", "PYI",
+    "Q", "RET", "RSE", "RUF", "S", "SIM", "SLF", "T", "TC", "TD", "TID", "TRY",
+    "UP", "W", "YTT",
 ]
 ignore = [
-    "ARG001",
-    "COM812",
-    "D203",
-    "D213",
-    "E501",
-    "I001",
-    "RUF001",
-    "PLR2004",
-    "EXE003",
-    "ISC001"
+    "ANN101", # Missing type annotation for self in method
+    "ANN102", # Missing type annotation for cls in classmethod
+    "ARG001", # Unused function argument
+    "COM812", # Missing trailing comma
+    "D203",   # 1 blank line required before class docstring
+    "D213",   # Multi-line docstring summary should start at the second line
+    "E501",   # Line too long (handled by ruff format)
+    "I001",   # Import block is un-sorted (handled by ruff format)
+    "ISC001", # Implicitly concatenated string literals on one line
+    "PLR0913",# Too many arguments to function call
+    "PLR2004",# Magic value used in comparison
+    "S101",   # Use of assert detected
+    "EXE003", # shebang is present but file is not executable - might be relevant for scripts
 ]
-
+# Consider adding "flake8-docstrings" (D) and "pydocstyle" (D) to select for stricter docstring checks.
+# Implicit string concatenation
 [tool.ruff.lint.isort]
-known-first-party = ["twat_coding"]
+known-first-party = ["twat_coding", "tests"]
 combine-as-imports = true
+force-sort-within-sections = true
 
 [tool.ruff.lint.flake8-tidy-imports]
-ban-relative-imports = "all"
+ban-relative-imports = "all" # Enforce absolute imports
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**/*" = ["PLR2004", "S101", "TID252"]
+"tests/**/*" = ["S101", "PLR2004", "ANN001", "ANN201"] # Allow asserts and magic values in tests
+"src/twat_coding/pystubnik/cli.py" = ["T201"] # Allow print statements in CLI
+"src/twat_coding/pystubnik/backends/ast_backend.py" = ["N802"] # Allow visit_MethodName for ast.NodeVisitor
+"src/twat_coding/pystubnik/processors/stub_generation.py" = ["N802"] # Allow visit_MethodName for ast.NodeVisitor
 
-# Black configuration
-[tool.black]
-line-length = 88
-target-version = ["py312"]
-include = '\.pyi?$'
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "lf"
 
-# MyPy configuration
+# MyPy configuration (static type checker)
 [tool.mypy]
 python_version = "3.12"
+packages = ["twat_coding"] # Specify package to check
+
+# Strictness flags
+strict = true
 warn_return_any = true
 warn_unused_configs = true
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
-check_untyped_defs = true
-disallow_untyped_decorators = true
-no_implicit_optional = true
+# disallow_untyped_defs = true # Covered by strict
+# disallow_incomplete_defs = true # Covered by strict
+# check_untyped_defs = true # Covered by strict
+# disallow_untyped_decorators = true # Covered by strict
+# no_implicit_optional = true # Covered by strict
 warn_redundant_casts = true
 warn_unused_ignores = true
-warn_no_return = true
-warn_unreachable = true
+# warn_no_return = true # Covered by strict
+warn_unreachable = true # Ensure all code is reachable
+
+# Per-module overrides if needed, e.g. for external libraries with no stubs
+# [[tool.mypy.overrides]]
+# module = "some_library.*"
+# ignore_missing_imports = true
 
 # Pytest configuration
 [tool.pytest.ini_options]
 minversion = "8.0"
-addopts = "-ra -q --cov=twat_coding"
+addopts = "-ra -q --cov=twat_coding --cov-report=term-missing --cov-report=xml --cov-report=html"
 testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+filterwarnings = [
+    "ignore::DeprecationWarning", # Ignore general deprecation warnings if too noisy
+]
 
 # CLI entry points
 [project.scripts]
@@ -256,62 +273,93 @@ twat-coding = "twat_coding.pystubnik.cli:main"
 [project.entry-points."twat.plugins"]
 coding = "twat_coding"
 
-# Coverage configuration
+# Coverage configuration (tool.coverage is used by pytest-cov)
+[tool.coverage.run]
+source = ["twat_coding"]
+branch = true
+omit = [
+    "src/twat_coding/_version.py", # Exclude generated version file
+    "tests/*",
+    "**/__main__.py",
+]
+
 [tool.coverage.paths]
-twat_coding = ["src/twat_coding", "*/twat-coding/src/twat_coding"]
-tests = ["tests", "*/twat-coding/tests"]
+source = [
+    "src/twat_coding",
+    ".tox/*/lib/python*/site-packages/twat_coding",
+    "*/src/twat_coding"
+]
+# twat_coding = ["src/twat_coding", "*/twat-coding/src/twat_coding"] # Old format
+# tests = ["tests", "*/twat-coding/tests"] # Not needed for source coverage
 
 [tool.coverage.report]
+show_missing = true
+skip_covered = true
+fail_under = 80 # Example: Enforce a minimum coverage percentage
 exclude_lines = [
     "pragma: no cover",
     "def __repr__",
+    "def __str__",
     "if self.debug:",
     "raise NotImplementedError",
     "if __name__ == .__main__.:",
     "if TYPE_CHECKING:",
+    "if typing.TYPE_CHECKING:",
+    "except ImportError:",
+    "else:", # Often part of try/except blocks for typing imports
+    "    pass", # Can be part of stubs or abstract methods
 ]
 ignore_errors = true
-omit = ["tests/*", "setup.py", "src/twat_coding/__about__.py"]
-
-[tool.hatch.build.targets.wheel]
-packages = ["src/twat_coding"]
-artifacts = ["src/twat_coding/py.typed"]
-
-[tool.hatch.envs.default]
-dependencies = ["pytest>=8.0.0", "pytest-cov>=4.1.0"]
-
-[tool.hatch.envs.default.scripts]
-test = "pytest {args:tests}"
-test-cov = "pytest --cov {args:tests}"
-cov-report = ["- coverage combine", "coverage report"]
-cov = ["test-cov", "cov-report"]
-lint = [
-    "ruff check src/twat_coding tests",
-    "ruff format --respect-gitignore src/twat_coding tests"
-]
-fix = [
-    "ruff check  --fix --unsafe-fixes src/twat_coding tests",
-    "ruff format --respect-gitignore src/twat_coding tests"
-]
+# omit = ["tests/*", "setup.py", "src/twat_coding/__about__.py"] # Old, covered by tool.coverage.run.omit
 
 [tool.hatch.envs.lint]
-dependencies = ["black>=24.1.1", "mypy>=1.8.0", "ruff>=0.2.1"]
+dependencies = [
+    "black>=24.1.1", # Black is still useful for specific formatting tasks or as a pre-commit hook
+    "mypy>=1.8.0",
+    "ruff>=0.2.1", # Ensure ruff is available in the lint env
+    "vulture>=2.10"
+]
 
 [tool.hatch.envs.lint.scripts]
 typing = "mypy --install-types --non-interactive {args:src/twat_coding tests}"
-style = ["ruff check {args:.}", "ruff format --check {args:.}", "vulture src"]
-fmt = [
-    "ruff format --respect-gitignore {args:.}",
-    "ruff check --fix {args:.}",
-    "vulture src"
+style = [
+    "ruff check {args:src/twat_coding tests}",
+    "ruff format --check {args:src/twat_coding tests}"
 ]
-all = ["style", "typing"]
+check = ["style", "typing", "dead-code"] # Combined check
+fmt = [
+    "ruff format {args:src/twat_coding tests}",
+    "ruff check --fix --unsafe-fixes {args:src/twat_coding tests}",
+    "style" # Run style checks again after formatting
+]
+dead-code = "vulture src/twat_coding tests --min-confidence 80"
+# 'all' script can be removed if 'check' and 'fmt' are preferred entry points
 
-[tool.hatch.envs.test]
-dependencies = ["pytest>=8.0.0", "pytest-cov>=4.1.0"]
+[tool.hatch.envs.test] # This environment is implicitly used by `hatch run test`
+dependencies = [
+    ".[all]" # Install the project with all extras, ensuring dev/test deps are present
+]
+# pytest, pytest-cov etc. are pulled from the project's "all" extra (which includes "test" extra).
+# Scripts for test environment are usually invoked directly via hatch run test:test-cov etc.
 
-[tool.hatch.version]
-path = "src/twat_coding/__version__.py"
+[tool.hatch.envs.docs]
+dependencies = [
+    "sphinx>=7.2.6",
+    "sphinx-rtd-theme>=2.0.0",
+    "sphinx-autodoc-typehints>=2.0.0",
+    "myst-parser>=3.0.0",
+]
+[tool.hatch.envs.docs.scripts]
+build = "sphinx-build docs docs/_build/html -b html"
+serve = "sphinx-autobuild docs docs/_build/html --host 0.0.0.0 --port 8000 --open-browser"
+
+[tool.hatch.envs.build]
+dependencies = ["hatch-vcs", "hatchling"] # Ensure build tools are in this env if building isolated
+[tool.hatch.envs.build.scripts]
+clean = "python -c \"import shutil; [shutil.rmtree(p, ignore_errors=True) for p in ['dist', 'build', 'src/twat_coding.egg-info', 'src/twat_coding/_version.py']]\"" # Clean build artifacts
+build = "clean && hatch build" # Build sdist and wheel
+all = ["build"]
+
 
 [tool.pytest-benchmark]
 warmup = true

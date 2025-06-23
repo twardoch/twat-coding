@@ -8,7 +8,7 @@ from abc import abstractmethod
 from pathlib import Path
 from typing import Protocol
 
-from ..core.types import StubResult
+from twat_coding.pystubnik.core.types import StubResult
 
 
 class StubBackend(Protocol):
@@ -23,6 +23,7 @@ class StubBackend(Protocol):
 
         Returns:
             Generated stub result
+
         """
         ...
 

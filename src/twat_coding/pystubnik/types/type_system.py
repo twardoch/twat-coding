@@ -1,4 +1,3 @@
-#!/usr/bin/env -S uv run
 """Type system implementation with support for advanced type features."""
 
 import ast
@@ -15,7 +14,7 @@ from typing import (
     runtime_checkable,
 )
 
-from ..errors import ErrorCode, StubGenerationError
+from twat_coding.pystubnik.errors import ErrorCode, StubGenerationError
 
 
 class TypeInferenceError(StubGenerationError):
@@ -38,6 +37,7 @@ class TypeInferenceError(StubGenerationError):
             details: Additional details
             source: Source code or file
             line_number: Line number
+
         """
         super().__init__(message, code, details, source=source, line_number=line_number)
 
@@ -75,6 +75,7 @@ class TypeRegistry:
         Args:
             name: Alias name
             target: Target type
+
         """
         self._type_aliases[name] = target
 
@@ -84,6 +85,7 @@ class TypeRegistry:
         Args:
             name: Type variable name
             type_var: Type variable
+
         """
         self._type_vars[name] = type_var
 
@@ -92,6 +94,7 @@ class TypeRegistry:
 
         Args:
             protocol_class: Protocol class to register
+
         """
         self._protocols[protocol_class.__name__] = protocol_class
 
@@ -107,6 +110,7 @@ class TypeRegistry:
 
         Raises:
             TypeInferenceError: If type resolution fails
+
         """
         cache_key = (type_hint, context)
         if cache_key in self._type_cache:
@@ -205,6 +209,7 @@ class TypeRegistry:
 
         Raises:
             TypeInferenceError: If type merging fails
+
         """
         if not types:
             raise TypeInferenceError("No types to merge")
@@ -252,6 +257,7 @@ def extract_type_from_docstring(docstring: str) -> TypeInfo | None:
 
     Returns:
         Extracted type information or None if no type found
+
     """
     # TODO: Implement docstring type extraction
     # This will be implemented in a separate commit
@@ -266,6 +272,7 @@ def infer_type_from_usage(node: ast.AST) -> TypeInfo | None:
 
     Returns:
         Inferred type information or None if inference not possible
+
     """
     # TODO: Implement type inference from usage
     # This will be implemented in a separate commit
@@ -280,6 +287,7 @@ def _is_protocol(resolved: Any) -> bool:
 
     Returns:
         True if the type is a Protocol
+
     """
     try:
         return (
@@ -299,6 +307,7 @@ def _resolve_type(type_hint: Any) -> Any:
 
     Returns:
         Resolved type
+
     """
     try:
         if isinstance(type_hint, str):
@@ -318,6 +327,7 @@ def _is_subtype(type_hint: Any, expected_type: Any) -> bool:
 
     Returns:
         True if type_hint is a subtype of expected_type
+
     """
     resolved = _resolve_type(type_hint)
     expected = _resolve_type(expected_type)

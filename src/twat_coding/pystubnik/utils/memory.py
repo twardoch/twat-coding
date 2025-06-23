@@ -1,4 +1,3 @@
-#!/usr/bin/env -S uv run
 """Memory monitoring utilities."""
 
 import ast
@@ -46,6 +45,7 @@ class MemoryMonitor:
 
         Args:
             interval: Monitoring interval in seconds
+
         """
         if not HAS_MEMORY_TOOLS:
             logger.warning(
@@ -127,6 +127,7 @@ def memory_monitor(interval: float = 1.0) -> Generator[MemoryMonitor, None, None
 
     Yields:
         Memory monitor instance
+
     """
     monitor = MemoryMonitor(interval)
     monitor.start()
@@ -150,6 +151,7 @@ async def stream_process_ast(
 
     Yields:
         Lists of processed AST nodes
+
     """
     nodes = list(ast.walk(node))
     chunks = [nodes[i : i + chunk_size] for i in range(0, len(nodes), chunk_size)]
@@ -157,9 +159,9 @@ async def stream_process_ast(
     for i, chunk in enumerate(chunks):
         # Process nodes in the chunk
         processed = []
-        for node in chunk:
+        for node_item in chunk:  # Renamed 'node' to 'node_item' to avoid conflict
             # Add your node processing logic here
-            processed.append(node)
+            processed.append(node_item)
 
         # Run garbage collection periodically
         if i > 0 and i % gc_interval == 0:
@@ -179,6 +181,7 @@ def profile_memory(func: Any) -> Any:
 
     Returns:
         Profiled function
+
     """
     if not HAS_MEMORY_TOOLS:
         logger.warning("memory_profiler not available, profiling disabled")

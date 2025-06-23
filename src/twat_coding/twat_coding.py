@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """twat_coding:
 
 Created by Adam Twardoch
@@ -43,6 +42,7 @@ def process_data(
 
     Raises:
         ValueError: If input data is invalid
+
     """
     if debug:
         logger.setLevel(logging.DEBUG)
