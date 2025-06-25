@@ -62,7 +62,7 @@ dependencies = [
     "toml>=0.10.2", # TOML parsing
     "types-toml>=0.10.8.7", # TOML type stubs
     "mypy-extensions>=1.0.0", # Type system features
-    "types-toml>=0.10.8.7", # Ensure types-toml is in core dependencies for mypy
+    "radon",
 
 ]
 
