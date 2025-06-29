@@ -164,7 +164,15 @@ dependencies = [
     "pytest>=8.0.0",
     "pytest-cov>=4.1.0",
     "uv", # Add uv for environment management if desired within hatch
+    "loguru>=0.7.2", # Explicitly add loguru here
+    "pydantic-settings>=2.1.0", # Explicitly add pydantic-settings
+    "docstring-parser>=0.15", # Explicitly add docstring-parser
+    "networkx>=3.2.1", # Explicitly add networkx
+    "toml>=0.10.2", # Explicitly add toml
+    "pydocstyle>=6.3.0", # Explicitly add pydocstyle
+    "radon>=6.0.1", # Explicitly add radon
 ]
+features = ["all"] # Ensure project + all extras are installed
 
 [tool.hatch.envs.default.scripts]
 test = "pytest {args:tests}"
@@ -336,9 +344,7 @@ dead-code = "vulture src/twat_coding tests --min-confidence 80"
 # 'all' script can be removed if 'check' and 'fmt' are preferred entry points
 
 [tool.hatch.envs.test] # This environment is implicitly used by `hatch run test`
-dependencies = [
-    ".[all]" # Install the project with all extras, ensuring dev/test deps are present
-]
+features = ["all"]
 # pytest, pytest-cov etc. are pulled from the project's "all" extra (which includes "test" extra).
 # Scripts for test environment are usually invoked directly via hatch run test:test-cov etc.
 
