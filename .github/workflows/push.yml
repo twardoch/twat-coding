@@ -63,8 +63,8 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.10", "3.11", "3.12"]
-        os: [ubuntu-latest, windows-latest, macos-latest]
-      fail-fast: false
+        os: [ubuntu-latest]
+      fail-fast: true
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
@@ -128,62 +128,4 @@ jobs:
         with:
           name: dist-files
           path: dist/
-          retention-days: 5
-
-  build-binaries:
-    name: Build Binaries
-    needs: test
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ["3.12"]
-    runs-on: ${{ matrix.os }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install UV
-        uses: astral-sh/setup-uv@v5
-        with:
-          version: "latest"
-          python-version: ${{ matrix.python-version }}
-          enable-cache: true
-
-      - name: Install dependencies and build tools
-        run: |
-          uv pip install --system -e ".[all]"
-          uv pip install --system pyinstaller
-
-      - name: Build binary (Linux/macOS)
-        if: runner.os != 'Windows'
-        run: |
-          uv run pyinstaller --onefile --name twat-coding-${{ runner.os }}-${{ runner.arch }} \
-            --add-data "src/twat_coding:twat_coding" \
-            --hidden-import twat_coding.pystubnik.cli \
-            --hidden-import twat_coding.pystubnik.config \
-            --hidden-import twat_coding.pystubnik.processors.stub_generation \
-            src/twat_coding/pystubnik/cli.py
-
-      - name: Build binary (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          uv run pyinstaller --onefile --name twat-coding-${{ runner.os }}-${{ runner.arch }}.exe \
-            --add-data "src/twat_coding;twat_coding" \
-            --hidden-import twat_coding.pystubnik.cli \
-            --hidden-import twat_coding.pystubnik.config \
-            --hidden-import twat_coding.pystubnik.processors.stub_generation \
-            src/twat_coding/pystubnik/cli.py
-
-      - name: Upload binary artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: binary-${{ runner.os }}-${{ runner.arch }}
-          path: dist/twat-coding-*
           retention-days: 5 
