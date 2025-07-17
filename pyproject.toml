@@ -94,6 +94,7 @@ dev = [
     "pre-commit>=3.6.0", # Git hooks
     "python-semantic-release>=8.7.0", # Version management
     "vulture>=2.10", # Dead code detection
+    "pyinstaller>=6.0.0", # Binary building
 
 ]
 docs = [
@@ -111,6 +112,7 @@ all = [
     "pre-commit>=3.6.0",
     "python-semantic-release>=8.7.0",
     "vulture>=2.10",
+    "pyinstaller>=6.0.0",
     "pytest>=8.0.0",
     "pytest-cov>=4.1.0",
     "pytest-asyncio>=0.23.5",
