@@ -9,7 +9,10 @@ import logging
 from dataclasses import dataclass
 from typing import Any
 
-__version__ = "0.1.0"
+try:
+    from twat_coding._version import __version__
+except ImportError:
+    __version__ = "0.0.1.dev0"
 
 # Configure logging
 logging.basicConfig(
