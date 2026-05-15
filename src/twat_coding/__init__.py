@@ -1,13 +1,8 @@
 """twat-coding: Python toolkit for code analysis and smart stub generation."""
 
 from __future__ import annotations
+from .__version__ import __version__  # noqa: F401
 
-from importlib.metadata import PackageNotFoundError, version
-
-try:
-    __version__ = version("twat-coding")
-except PackageNotFoundError:
-    __version__ = "0.0.0-dev"
 
 from .pystubnik.config import StubConfig
 from .pystubnik.processors.stub_generation import StubGenerator
