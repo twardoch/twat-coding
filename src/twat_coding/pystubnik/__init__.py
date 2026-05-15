@@ -334,8 +334,9 @@ class SmartStubGenerator:
             return ASTBackend(stub_config)
         if self.config.runtime.backend == Backend.MYPY:
             return MypyBackend(stub_gen_config)
+        msg = f"Unknown backend: {self.config.runtime.backend}"
         raise ConfigError(
-            f"Unknown backend: {self.config.runtime.backend}",
+            msg,
             ErrorCode.CONFIG_VALIDATION_ERROR,
         )
 
@@ -356,15 +357,11 @@ class SmartStubGenerator:
                 for processor in self.processors:
                     result = processor.process(result)
             else:
-                logger.error(
-                    f"Unexpected result type from generate_stub: {type(result)}"
-                )
+                logger.error(f"Unexpected result type from generate_stub: {type(result)}")
                 return
 
             # Write stub
-            output_path = (
-                self.config.paths.output_dir / file_path.with_suffix(".pyi").name
-            )
+            output_path = self.config.paths.output_dir / file_path.with_suffix(".pyi").name
             output_path.write_text(result.stub_content)
 
         except Exception as e:
@@ -375,9 +372,7 @@ class SmartStubGenerator:
     def generate(self) -> None:
         """Generate stubs according to configuration."""
         try:
-            logger.info(
-                f"Generating stubs using {self.config.runtime.backend.name} backend"
-            )
+            logger.info(f"Generating stubs using {self.config.runtime.backend.name} backend")
             logger.info(f"Output directory: {self.config.paths.output_dir}")
 
             # Create output directory
@@ -463,12 +458,14 @@ async def generate_stub(
     elif backend == "mypy":
         backend_obj = MypyBackend(stub_gen_config)
     else:
-        raise ValueError(f"Unsupported backend: {backend}")
+        msg = f"Unsupported backend: {backend}"
+        raise ValueError(msg)
 
     # Generate stub
     result = await backend_obj.generate_stub(source_path)
     if not isinstance(result, StubResult):
-        raise TypeError(f"Expected StubResult, got {type(result)}")
+        msg = f"Expected StubResult, got {type(result)}"
+        raise TypeError(msg)
 
     # Write stub if output path is specified
     if output_path_obj:

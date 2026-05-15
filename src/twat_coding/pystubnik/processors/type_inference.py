@@ -87,14 +87,13 @@ class TypeInferenceProcessor:
             }
 
         except Exception as e:
+            msg = f"Failed to infer types: {e}"
             raise TypeInferenceError(
-                f"Failed to infer types: {e}",
+                msg,
                 details={"node_type": type(node).__name__},
             ) from e
 
-    def _infer_from_assignments(
-        self, node: ast.AST, types: dict[str, TypeInfo]
-    ) -> None:
+    def _infer_from_assignments(self, node: ast.AST, types: dict[str, TypeInfo]) -> None:
         """Infer types from assignment statements.
 
         Args:
@@ -107,14 +106,10 @@ class TypeInferenceProcessor:
                 case ast.AnnAssign(target=ast.Name(id=name), annotation=annotation):
                     # Handle explicitly annotated assignments
                     try:
-                        type_info = self.type_registry.resolve_type(
-                            annotation, f"annotation:{name}"
-                        )
+                        type_info = self.type_registry.resolve_type(annotation, f"annotation:{name}")
                         types[name] = type_info
                     except Exception as e:
-                        logger.warning(
-                            f"Failed to resolve type annotation for {name}: {e}"
-                        )
+                        logger.warning(f"Failed to resolve type annotation for {name}: {e}")
 
                 case ast.Assign(targets=[ast.Name(id=name)], value=value):
                     # Infer from assigned value
@@ -185,9 +180,7 @@ class TypeInferenceProcessor:
 
                 if return_types:
                     types[child.name] = TypeInfo(
-                        annotation=next(iter(return_types))
-                        if len(return_types) == 1
-                        else Any,
+                        annotation=next(iter(return_types)) if len(return_types) == 1 else Any,
                         source="returns",
                         confidence=0.5,
                         metadata={"return_types": list(return_types)},

@@ -41,9 +41,7 @@ class ASTCacheEntry:
 class SignatureExtractor(ast.NodeTransformer):
     """Extract signatures and important code from AST nodes."""
 
-    def __init__(
-        self, config: StubGenConfig, file_size: int = 0, importance_score: float = 1.0
-    ) -> None:
+    def __init__(self, config: StubGenConfig, file_size: int = 0, importance_score: float = 1.0) -> None:
         """Initialize the extractor.
 
         Args:
@@ -72,11 +70,7 @@ class SignatureExtractor(ast.NodeTransformer):
 
         # Check if first statement is a docstring
         first = body[0]
-        if (
-            isinstance(first, ast.Expr)
-            and isinstance(first.value, ast.Constant)
-            and isinstance(first.value.value, str)
-        ):
+        if isinstance(first, ast.Expr) and isinstance(first.value, ast.Constant) and isinstance(first.value.value, str):
             return [first]  # Keep only docstring
         return []  # No docstring found
 
@@ -157,9 +151,7 @@ class ASTBackend(StubBackend):
         super().__init__()  # Object doesn't take any arguments
         self._config = config  # Store config for later use
         self.processors: list[Processor] = []  # List of processors to apply to stubs
-        self._node_registry: weakref.WeakValueDictionary[int, ast.AST] = (
-            weakref.WeakValueDictionary()
-        )
+        self._node_registry: weakref.WeakValueDictionary[int, ast.AST] = weakref.WeakValueDictionary()
 
         # Handle different config types
         if isinstance(config, StubConfig):
@@ -172,13 +164,9 @@ class ASTBackend(StubBackend):
             self.include_patterns = config.include_patterns
             self.exclude_patterns = config.exclude_patterns
         else:  # StubGenConfig or None
-            stub_config = config or StubGenConfig(
-                paths=PathConfig(), runtime=RuntimeConfig()
-            )
+            stub_config = config or StubGenConfig(paths=PathConfig(), runtime=RuntimeConfig())
             self._executor = ThreadPoolExecutor(
-                max_workers=stub_config.runtime.max_workers
-                if stub_config.runtime.parallel
-                else 1,
+                max_workers=stub_config.runtime.max_workers if stub_config.runtime.parallel else 1,
                 thread_name_prefix="ast_backend",
                 initializer=None,
                 initargs=(),
@@ -234,16 +222,12 @@ class ASTBackend(StubBackend):
             source = await self._run_in_executor(source_path.read_text)
 
             # Parse AST
-            tree = await self._run_in_executor(
-                functools.partial(ast.parse, source, filename=str(source_path))
-            )
+            tree = await self._run_in_executor(functools.partial(ast.parse, source, filename=str(source_path)))
             attach_parents(tree)
 
             # Transform AST
             stub_gen_config = (
-                self.config
-                if isinstance(self.config, StubGenConfig)
-                else convert_to_stub_gen_config(self.config)
+                self.config if isinstance(self.config, StubGenConfig) else convert_to_stub_gen_config(self.config)
             )
             transformer = SignatureExtractor(stub_gen_config, len(source))
             transformed = transformer.visit(tree)
@@ -329,8 +313,9 @@ class ASTBackend(StubBackend):
             return results
 
         except Exception as e:
+            msg = f"Failed to process directory {directory}: {e}"
             raise ASTError(
-                f"Failed to process directory {directory}: {e}",
+                msg,
                 ErrorCode.AST_PARSE_ERROR,
                 source=str(directory),
             ) from e

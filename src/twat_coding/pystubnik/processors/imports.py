@@ -105,16 +105,14 @@ class ImportProcessor(Processor):
         if not module_name:
             return ImportType.RELATIVE
 
-        base_module = module_name.split(".")[0]
+        base_module = module_name.split(".", maxsplit=1)[0]
         if base_module in self.stdlib_modules:
             return ImportType.STANDARD_LIB
         if "." in module_name:
             return ImportType.LOCAL
         return ImportType.THIRD_PARTY
 
-    def _group_imports(
-        self, imports: dict[str, ImportInfo]
-    ) -> dict[ImportType, list[ImportInfo]]:
+    def _group_imports(self, imports: dict[str, ImportInfo]) -> dict[ImportType, list[ImportInfo]]:
         """Group imports by their type.
 
         Args:
@@ -140,9 +138,7 @@ class ImportProcessor(Processor):
 
         return grouped
 
-    def _format_imports(
-        self, grouped_imports: dict[ImportType, list[ImportInfo]]
-    ) -> str:
+    def _format_imports(self, grouped_imports: dict[ImportType, list[ImportInfo]]) -> str:
         """Format grouped imports into a string.
 
         Args:
@@ -164,9 +160,7 @@ class ImportProcessor(Processor):
                 if import_info.is_from_import:
                     relative = "." * import_info.relative_level
                     names = ", ".join(sorted(import_info.imported_names))
-                    section.append(
-                        f"from {relative}{import_info.module_name} import {names}"
-                    )
+                    section.append(f"from {relative}{import_info.module_name} import {names}")
                 else:
                     section.append(f"import {import_info.module_name}")
 
@@ -196,9 +190,7 @@ class ImportProcessor(Processor):
             # Get the source up to the first import and after the last import
             source_lines = ast.unparse(tree).split("\n")
             first_import_line = min(
-                node.lineno
-                for node in ast.walk(tree)
-                if isinstance(node, ast.Import | ast.ImportFrom)
+                node.lineno for node in ast.walk(tree) if isinstance(node, ast.Import | ast.ImportFrom)
             )
             last_import_line = max(
                 node.end_lineno or node.lineno

@@ -9,11 +9,11 @@ from twat_coding.pystubnik.backends.mypy_backend import MypyBackend
 from twat_coding.pystubnik.config import StubConfig
 from twat_coding.pystubnik.core.config import Backend, PathConfig, StubGenConfig
 from twat_coding.pystubnik.core.conversion import convert_to_stub_gen_config
-from twat_coding.pystubnik.core.shared_types import TruncationConfig # Added
+from twat_coding.pystubnik.core.shared_types import TruncationConfig  # Added
 from twat_coding.pystubnik.processors.stub_generation import StubGenerator
 from twat_coding.pystubnik.types.docstring import DocstringTypeExtractor
 from twat_coding.pystubnik.types.type_system import TypeRegistry
-from twat_coding.pystubnik.utils.ast_utils import truncate_literal # Added
+from twat_coding.pystubnik.utils.ast_utils import truncate_literal  # Added
 
 
 @pytest.mark.asyncio  # type: ignore[misc]
@@ -216,7 +216,7 @@ def test_docstring_type_extraction() -> None:
 
     type_info = extractor._parse_type_string("Callable[[int, str], bool]")
     # Assuming Callable is treated as Any or a custom object for now if not fully resolved
-    assert type_info.annotation is not None # Basic check
+    assert type_info.annotation is not None  # Basic check
 
     type_info = extractor._parse_type_string("ForwardRef('MyClass')")
     # Check how forward references are handled (likely as unresolved or Any by current simple parser)
@@ -407,6 +407,7 @@ FLAG = True
 def test_truncate_literal_string() -> None:
     """Test string truncation."""
     import ast
+
     config = TruncationConfig(max_string_length=5, truncation_marker="...")
     node = ast.Constant(value="HelloWorld")
     truncated_node = truncate_literal(node, config)
@@ -422,7 +423,8 @@ def test_truncate_literal_string() -> None:
 def test_truncate_literal_bytes() -> None:
     """Test bytes truncation."""
     import ast
-    config = TruncationConfig(max_string_length=5, truncation_marker="...") # marker not used for bytes
+
+    config = TruncationConfig(max_string_length=5, truncation_marker="...")  # marker not used for bytes
     node = ast.Constant(value=b"HelloWorld")
     truncated_node = truncate_literal(node, config)
     assert isinstance(truncated_node, ast.Constant)
@@ -437,10 +439,11 @@ def test_truncate_literal_bytes() -> None:
 def test_truncate_literal_list() -> None:
     """Test list truncation."""
     import ast
+
     config = TruncationConfig(max_sequence_length=2, truncation_marker="...")
     elements = [ast.Constant(value=i) for i in range(5)]
     node = ast.List(elts=elements)
-    truncated_node = truncate_literal(node, config) # truncate_literal expects ast.AST
+    truncated_node = truncate_literal(node, config)  # truncate_literal expects ast.AST
 
     assert isinstance(truncated_node, ast.List)
     assert len(truncated_node.elts) == 3
@@ -458,6 +461,7 @@ def test_truncate_literal_list() -> None:
 def test_truncate_literal_dict() -> None:
     """Test dict truncation."""
     import ast
+
     config = TruncationConfig(max_sequence_length=1, truncation_marker="...")
     keys = [ast.Constant(value=f"key{i}") for i in range(3)]
     values = [ast.Constant(value=i) for i in range(3)]
@@ -468,7 +472,7 @@ def test_truncate_literal_dict() -> None:
     truncated_node = truncate_literal(node, config)
 
     assert isinstance(truncated_node, ast.Dict)
-    assert len(truncated_node.keys) == 2 # key0, "..."
+    assert len(truncated_node.keys) == 2  # key0, "..."
     assert isinstance(truncated_node.keys[0], ast.Constant) and truncated_node.keys[0].value == "key0"
     assert isinstance(truncated_node.values[0], ast.Constant) and truncated_node.values[0].value == 0
     assert isinstance(truncated_node.keys[1], ast.Constant) and truncated_node.keys[1].value == "..."

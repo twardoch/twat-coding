@@ -1,6 +1,14 @@
-"""twat_coding:
+"""twat_coding: Code analysis and stub-generation utilities for the twat ecosystem.
 
-Created by Adam Twardoch
+The main feature is **pystubnik** (in ``twat_coding/pystubnik/``), a tool that
+reads Python source files and produces *smart stubs* — condensed representations
+that keep type hints, docstrings, and key logic while stripping out verbose
+implementation details.  Smart stubs are smaller than full source but richer
+than standard ``.pyi`` type-stub files, making them useful for feeding large
+codebases to LLMs without exhausting the context window.
+
+This module (``twat_coding.py``) is a thin scaffold; the real logic lives in
+the ``pystubnik`` sub-package.
 """
 
 from __future__ import annotations
@@ -9,15 +17,16 @@ import logging
 from dataclasses import dataclass
 from typing import Any
 
+<<<<<<< Updated upstream
 try:
     from twat_coding._version import __version__
 except ImportError:
     __version__ = "0.0.1.dev0"
+=======
+>>>>>>> Stashed changes
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 
@@ -30,9 +39,7 @@ class Config:
     options: dict[str, Any] | None = None
 
 
-def process_data(
-    data: list[Any], config: Config | None = None, *, debug: bool = False
-) -> dict[str, Any]:
+def process_data(data: list[Any], config: Config | None = None, *, debug: bool = False) -> dict[str, Any]:
     """Process the input data according to configuration.
 
     Args:

@@ -15,10 +15,7 @@ import os
 from dataclasses import dataclass, field
 from typing import Any, TypeVar, cast
 
-import networkx as nx
 import toml
-from coverage import Coverage
-from pydocstyle import check as pydocstyle_check
 from radon.complexity import cc_visit
 
 # Type variables for better type safety
@@ -37,12 +34,8 @@ def _cast_or_default[T](value: Any, default: T) -> T:
 
 # Optional dependency error messages
 COVERAGE_MISSING = "coverage package not installed. Coverage analysis will be disabled."
-PYDOCSTYLE_MISSING = (
-    "pydocstyle package not installed. Documentation quality analysis will be disabled."
-)
-RADON_MISSING = (
-    "radon package not installed. Code complexity analysis will be disabled."
-)
+PYDOCSTYLE_MISSING = "pydocstyle package not installed. Documentation quality analysis will be disabled."
+RADON_MISSING = "radon package not installed. Code complexity analysis will be disabled."
 
 
 def _check_optional_dependencies() -> dict[str, bool]:
@@ -206,7 +199,7 @@ def _parse_imports_from_file(file: str, py_files: list[str]) -> list[tuple[str, 
     return edges
 
 
-def build_import_graph(package_dir: str, py_files: list[str]) -> nx.DiGraph:
+def build_import_graph(package_dir: str, py_files: list[str]) -> "nx.DiGraph":
     """Build the import graph using importlab and convert to networkx.
 
     Args:
@@ -217,6 +210,9 @@ def build_import_graph(package_dir: str, py_files: list[str]) -> nx.DiGraph:
         A networkx DiGraph representing the import dependencies
 
     """
+    # Lazy: keep top-level imports light so `twat coding --help` works without optional dev deps
+    import networkx as nx  # noqa: PLC0415
+
     # Create networkx graph
     G = nx.DiGraph()
     for file in py_files:
@@ -241,9 +237,7 @@ def calculate_complexity(file_path: str) -> float:
         complexities = cc_visit(code)
         if not complexities:
             return 0.0
-        total_complexity = sum(
-            _cast_or_default(c.complexity, 0.0) for c in complexities
-        )
+        total_complexity = sum(_cast_or_default(c.complexity, 0.0) for c in complexities)
         return total_complexity / len(complexities)
     except Exception:
         return 0.0
@@ -266,6 +260,9 @@ def calculate_coverage(file_path: str, coverage_data: str | None) -> float:
     if not coverage_data or not os.path.exists(coverage_data):
         return 0.0
     try:
+        # Lazy: keep top-level imports light so `twat coding --help` works without optional dev deps
+        from coverage import Coverage  # noqa: PLC0415
+
         cov = Coverage(data_file=coverage_data)
         cov.load()
         analysis = cov._analyze(file_path)
@@ -282,6 +279,9 @@ def calculate_doc_quality(file_path: str) -> float:
         return 0.0
 
     try:
+        # Lazy: keep top-level imports light so `twat coding --help` works without optional dev deps
+        from pydocstyle import check as pydocstyle_check  # noqa: PLC0415
+
         violations = list(pydocstyle_check([file_path], ignore=["D100", "D101"]))
         return max(0.0, 1.0 - (len(violations) / 10))
     except Exception:
@@ -289,7 +289,7 @@ def calculate_doc_quality(file_path: str) -> float:
 
 
 def _calculate_centrality(
-    G: nx.DiGraph,
+    G: "nx.DiGraph",
     py_files: list[str],
     centrality_measure: str,
     entry_points: dict[str, bool],
@@ -306,9 +306,10 @@ def _calculate_centrality(
         Dictionary mapping files to their centrality scores
 
     """
-    personalization_dict = {
-        file: 1.0 if entry_points[file] else 0.0 for file in py_files
-    }
+    # Lazy: keep top-level imports light so `twat coding --help` works without optional dev deps
+    import networkx as nx  # noqa: PLC0415
+
+    personalization_dict = {file: 1.0 if entry_points[file] else 0.0 for file in py_files}
 
     if centrality_measure == "pagerank":
         # If all values are 0, use uniform personalization
@@ -359,9 +360,7 @@ def _print_results(
         # Split long line into multiple lines for readability
 
 
-def prioritize_files(
-    package_dir: str, config: FileImportanceConfig
-) -> dict[str, float]:
+def prioritize_files(package_dir: str, config: FileImportanceConfig) -> dict[str, float]:
     """Analyze and prioritize .py files in the package based on multiple metrics.
 
     Args:
@@ -388,16 +387,12 @@ def prioritize_files(
     # Step 3: Calculate metrics
     centrality = _calculate_centrality(G, py_files, config.centrality, entry_points)
     complexity_scores = {file: calculate_complexity(file) for file in py_files}
-    coverage_scores = {
-        file: calculate_coverage(file, config.coverage_data) for file in py_files
-    }
+    coverage_scores = {file: calculate_coverage(file, config.coverage_data) for file in py_files}
     doc_scores = {file: calculate_doc_quality(file) for file in py_files}
 
     # Step 4: Normalize complexity
     max_complexity = max(complexity_scores.values(), default=1.0)
-    complexity_normalized = {
-        file: score / max_complexity for file, score in complexity_scores.items()
-    }
+    complexity_normalized = {file: score / max_complexity for file, score in complexity_scores.items()}
 
     # Step 5: Compute composite scores
     weights = config.weights
@@ -440,9 +435,7 @@ def load_config(config_file: str | None) -> dict[str, Any]:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description=(
-            "Prioritize .py files in a Python package based on multiple metrics."
-        )
+        description=("Prioritize .py files in a Python package based on multiple metrics.")
     )
     parser.add_argument("package_dir", help="Path to the package directory")
     parser.add_argument("--config", help="Path to configuration JSON file")

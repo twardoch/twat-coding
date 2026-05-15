@@ -96,9 +96,7 @@ class ImportProcessor(Protocol):
 class DocstringProcessor(Protocol):
     """Protocol for docstring processing."""
 
-    def process_docstring(
-        self, docstring: str | None, context: dict[str, Any]
-    ) -> tuple[str | None, dict[str, Any]]:
+    def process_docstring(self, docstring: str | None, context: dict[str, Any]) -> tuple[str | None, dict[str, Any]]:
         """Process a docstring and extract type information."""
         ...
 

@@ -133,9 +133,7 @@ class DocstringProcessor(Processor):
             # Extract parameter types
             for param in docstring.params:
                 if param.type_name:
-                    arg = next(
-                        (a for a in function.args if a.name == param.arg_name), None
-                    )
+                    arg = next((a for a in function.args if a.name == param.arg_name), None)
                     if arg:
                         # Update arg type if found in docstring
                         object.__setattr__(arg, "type", param.type_name)

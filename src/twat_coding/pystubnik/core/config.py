@@ -90,9 +90,7 @@ class RuntimeConfig:
     """Configuration for runtime behavior."""
 
     backend: Backend = Backend.HYBRID
-    python_version: tuple[int, int] = field(
-        default_factory=lambda: sys.version_info[:2]
-    )
+    python_version: tuple[int, int] = field(default_factory=lambda: sys.version_info[:2])
     interpreter: Path = field(default_factory=lambda: Path(sys.executable))
     no_import: bool = False
     inspect: bool = False
@@ -177,9 +175,8 @@ class StubGenConfig:
             output_path = self.paths.output_dir / rel_path
             return source_path, output_path
         except ValueError as e:
-            raise ValueError(
-                f"Source file {source_path} is not within output directory {self.paths.output_dir}"
-            ) from e
+            msg = f"Source file {source_path} is not within output directory {self.paths.output_dir}"
+            raise ValueError(msg) from e
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "StubGenConfig":
@@ -198,10 +195,7 @@ class StubGenConfig:
     def to_dict(self) -> dict[str, Any]:
         """Convert configuration to a dictionary."""
         return {
-            "paths": {
-                k: str(v) if isinstance(v, Path) else v
-                for k, v in self.paths.__dict__.items()
-            },
+            "paths": {k: str(v) if isinstance(v, Path) else v for k, v in self.paths.__dict__.items()},
             "runtime": self.runtime.__dict__,
             "processing": self.processing.__dict__,
             "truncation": self.truncation.__dict__,

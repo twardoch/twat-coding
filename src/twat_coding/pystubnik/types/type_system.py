@@ -128,7 +128,8 @@ class TypeRegistry:
             if origin is Annotated:
                 args = get_args(resolved)
                 if not args:
-                    raise TypeInferenceError("Empty Annotated type")
+                    msg = "Empty Annotated type"
+                    raise TypeInferenceError(msg)
                 base_type, *metadata = args
                 type_info = TypeInfo(
                     annotation=base_type,
@@ -156,9 +157,7 @@ class TypeRegistry:
                     confidence=1.0,
                     metadata={
                         "attributes": {
-                            name: get_type_hints(resolved)[name]
-                            for name in dir(resolved)
-                            if not name.startswith("_")
+                            name: get_type_hints(resolved)[name] for name in dir(resolved) if not name.startswith("_")
                         }
                     },
                 )
@@ -187,8 +186,9 @@ class TypeRegistry:
             return type_info
 
         except Exception as e:
+            msg = f"Failed to resolve type {type_hint}: {e}"
             raise TypeInferenceError(
-                f"Failed to resolve type {type_hint}: {e}",
+                msg,
                 details={"context": context},
             ) from e
 
@@ -212,7 +212,8 @@ class TypeRegistry:
 
         """
         if not types:
-            raise TypeInferenceError("No types to merge")
+            msg = "No types to merge"
+            raise TypeInferenceError(msg)
         if len(types) == 1:
             return types[0]
 
@@ -243,8 +244,9 @@ class TypeRegistry:
             )
 
         except Exception as e:
+            msg = f"Failed to merge types: {e}"
             raise TypeInferenceError(
-                f"Failed to merge types: {e}",
+                msg,
                 details={"types": [str(t.annotation) for t in types]},
             ) from e
 
@@ -290,11 +292,7 @@ def _is_protocol(resolved: Any) -> bool:
 
     """
     try:
-        return (
-            isinstance(resolved, type)
-            and hasattr(resolved, "__mro__")
-            and Protocol in resolved.__mro__
-        )
+        return isinstance(resolved, type) and hasattr(resolved, "__mro__") and Protocol in resolved.__mro__
     except (AttributeError, TypeError):
         return False
 

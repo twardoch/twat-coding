@@ -45,9 +45,7 @@ def convert_to_stub_gen_config(config: StubConfig | None = None) -> StubGenConfi
     runtime = RuntimeConfig(
         backend=Backend.AST if config.backend == "ast" else Backend.MYPY,
         python_version=config.python_version,
-        interpreter=Path(config.interpreter)
-        if isinstance(config.interpreter, str)
-        else config.interpreter,
+        interpreter=Path(config.interpreter) if isinstance(config.interpreter, str) else config.interpreter,
         no_import=config.no_import,
         inspect=config.inspect,
         parse_only=config.parse_only,

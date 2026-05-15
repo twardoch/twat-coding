@@ -189,9 +189,7 @@ class ImportTracker:
 
     def __init__(self) -> None:
         self.imports: dict[str, set[str]] = {}  # module -> names
-        self.import_froms: dict[
-            str, dict[str, str | None]
-        ] = {}  # module -> {name -> alias}
+        self.import_froms: dict[str, dict[str, str | None]] = {}  # module -> {name -> alias}
         self.explicit_imports: set[str] = set()  # Explicitly requested imports
 
     def add_import(self, module: str, name: str | None = None) -> None:
@@ -202,9 +200,7 @@ class ImportTracker:
             self.imports.setdefault(module, set())
         self.explicit_imports.add(module)
 
-    def add_import_from(
-        self, module: str, names: Sequence[tuple[str, str | None]]
-    ) -> None:
+    def add_import_from(self, module: str, names: Sequence[tuple[str, str | None]]) -> None:
         """Add a from-import."""
         self.import_froms.setdefault(module, {}).update(dict(names))
 
@@ -225,10 +221,7 @@ class ImportTracker:
         for module in sorted(self.import_froms):
             name_map = self.import_froms[module]
             if name_map:
-                items = ", ".join(
-                    f"{name} as {alias}" if alias else name
-                    for name, alias in sorted(name_map.items())
-                )
+                items = ", ".join(f"{name} as {alias}" if alias else name for name, alias in sorted(name_map.items()))
                 lines.append(f"from {module} import {items}")
 
         return lines
@@ -238,7 +231,7 @@ def setup_logging(level: str = "INFO") -> None:
     """Configure logging for the package."""
     logger.remove()  # Remove default handler
     logger.add(
-        lambda msg: print(msg),
+        print,
         level=level,
         format=(
             "<green>{time:HH:mm:ss}</green> | "

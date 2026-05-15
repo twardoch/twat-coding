@@ -55,9 +55,7 @@ def _truncate_bytes(b: bytes, config: TruncationConfig) -> bytes:
     return b[: config.max_string_length] + b"..."
 
 
-def _truncate_sequence(
-    node: ast.List | ast.Set | ast.Tuple, config: TruncationConfig
-) -> ast.AST:
+def _truncate_sequence(node: ast.List | ast.Set | ast.Tuple, config: TruncationConfig) -> ast.AST:
     """Truncate a sequence (list, set, tuple) according to config.
 
     Args:
@@ -123,9 +121,7 @@ def truncate_literal(node: ast.AST, config: TruncationConfig) -> ast.AST:
     match node:
         case ast.Constant(value=str() as s):
             if len(s) > config.max_string_length:
-                result = ast.Constant(
-                    value=f"{s[: config.max_string_length]}{config.truncation_marker}"
-                )
+                result = ast.Constant(value=f"{s[: config.max_string_length]}{config.truncation_marker}")
         case ast.Constant(value=bytes() as b):
             return ast.Constant(value=_truncate_bytes(b, config))
 

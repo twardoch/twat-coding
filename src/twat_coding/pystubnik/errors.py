@@ -3,6 +3,26 @@
 from enum import Enum
 from typing import Any
 
+try:
+    from twat.common.exceptions import TwatError
+except ImportError:
+    # Fallback: allow twat_coding to work standalone without the host package
+    class TwatError(Exception):  # type: ignore[no-redef]
+        """Fallback base exception when twat host package is not installed."""
+
+        def __init__(
+            self,
+            message: str = "",
+            *,
+            context: dict[str, Any] | None = None,
+            cause: BaseException | None = None,
+        ) -> None:
+            self.context = context or {}
+            self.cause = cause
+            if cause is not None:
+                self.__cause__ = cause
+            super().__init__(message)
+
 
 class ErrorCode(str, Enum):
     """Error codes for stub generation."""
@@ -38,7 +58,7 @@ class ErrorCode(str, Enum):
     PROC_INTERRUPT_ERROR = "PROC003"  # Processing interrupted
 
 
-class StubGenerationError(Exception):
+class StubGenerationError(TwatError):
     """Base class for all stub generation errors."""
 
     def __init__(

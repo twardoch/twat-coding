@@ -67,16 +67,18 @@ uv pip install twat-coding[all]
 
 ### Command-Line Interface (CLI)
 
-The primary way to use `pystubnik` is through its command-line interface, which is also available via the `twat-coding` command (which internally calls `pystubnik`'s CLI functionality).
+The primary way to use `pystubnik` is through its command-line interface, which is also available via the `twat-coding` command (which internally calls `pystubnik`'s CLI functionality). When installed with the `twat` host package, the plugin entry point is `coding`, so `twat coding ...` dispatches to the same `pystubnik` CLI.
 
 **Generate stubs for a single file:**
 ```bash
 twat-coding generate path/to/your/file.py --output-path path/to/your/output_stub.pyi
+twat coding generate path/to/your/file.py --output-path path/to/your/output_stub.pyi
 ```
 
 **Generate stubs for an entire directory:**
 ```bash
 twat-coding generate-dir path/to/your_package/ --output-dir path/to/stubs_output/
+twat coding generate-dir path/to/your_package/ --output-dir path/to/stubs_output/
 ```
 
 **Key Options:**
@@ -87,6 +89,8 @@ twat-coding generate-dir path/to/your_package/ --output-dir path/to/stubs_output
 For a full list of CLI options and commands, run:
 ```bash
 twat-coding --help
+python -m twat_coding --help
+twat coding --help
 ```
 
 ### Python API (`StubGenerator`)

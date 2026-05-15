@@ -72,9 +72,7 @@ class ImportanceProcessor(Processor):
             if not self._file_scores:
                 try:
                     package_dir = str(stub_result.source_path.parent)
-                    self._file_scores = prioritize_files(
-                        package_dir, self.config.file_importance
-                    )
+                    self._file_scores = prioritize_files(package_dir, self.config.file_importance)
                 except Exception as e:
                     logger.warning(f"Failed to calculate file importance: {e}")
 
@@ -84,9 +82,7 @@ class ImportanceProcessor(Processor):
             # Adjust stub result's importance score
             stub_result.importance_score = file_score
             stub_result.metadata["file_score"] = file_score
-            stub_result.metadata["importance_level"] = self._get_importance_level(
-                file_score
-            )
+            stub_result.metadata["importance_level"] = self._get_importance_level(file_score)
 
             # Process individual symbols
             tree = ast.parse(stub_result.stub_content)
@@ -97,17 +93,14 @@ class ImportanceProcessor(Processor):
                         name=node.name,
                         docstring=docstring,
                         is_public=not node.name.startswith("_"),
-                        is_special=node.name.startswith("__")
-                        and node.name.endswith("__"),
+                        is_special=node.name.startswith("__") and node.name.endswith("__"),
                         extra_info={"file_path": stub_result.source_path},
                     )
 
                     # Store symbol metadata
                     symbol_key = f"{node.__class__.__name__.lower()}_{node.name}"
                     stub_result.metadata[f"{symbol_key}_score"] = score
-                    stub_result.metadata[f"{symbol_key}_level"] = (
-                        self._get_importance_level(score)
-                    )
+                    stub_result.metadata[f"{symbol_key}_level"] = self._get_importance_level(score)
 
                     # For low importance functions, replace body with ellipsis
                     if score < 0.7 and isinstance(node, ast.FunctionDef):
@@ -117,9 +110,7 @@ class ImportanceProcessor(Processor):
             stub_result.stub_content = ast.unparse(tree)
 
         except Exception as e:
-            logger.warning(
-                f"Error processing importance in {stub_result.source_path}: {e}"
-            )
+            logger.warning(f"Error processing importance in {stub_result.source_path}: {e}")
 
         return stub_result
 
@@ -205,9 +196,7 @@ class ImportanceProcessor(Processor):
             visibility_score = self._calculate_visibility_score(is_public, is_special)
 
             # Combine scores
-            final_score = (
-                file_score * pattern_score * docstring_score * visibility_score
-            )
+            final_score = file_score * pattern_score * docstring_score * visibility_score
 
             # Ensure score is between 0 and 1
             return max(min(final_score, 1.0), 0.0)

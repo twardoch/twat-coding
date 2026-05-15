@@ -48,9 +48,7 @@ class MemoryMonitor:
 
         """
         if not HAS_MEMORY_TOOLS:
-            logger.warning(
-                "psutil and memory_profiler not available, memory monitoring disabled"
-            )
+            logger.warning("psutil and memory_profiler not available, memory monitoring disabled")
             return
 
         self.interval = interval
@@ -83,8 +81,7 @@ class MemoryMonitor:
                     )
                     self._stats.append(stats)
                     logger.debug(
-                        f"Memory usage: RSS={stats.rss / 1024 / 1024:.1f}MB, "
-                        f"VMS={stats.vms / 1024 / 1024:.1f}MB"
+                        f"Memory usage: RSS={stats.rss / 1024 / 1024:.1f}MB, VMS={stats.vms / 1024 / 1024:.1f}MB"
                     )
                 except Exception as e:
                     logger.error(f"Failed to collect memory stats: {e}")

@@ -84,9 +84,7 @@ class DocstringTypeExtractor:
 
         """
         self.type_registry = type_registry
-        self._param_pattern = re.compile(
-            r":param\s+(\w+)\s*:\s*(?:\(([^)]+)\))?\s*([^\n]+)"
-        )
+        self._param_pattern = re.compile(r":param\s+(\w+)\s*:\s*(?:\(([^)]+)\))?\s*([^\n]+)")
         self._type_pattern = re.compile(r":type\s+(\w+)\s*:\s*([^\n]+)")
         self._rtype_pattern = re.compile(r":rtype:\s*([^\n]+)")
         self._returns_pattern = re.compile(r":returns?:\s*([^\n]+)")
@@ -102,9 +100,7 @@ class DocstringTypeExtractor:
                     type_info = self._parse_type_string(param.type_name)
                     param_types[param.arg_name] = type_info
                 except TypeInferenceError as e:
-                    logger.warning(
-                        f"Failed to parse type for parameter {param.arg_name}: {e}"
-                    )
+                    logger.warning(f"Failed to parse type for parameter {param.arg_name}: {e}")
         return param_types
 
     def _extract_return_type(self, doc: Any) -> TypeInfo | None:
@@ -134,9 +130,7 @@ class DocstringTypeExtractor:
                     exc_type = self._parse_type_string(raises_section.type_name)
                     raises.append((exc_type, raises_section.description or ""))
                 except TypeInferenceError as e:
-                    logger.warning(
-                        f"Failed to parse exception type {raises_section.type_name}: {e}"
-                    )
+                    logger.warning(f"Failed to parse exception type {raises_section.type_name}: {e}")
         return raises
 
     def extract_types(
@@ -206,7 +200,8 @@ class DocstringTypeExtractor:
 
         types = [self._parse_type_string(t.strip()) for t in type_str.split(" or ")]
         if not types:
-            raise TypeInferenceError("Empty union type")
+            msg = "Empty union type"
+            raise TypeInferenceError(msg)
         if len(types) == 1:
             return types[0]
 
@@ -309,6 +304,5 @@ class DocstringTypeExtractor:
             )
 
         except Exception as e:
-            raise TypeInferenceError(
-                f"Failed to parse type string '{type_str}': {e}"
-            ) from e
+            msg = f"Failed to parse type string '{type_str}': {e}"
+            raise TypeInferenceError(msg) from e

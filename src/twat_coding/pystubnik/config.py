@@ -30,8 +30,9 @@ class FileLocations(BaseModel):
     def validate_source_path(cls, v: Path) -> Path:
         """Validate source file exists."""
         if not v.exists():
+            msg = "Source file does not exist"
             raise ConfigError(
-                "Source file does not exist",
+                msg,
                 ErrorCode.CONFIG_VALIDATION_ERROR,
                 source=str(v),
             )
@@ -42,8 +43,9 @@ class FileLocations(BaseModel):
     def validate_input_dir(cls, v: Path) -> Path:
         """Validate input directory exists."""
         if not v.exists():
+            msg = "Input directory does not exist"
             raise ConfigError(
-                "Input directory does not exist",
+                msg,
                 ErrorCode.CONFIG_VALIDATION_ERROR,
                 source=str(v),
             )
@@ -57,8 +59,9 @@ class FileLocations(BaseModel):
             v.mkdir(parents=True, exist_ok=True)
             return v
         except Exception as e:
+            msg = f"Failed to create output directory: {e}"
             raise ConfigError(
-                f"Failed to create output directory: {e}",
+                msg,
                 ErrorCode.CONFIG_IO_ERROR,
                 source=str(v),
             ) from e
@@ -70,8 +73,9 @@ class FileLocations(BaseModel):
             rel_path = self.source_path.relative_to(self.input_dir)
             return self.output_dir / rel_path
         except ValueError as e:
+            msg = f"Source file {self.source_path} is not within input directory {self.input_dir}"
             raise ConfigError(
-                f"Source file {self.source_path} is not within input directory {self.input_dir}",
+                msg,
                 ErrorCode.CONFIG_VALIDATION_ERROR,
             ) from e
 
@@ -80,8 +84,9 @@ class FileLocations(BaseModel):
         # Create output directory and verify permissions
         self.output_path.parent.mkdir(parents=True, exist_ok=True)
         if not os.access(self.output_path.parent, os.W_OK):
+            msg = f"No write permission: {self.output_path.parent}"
             raise ConfigError(
-                f"No write permission: {self.output_path.parent}",
+                msg,
                 ErrorCode.CONFIG_IO_ERROR,
                 source=str(self.output_path.parent),
             )
@@ -300,8 +305,9 @@ class RuntimeConfig(BaseSettings):
             path.mkdir(parents=True, exist_ok=True)
             return path
         except Exception as e:
+            msg = f"Failed to create cache directory: {e}"
             raise ConfigError(
-                f"Failed to create cache directory: {e}",
+                msg,
                 ErrorCode.CONFIG_IO_ERROR,
                 source=str(v),
             ) from e

@@ -45,9 +45,7 @@ class PystubnikCLI:
         """
         input_file = Path(input_path)
         if not input_file.exists():
-            self.console.print(
-                f"[red]Error: Input file {input_path} does not exist[/red]"
-            )
+            self.console.print(f"[red]Error: Input file {input_path} does not exist[/red]")
             return
 
         # Load config from file if provided
@@ -55,9 +53,7 @@ class PystubnikCLI:
         if config_file:
             config_path = Path(config_file)
             if not config_path.exists():
-                self.console.print(
-                    f"[red]Error: Config file {config_file} does not exist[/red]"
-                )
+                self.console.print(f"[red]Error: Config file {config_file} does not exist[/red]")
                 return
             # TODO: Load config from file
 
@@ -78,16 +74,12 @@ class PystubnikCLI:
 
         # Generate stub
         with self.progress:
-            task = self.progress.add_task(
-                f"Generating stub for {input_path}...", total=None
-            )
+            task = self.progress.add_task(f"Generating stub for {input_path}...", total=None)
             try:
                 stub_content = generator.generate_stub(input_file)
                 Path(output_path).write_text(stub_content)
                 self.progress.remove_task(task)
-                self.console.print(
-                    f"[green]Successfully generated stub at {output_path}[/green]"
-                )
+                self.console.print(f"[green]Successfully generated stub at {output_path}[/green]")
             except Exception as e:
                 self.progress.remove_task(task)
                 self.console.print(f"[red]Error generating stub: {e}[/red]")
@@ -110,9 +102,7 @@ class PystubnikCLI:
         """
         input_path = Path(input_dir)
         if not input_path.exists():
-            self.console.print(
-                f"[red]Error: Input directory {input_dir} does not exist[/red]"
-            )
+            self.console.print(f"[red]Error: Input directory {input_dir} does not exist[/red]")
             return
 
         # Create output directory if not provided
@@ -126,9 +116,7 @@ class PystubnikCLI:
         if config_file:
             config_path = Path(config_file)
             if not config_path.exists():
-                self.console.print(
-                    f"[red]Error: Config file {config_file} does not exist[/red]"
-                )
+                self.console.print(f"[red]Error: Config file {config_file} does not exist[/red]")
                 return
             # TODO: Load config from file
 
@@ -167,9 +155,7 @@ class PystubnikCLI:
                     self.console.print(f"[red]Error processing {py_file}: {e}[/red]")
 
             self.progress.remove_task(task)
-            self.console.print(
-                f"[green]Successfully generated stubs in {output_dir}[/green]"
-            )
+            self.console.print(f"[green]Successfully generated stubs in {output_dir}[/green]")
 
 
 def main() -> None:

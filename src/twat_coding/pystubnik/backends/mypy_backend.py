@@ -35,4 +35,5 @@ class MypyBackend(StubBackend):
 
         """
         # TODO: Implement MyPy stub generation
-        raise NotImplementedError("MyPy backend not yet implemented")
+        msg = "MyPy backend not yet implemented"
+        raise NotImplementedError(msg)

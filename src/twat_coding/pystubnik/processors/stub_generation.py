@@ -118,20 +118,12 @@ class StubVisitor(NodeVisitor):
         elif node.module == "typing":
             # Combine all typing imports into one
             names = sorted(name.name for name in node.names)
-            if any(
-                imp
-                for imp in self.imports["typing"]
-                if isinstance(imp, ImportFrom) and imp.module == "typing"
-            ):
+            if any(imp for imp in self.imports["typing"] if isinstance(imp, ImportFrom) and imp.module == "typing"):
                 existing = next(
-                    imp
-                    for imp in self.imports["typing"]
-                    if isinstance(imp, ImportFrom) and imp.module == "typing"
+                    imp for imp in self.imports["typing"] if isinstance(imp, ImportFrom) and imp.module == "typing"
                 )
                 existing_names = {name.name for name in existing.names}
-                new_names = [
-                    alias(name=name) for name in sorted(set(names) | existing_names)
-                ]
+                new_names = [alias(name=name) for name in sorted(set(names) | existing_names)]
                 existing.names = new_names
             else:
                 self.imports["typing"].append(node)
@@ -144,32 +136,26 @@ class StubVisitor(NodeVisitor):
 
         # Standard library imports first
         stdlib_imports: list[Import | ImportFrom] = sorted(  # Explicit type
-            self.imports["stdlib"], key=lambda x: self._get_import_name(x)
+            self.imports["stdlib"], key=self._get_import_name
         )
         sorted_imports.extend(self._format_import(imp) for imp in stdlib_imports)
 
         # Pathlib imports next
-        pathlib_imports = sorted(
-            self.imports["pathlib"], key=lambda x: self._get_import_name(x)
-        )
+        pathlib_imports = sorted(self.imports["pathlib"], key=self._get_import_name)
         if pathlib_imports:
             if sorted_imports:
                 sorted_imports.append("")
             sorted_imports.extend(self._format_import(imp) for imp in pathlib_imports)
 
         # Typing imports
-        typing_imports = sorted(
-            self.imports["typing"], key=lambda x: self._get_import_name(x)
-        )
+        typing_imports = sorted(self.imports["typing"], key=self._get_import_name)
         if typing_imports:
             if sorted_imports:
                 sorted_imports.append("")
             sorted_imports.extend(self._format_import(imp) for imp in typing_imports)
 
         # Local imports last
-        local_imports = sorted(
-            self.imports["local"], key=lambda x: self._get_import_name(x)
-        )
+        local_imports = sorted(self.imports["local"], key=self._get_import_name)
         if local_imports:
             if sorted_imports:
                 sorted_imports.append("")
@@ -181,9 +167,7 @@ class StubVisitor(NodeVisitor):
         """Get the import name for sorting."""
         if isinstance(node, Import):
             return node.names[0].name
-        return (
-            f"{node.module}.{node.names[0].name}" if node.module else node.names[0].name
-        )
+        return f"{node.module}.{node.names[0].name}" if node.module else node.names[0].name
 
     def _format_import(self, node: Import | ImportFrom) -> str:  # Use Union
         """Format an import node as a string."""
@@ -254,9 +238,7 @@ class StubGenerator:
         """
         return should_include_member(name, self.config.include_private)
 
-    def generate_stub(
-        self, source_file: str | Path, ast_tree: AST | None = None
-    ) -> str:
+    def generate_stub(self, source_file: str | Path, ast_tree: AST | None = None) -> str:
         """Generate a stub file from the given source file or AST.
 
         Args:
@@ -275,7 +257,8 @@ class StubGenerator:
             ast_tree = parse(source)
 
         if not isinstance(ast_tree, Module):
-            raise ValueError("AST must be a Module node")
+            msg = "AST must be a Module node"
+            raise ValueError(msg)
 
         attach_parents(ast_tree)
 
@@ -403,18 +386,14 @@ class StubGenerator:
                 arg_str += f": {self._format_annotation(arg_node.annotation)}"
             # Add default value if present
             arg_idx = node.args.args.index(arg_node)
-            if node.args.defaults and arg_idx >= len(node.args.args) - len(
-                node.args.defaults
-            ):
+            if node.args.defaults and arg_idx >= len(node.args.args) - len(node.args.defaults):
                 default_idx = arg_idx - (len(node.args.args) - len(node.args.defaults))
                 default_value = self._format_annotation(node.args.defaults[default_idx])
                 arg_str += f" = {default_value}"
             args_parts.append(arg_str)
 
         args_str = ", ".join(args_parts)
-        returns_str = (
-            f" -> {self._format_annotation(node.returns)}" if node.returns else ""
-        )
+        returns_str = f" -> {self._format_annotation(node.returns)}" if node.returns else ""
 
         func_def = f"def {node.name}({args_str}){returns_str}:"
         lines.append(func_def)
@@ -493,9 +472,7 @@ class StubGenerator:
         names_part = f"import {', '.join(sorted(alias.name for alias in node.names))}"
         return f"{from_part} {names_part}"
 
-    def _sort_imports(
-        self, imports: list[Import | ImportFrom]
-    ) -> list[str]:  # Use List and Union
+    def _sort_imports(self, imports: list[Import | ImportFrom]) -> list[str]:  # Use List and Union
         """Sort import statements."""
         stdlib_imports: list[Import | ImportFrom] = []  # Explicit type
         typing_imports: list[Import | ImportFrom] = []  # Explicit type
@@ -536,9 +513,7 @@ class StubGenerator:
 
         return sorted_imports
 
-    def _import_sort_key(
-        self, node: Import | ImportFrom
-    ) -> tuple[int, str, str]:  # Use Union and Tuple
+    def _import_sort_key(self, node: Import | ImportFrom) -> tuple[int, str, str]:  # Use Union and Tuple
         """Generate a sort key for import statements.
 
         Args:
@@ -550,20 +525,12 @@ class StubGenerator:
         """
         if isinstance(node, Import):
             module_path = node.names[0].name
-            import_type = (
-                1
-                if any(module_path.startswith(imp) for imp in self.ESSENTIAL_IMPORTS)
-                else 2
-            )
+            import_type = 1 if any(module_path.startswith(imp) for imp in self.ESSENTIAL_IMPORTS) else 2
             return (import_type, module_path, "")
         module_path = node.module or ""
         if node.level > 0:
             module_path = "." * node.level + module_path
-        import_type = (
-            1
-            if any(module_path.startswith(imp) for imp in self.ESSENTIAL_IMPORTS)
-            else 2
-        )
+        import_type = 1 if any(module_path.startswith(imp) for imp in self.ESSENTIAL_IMPORTS) else 2
         return (import_type, module_path, node.names[0].name)
 
     def _ensure_node_attributes(self, node: AST) -> None:
@@ -599,9 +566,7 @@ class StubGenerator:
         """
         # Add header if configured
         header = (
-            '"""# Generated by pystubnik\n# Do not edit this file directly\n\n"""\n'
-            if self.config.add_header
-            else ""
+            '"""# Generated by pystubnik\n# Do not edit this file directly\n\n"""\n' if self.config.add_header else ""
         )
 
         # Convert AST to source code
@@ -618,9 +583,7 @@ class StubGenerator:
         # Add header and return
         return header + source
 
-    def _collect_imports(
-        self, node: Module
-    ) -> list[tuple[str, str]]:  # Use List and Tuple
+    def _collect_imports(self, node: Module) -> list[tuple[str, str]]:  # Use List and Tuple
         """Collect and sort imports from a module.
 
         Args:
@@ -638,24 +601,18 @@ class StubGenerator:
 
         # Process each import
         for child in node.body:
-            if isinstance(child, Import | ImportFrom) and self._should_keep_import(
-                child
-            ):
+            if isinstance(child, Import | ImportFrom) and self._should_keep_import(child):
                 if isinstance(child, ImportFrom):
                     module = child.module or ""
                     names = sorted(n.name for n in child.names)
                     if module == "typing":
                         typing_imports.append(f"from typing import {', '.join(names)}")
                     elif module == "pathlib":
-                        pathlib_imports.append(
-                            f"from pathlib import {', '.join(names)}"
-                        )
+                        pathlib_imports.append(f"from pathlib import {', '.join(names)}")
                     elif module.startswith("."):
                         local_imports.append(f"from {module} import {', '.join(names)}")
                     else:
-                        stdlib_imports.append(
-                            f"from {module} import {', '.join(names)}"
-                        )
+                        stdlib_imports.append(f"from {module} import {', '.join(names)}")
                 else:
                     names = sorted(n.name for n in child.names)
                     import_str = f"import {', '.join(names)}"
@@ -690,15 +647,7 @@ class StubGenerator:
 
         """
         if isinstance(node, Import):
-            return any(
-                name.name in self.ESSENTIAL_IMPORTS or not name.name.startswith("_")
-                for name in node.names
-            )
+            return any(name.name in self.ESSENTIAL_IMPORTS or not name.name.startswith("_") for name in node.names)
         if node.level > 0:  # Always keep relative imports
             return True
-        return bool(
-            node.module
-            and (
-                node.module in self.ESSENTIAL_IMPORTS or not node.module.startswith("_")
-            )
-        )
+        return bool(node.module and (node.module in self.ESSENTIAL_IMPORTS or not node.module.startswith("_")))
