@@ -119,13 +119,16 @@ all = [
     "sphinx>=7.2.6",
     "sphinx-rtd-theme>=2.0.0",
     "sphinx-autodoc-typehints>=2.0.0",
-    "myst-parser>=3.0.0"
+    "myst-parser>=3.0.0",
+    "twat-fs[all]>=2.7.7",
 ]
-
 #------------------------------------------------------------------------------
 # BUILD SYSTEM CONFIGURATION
 # Defines the tools required to build the package.
 #------------------------------------------------------------------------------
+fs = [
+    "twat-fs[all]>=2.7.7",
+]
 [build-system]
 requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
