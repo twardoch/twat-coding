@@ -211,7 +211,7 @@ def build_import_graph(package_dir: str, py_files: list[str]) -> "nx.DiGraph":
 
     """
     # Lazy: keep top-level imports light so `twat coding --help` works without optional dev deps
-    import networkx as nx  # noqa: PLC0415
+    import networkx as nx
 
     # Create networkx graph
     G = nx.DiGraph()
@@ -261,7 +261,7 @@ def calculate_coverage(file_path: str, coverage_data: str | None) -> float:
         return 0.0
     try:
         # Lazy: keep top-level imports light so `twat coding --help` works without optional dev deps
-        from coverage import Coverage  # noqa: PLC0415
+        from coverage import Coverage
 
         cov = Coverage(data_file=coverage_data)
         cov.load()
@@ -280,7 +280,7 @@ def calculate_doc_quality(file_path: str) -> float:
 
     try:
         # Lazy: keep top-level imports light so `twat coding --help` works without optional dev deps
-        from pydocstyle import check as pydocstyle_check  # noqa: PLC0415
+        from pydocstyle import check as pydocstyle_check
 
         violations = list(pydocstyle_check([file_path], ignore=["D100", "D101"]))
         return max(0.0, 1.0 - (len(violations) / 10))
@@ -307,7 +307,7 @@ def _calculate_centrality(
 
     """
     # Lazy: keep top-level imports light so `twat coding --help` works without optional dev deps
-    import networkx as nx  # noqa: PLC0415
+    import networkx as nx
 
     personalization_dict = {file: 1.0 if entry_points[file] else 0.0 for file in py_files}
 

@@ -17,14 +17,6 @@ import logging
 from dataclasses import dataclass
 from typing import Any
 
-<<<<<<< Updated upstream
-try:
-    from twat_coding._version import __version__
-except ImportError:
-    __version__ = "0.0.1.dev0"
-=======
->>>>>>> Stashed changes
-
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)

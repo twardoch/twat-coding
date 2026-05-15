@@ -1,7 +1,7 @@
 """twat-coding: Python toolkit for code analysis and smart stub generation."""
 
 from __future__ import annotations
-from .__version__ import __version__  # noqa: F401
+from .__version__ import __version__
 
 
 from .pystubnik.config import StubConfig
