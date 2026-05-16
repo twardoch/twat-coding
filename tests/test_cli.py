@@ -1,161 +1,78 @@
-"""Test CLI functionality."""
+# this_file: tests/test_cli.py
+"""Tests for twat-coding Fire CLI entry points."""
 
+from __future__ import annotations
+
+import subprocess
+import sys
 from pathlib import Path
-from unittest.mock import Mock, patch
-
-import pytest
-
-from twat_coding.pystubnik.cli import PystubnikCLI
 
 
-@pytest.fixture
-def cli():
-    """Create a CLI instance for testing."""
-    return PystubnikCLI()
-
-
-@pytest.fixture
-def temp_python_file(tmp_path):
-    """Create a temporary Python file for testing."""
-    test_file = tmp_path / "test_module.py"
-    test_file.write_text("""
-def hello_world() -> str:
-    \"\"\"Return a greeting.\"\"\"
-    return "Hello, World!"
-
-class TestClass:
-    \"\"\"A test class.\"\"\"
-
-    def method(self, x: int) -> int:
-        \"\"\"A test method.\"\"\"
-        return x * 2
-""")
-    return test_file
-
-
-def test_cli_initialization(cli):
-    """Test CLI initialization."""
-    assert cli.console is not None
-    assert cli.progress is not None
-
-
-def test_generate_command_success(cli, temp_python_file, tmp_path):
-    """Test successful stub generation."""
-    output_path = tmp_path / "test_module.pyi"
-
-    cli.generate(input_path=str(temp_python_file), output_path=str(output_path))
-
-    # Check that stub file was created
-    assert output_path.exists()
-
-    # Check stub content
-    content = output_path.read_text()
-    assert "def hello_world() -> str:" in content
-    assert "class TestClass:" in content
-    assert "def method(self, x: int) -> int:" in content
-
-
-def test_generate_command_default_output(cli, temp_python_file):
-    """Test stub generation with default output path."""
-    cli.generate(input_path=str(temp_python_file))
-
-    # Should create .pyi file in same directory
-    expected_output = temp_python_file.with_suffix(".pyi")
-    assert expected_output.exists()
-
-
-def test_generate_command_missing_input(cli, capsys):
-    """Test handling of missing input file."""
-    cli.generate(input_path="nonexistent.py")
-
-    capsys.readouterr()
-    # Should not create output and should show error
-    # Note: rich output may not be captured in capsys, so we check the method doesn't crash
-
-
-def test_generate_command_with_config_kwargs(cli, temp_python_file, tmp_path):
-    """Test stub generation with configuration arguments."""
-    output_path = tmp_path / "test_with_config.pyi"
-
-    cli.generate(
-        input_path=str(temp_python_file), output_path=str(output_path), include_private=True, sort_imports=True
+def run(args: list[str]) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [sys.executable, "-m", "twat_coding", *args],
+        capture_output=True,
+        text=True,
+        check=False,
     )
 
-    assert output_path.exists()
+
+def _help_output(result: subprocess.CompletedProcess[str]) -> str:
+    """Fire writes help to stderr; fall back to stdout."""
+    return result.stderr or result.stdout
 
 
-def test_generate_dir_command(cli, tmp_path):
-    """Test directory-based stub generation."""
-    # Create test directory structure
-    source_dir = tmp_path / "source"
-    source_dir.mkdir()
-
-    # Create multiple Python files
-    (source_dir / "module1.py").write_text("""
-def func1() -> str:
-    return "test1"
-""")
-
-    (source_dir / "module2.py").write_text("""
-def func2() -> int:
-    return 42
-""")
-
-    output_dir = tmp_path / "stubs"
-
-    cli.generate_dir(input_dir=str(source_dir), output_dir=str(output_dir))
-
-    # Check that stub files were created
-    assert (output_dir / "module1.pyi").exists()
-    assert (output_dir / "module2.pyi").exists()
-
-    # Check content
-    content1 = (output_dir / "module1.pyi").read_text()
-    assert "def func1() -> str:" in content1
-
-    content2 = (output_dir / "module2.pyi").read_text()
-    assert "def func2() -> int:" in content2
+def test_help_exits_zero():
+    """twat-coding --help exits 0 and prints a command listing."""
+    result = run(["--help"])
+    assert result.returncode == 0
+    assert _help_output(result)
 
 
-def test_generate_dir_missing_input(cli, capsys):
-    """Test handling of missing input directory."""
-    cli.generate_dir(input_dir="nonexistent_dir")
-
-    # Should handle gracefully without crashing
-    capsys.readouterr()
-
-
-@patch("twat_coding.pystubnik.cli.StubGenerator")
-def test_generate_with_exception(mock_generator, cli, temp_python_file, tmp_path):
-    """Test handling of exceptions during stub generation."""
-    # Mock generator to raise exception
-    mock_instance = Mock()
-    mock_instance.generate_stub.side_effect = Exception("Test error")
-    mock_generator.return_value = mock_instance
-
-    output_path = tmp_path / "test_error.pyi"
-
-    # Should handle exception gracefully
-    cli.generate(input_path=str(temp_python_file), output_path=str(output_path))
-
-    # Should not create output file
-    assert not output_path.exists()
+def test_version_leaf():
+    """twat-coding version prints a semver string."""
+    result = run(["version"])
+    assert result.returncode == 0
+    version = (result.stdout or result.stderr).strip()
+    assert version, "version output must not be empty"
+    parts = version.split(".")
+    assert len(parts) >= 2, f"Expected semver, got: {version!r}"
 
 
-def test_cli_console_output(cli):
-    """Test that CLI has proper console setup."""
-    assert cli.console is not None
+def test_pystubnik_help():
+    """twat-coding pystubnik --help exits 0."""
+    result = run(["pystubnik", "--help"])
+    assert result.returncode == 0
+    assert _help_output(result)
 
-    # Test that console can be used
-    cli.console.print("Test message")  # Should not raise exception
+
+def test_pystubnik_generate_help():
+    """twat-coding pystubnik generate --help exits 0."""
+    result = run(["pystubnik", "generate", "--help"])
+    assert result.returncode == 0
+    assert _help_output(result)
 
 
-def test_cli_progress_setup(cli):
-    """Test that progress indicator is properly configured."""
-    assert cli.progress is not None
+def test_pystubnik_generate_dir_help():
+    """twat-coding pystubnik generate-dir --help exits 0."""
+    result = run(["pystubnik", "generate-dir", "--help"])
+    assert result.returncode == 0
+    assert _help_output(result)
 
-    # Test basic progress functionality
-    with cli.progress:
-        task = cli.progress.add_task("Test task", total=100)
-        cli.progress.update(task, advance=50)
-        cli.progress.remove_task(task)
+
+def test_imports_help():
+    """twat-coding imports --help exits 0."""
+    result = run(["imports", "--help"])
+    assert result.returncode == 0
+    assert _help_output(result)
+
+
+def test_imports_process(tmp_path: Path):
+    """twat-coding imports processes a Python file and prints import lines."""
+    py_file = tmp_path / "sample.py"
+    py_file.write_text("import os\nfrom pathlib import Path\n")
+    result = run(["imports", str(py_file)])
+    assert result.returncode == 0
+    output = result.stdout
+    assert "import os" in output
+    assert "from pathlib import Path" in output

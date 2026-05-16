@@ -251,6 +251,8 @@ ignore = [
     "PLR0913",
     "PLR0915",
     "PLR2004",
+    "PLC0415",
+    "PLW1510",
     "S311",
     "S603",
     "S607",
@@ -293,7 +295,7 @@ warn_unreachable = true # Ensure all code is reachable
 # Pytest configuration
 [tool.pytest.ini_options]
 minversion = "8.0"
-addopts = "-ra -q --cov=twat_coding --cov-report=term-missing --cov-report=xml --cov-report=html"
+addopts = "-ra -q"
 testpaths = ["tests"]
 python_files = "test_*.py"
 python_classes = "Test*"
@@ -312,7 +314,10 @@ markers = [
 
 # CLI entry points
 [project.scripts]
-twat-coding = "twat_coding.pystubnik.cli:main"
+twat-coding              = "twat_coding.__main__:main"
+twat-coding-version      = "twat_coding.__main__:cmd_version"
+twat-coding-pystubnik    = "twat_coding.__main__:cmd_pystubnik"
+twat-coding-imports      = "twat_coding.__main__:cmd_imports"
 
 # Plugin entry points
 [project.entry-points."twat.plugins"]
