@@ -32,36 +32,35 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
 
-# Author information
+# Core dependencies (must come BEFORE [[project.authors]] — otherwise TOML
+# attaches them to the author table, not [project])
+dependencies = [
+    "pydantic>=2.6.1",
+    "pydantic-settings>=2.1.0",
+    "loguru>=0.7.2",
+    "rich>=13.7.0",
+    "fire>=0.5.0",
+    "click>=8.1.7",
+    "psutil>=5.9.8",
+    "memory-profiler>=0.61.0",
+    "docstring-parser>=0.15",
+    "mypy>=1.8.0",
+    "black>=24.1.1",
+    "isort>=5.13.2",
+    "networkx>=3.2.1",
+    "radon>=6.0.1",
+    "coverage>=7.4.1",
+    "pydocstyle>=6.3.0",
+    "importlab>=0.8",
+    "toml>=0.10.2",
+    "types-toml>=0.10.8.7",
+    "mypy-extensions>=1.0.0",
+]
+
+# Author information (MUST be last in [project] before sub-tables like [project.urls])
 [[project.authors]]
 name = "Adam Twardoch"
 email = "adam@twardoch.com"
-# Core dependencies
-dependencies = [
-    "pydantic>=2.6.1", # Data validation
-    "pydantic-settings>=2.1.0", # Settings management
-    "loguru>=0.7.2", # Logging
-    "rich>=13.7.0", # Terminal formatting
-    "fire>=0.5.0", # CLI framework
-    "click>=8.1.7", # CLI utilities
-    "psutil>=5.9.8", # System monitoring
-    "memory-profiler>=0.61.0", # Memory profiling
-    "docstring-parser>=0.15", # Parse docstrings
-    "mypy>=1.8.0", # Type checking
-    "black>=24.1.1", # Code formatting
-    "isort>=5.13.2", # Import sorting
-    # File importance analysis dependencies
-    "networkx>=3.2.1", # Import graph analysis
-    "radon>=6.0.1", # Code complexity metrics
-    "coverage>=7.4.1", # Test coverage analysis
-    "pydocstyle>=6.3.0", # Docstring quality checks
-    "importlab>=0.8", # Import graph building
-    "toml>=0.10.2", # TOML parsing
-    "types-toml>=0.10.8.7", # TOML type stubs
-    "mypy-extensions>=1.0.0", # Type system features
-    "radon",
-
-]
 
 # Project URLs
 [project.urls]
